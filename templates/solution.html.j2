@@ -1,0 +1,120 @@
+<meta charset="utf-8">
+<title>{{ exam_title }} {{ exam_round }} 정답 및 해설</title>
+<style>
+@page { size: A4; margin: 17mm 15mm 18mm 15mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  font-size: 9.6pt; line-height: 1.58; color: #000; margin: 0;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+p { margin: 0 0 3.2pt; }
+
+/* ── 표지 ───────────────────────────────── */
+.cover { height: 246mm; display: flex; flex-direction: column;
+         align-items: center; justify-content: center; text-align: center;
+         break-after: page; }
+.cover .brand { font-size: 12pt; letter-spacing: 6pt; color: #444; margin-bottom: 6mm; }
+.cover .rule { width: 62mm; border-top: 1.6pt solid #111; margin: 0 0 9mm; }
+.cover h1 { font-size: 29pt; font-weight: 800; letter-spacing: 2pt; margin: 0 0 5mm; }
+.cover h2 { font-size: 15pt; font-weight: 600; color: #333; margin: 0 0 12mm; letter-spacing: 3pt; }
+.cover .tag { font-size: 17pt; font-weight: 700; border: 1.4pt solid #111;
+              padding: 4mm 14mm; letter-spacing: 4pt; }
+
+/* ── 빠른 정답 ──────────────────────────── */
+.quick { break-after: page; }
+.quick h3 { text-align: center; font-size: 14pt; letter-spacing: 4pt; margin: 0 0 6mm; }
+.quick-wrap { display: flex; gap: 5mm; justify-content: center; }
+table.qk { border-collapse: collapse; font-size: 9.2pt; }
+table.qk th, table.qk td { border: 0.5pt solid #333; padding: 1.5mm 3mm; text-align: center; }
+table.qk th { background: #efefef; font-weight: 700; }
+table.qk td.n { font-weight: 700; background: #f7f7f7; }
+table.qk td.a { font-weight: 700; font-size: 10pt; }
+.dist { margin-top: 7mm; text-align: center; font-size: 9.3pt; color: #333; }
+
+/* ── 영역 헤더 ──────────────────────────── */
+.area-header { border-top: 2pt solid #111; border-bottom: 0.7pt solid #111;
+               padding: 1.6mm 0; margin: 7mm 0 4mm; text-align: center;
+               font-size: 12pt; font-weight: 800; letter-spacing: 5pt;
+               break-after: avoid; }
+.area-header:first-child { margin-top: 0; }
+
+/* ── 해설 항목 ──────────────────────────── */
+.sol { margin-bottom: 5mm; break-inside: avoid; }
+.sol-head { display: flex; align-items: baseline; gap: 3mm;
+            border-bottom: 0.7pt solid #111; padding-bottom: 1.2mm; margin-bottom: 2mm; }
+.sol-no { font-size: 12pt; font-weight: 800; }
+.sol-ans { font-size: 12pt; font-weight: 800; }
+.sol-type { font-size: 8.6pt; color: #fff; background: #555;
+            padding: 0.5mm 2.2mm; border-radius: 2pt; }
+.sol-stem { font-size: 8.9pt; color: #555; margin-left: auto; text-align: right;
+            max-width: 108mm; }
+.sol-body { margin-bottom: 2mm; }
+.sol-body p { margin-bottom: 3.4pt; }
+.oh { font-weight: 700; font-size: 9.2pt; margin: 2.4mm 0 1.2mm; }
+ul.each { list-style: none; margin: 0; padding: 0; }
+ul.each li { padding-left: 4.6mm; text-indent: -4.6mm; margin-bottom: 1mm;
+             font-size: 9.2pt; color: #222; }
+ul.each li.ok { font-weight: 700; color: #000; }
+
+table.data { border-collapse: collapse; font-size: 8.8pt; margin: 1.5mm 0; }
+table.data caption { font-weight: 700; text-align: left; margin-bottom: 1.2mm; }
+table.data th, table.data td { border: 0.5pt solid #333; padding: 1mm 1.6mm; text-align: center; }
+table.data th { background: #efefef; }
+code { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; }
+</style>
+
+{# ─────────────────────────── 표지 ─────────────────────────── #}
+<div class="cover">
+  <div class="brand">공기업 채용대비</div>
+  <div class="rule"></div>
+  <h1>NCS 봉투모의고사</h1>
+  <h2>{{ exam_round }}</h2>
+  <div class="tag">정답 및 해설</div>
+</div>
+
+{# ─────────────────────── 빠른 정답 ────────────────────────── #}
+<div class="quick">
+  <h3>빠 른 정 답</h3>
+  <div class="quick-wrap">
+    {% set per = (answers|length / 3)|round(0, 'ceil')|int %}
+    {% for chunk in range(3) %}
+    <table class="qk">
+      <tr><th>번호</th><th>정답</th></tr>
+      {% for no, a in answers[chunk*per:(chunk+1)*per] %}
+      <tr><td class="n">{{ '%02d'|format(no) }}</td><td class="a">{{ circled[a-1] }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endfor %}
+  </div>
+  <div class="dist">
+    정답 분포 —
+    {% for i in range(1, 6) %}
+    {{ circled[i-1] }} {{ dist.get(i, 0) }}개{% if not loop.last %} / {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{# ─────────────────────── 문항별 해설 ──────────────────────── #}
+{% for b in blocks %}
+  {% if b.show_area %}<div class="area-header">{{ b.area }}</div>{% endif %}
+  {% for q in b.questions %}
+  <div class="sol">
+    <div class="sol-head">
+      <span class="sol-no">{{ '%02d'|format(q.no) }}</span>
+      <span class="sol-ans">{{ circled[q.answer - 1] }}</span>
+      {% if q.type %}<span class="sol-type">{{ q.type }}</span>{% endif %}
+      <span class="sol-stem">{{ q.stem }}</span>
+    </div>
+    <div class="sol-body">{{ q.explain }}</div>
+    {% if q.each %}
+    <div class="oh">선택지 해설</div>
+    <ul class="each">
+      {% for e in q.each %}
+      <li{% if loop.index == q.answer %} class="ok"{% endif %}>{{ e }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endfor %}

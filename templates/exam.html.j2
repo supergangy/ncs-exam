@@ -1,0 +1,184 @@
+<meta charset="utf-8">
+<title>{{ exam_title }} {{ exam_round }}</title>
+<style>
+@page { size: A4; margin: 17mm 15mm 18mm 15mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  font-size: 9.8pt; line-height: 1.55; color: #000; margin: 0;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+p { margin: 0 0 3.2pt; }
+
+/* ── 표지 ───────────────────────────────── */
+.cover { height: 246mm; display: flex; flex-direction: column;
+         align-items: center; justify-content: center; text-align: center;
+         break-after: page; }
+.cover .brand { font-size: 12pt; letter-spacing: 6pt; color: #444; margin-bottom: 6mm; }
+.cover .rule { width: 62mm; border-top: 1.6pt solid #111; margin: 0 0 9mm; }
+.cover h1 { font-size: 31pt; font-weight: 800; letter-spacing: 2pt; margin: 0 0 5mm; }
+.cover h2 { font-size: 15pt; font-weight: 600; color: #333; margin: 0 0 14mm; letter-spacing: 3pt; }
+.cover .meta { font-size: 11pt; color: #222; line-height: 2; margin-bottom: 16mm; }
+.cover .idbox { border: 1pt solid #111; padding: 6mm 12mm; }
+.cover .idbox table { border-collapse: collapse; }
+.cover .idbox td { padding: 3mm 5mm; font-size: 10.5pt; }
+.cover .idbox td.lab { font-weight: 700; border-right: 0.6pt solid #999; }
+.cover .idbox td.blank { width: 46mm; border-bottom: 0.6pt solid #666; }
+
+/* ── 안내면 ─────────────────────────────── */
+.info { break-after: page; }
+.info h3 { font-size: 14pt; text-align: center; margin: 0 0 3mm; letter-spacing: 2pt; }
+.info .sub { text-align: center; color: #555; font-size: 9.5pt; margin-bottom: 8mm; }
+.info table.plan { width: 100%; border-collapse: collapse; margin-bottom: 8mm; font-size: 9.5pt; }
+.info table.plan th, .info table.plan td { border: 0.6pt solid #333; padding: 2mm 2mm; text-align: center; }
+.info table.plan th { background: #eee; font-weight: 700; }
+.info ol { margin: 0; padding-left: 6mm; }
+.info li { margin-bottom: 2.2mm; }
+.notice { border: 1pt solid #111; padding: 5mm 6mm; }
+.notice .t { font-weight: 700; margin-bottom: 3mm; font-size: 10.5pt; }
+
+/* ── 영역 헤더 ──────────────────────────── */
+.area-header { border-top: 2pt solid #111; border-bottom: 0.7pt solid #111;
+               padding: 1.6mm 0; margin: 7mm 0 4mm; text-align: center;
+               font-size: 12pt; font-weight: 800; letter-spacing: 5pt;
+               break-after: avoid; }
+.area-header:first-child { margin-top: 0; }
+
+/* ── 문항 ──────────────────────────────── */
+.qset { margin-bottom: 2mm; }
+.lead { font-weight: 700; margin: 4mm 0 2.2mm; break-after: avoid; }
+.question { margin-bottom: 5.5mm; break-inside: avoid; }
+.stem { margin-bottom: 2mm; padding-left: 6.6mm; text-indent: -6.6mm; break-after: avoid; }
+.qno { font-weight: 800; margin-right: 1.6mm; }
+.choices { list-style: none; margin: 1.6mm 0 0; padding: 0; break-inside: avoid; break-before: avoid; }
+.choices.c2 { column-count: 2; column-gap: 7mm; }
+.choices li { padding-left: 5.2mm; text-indent: -5.2mm; margin-bottom: 1mm;
+              break-inside: avoid; -webkit-column-break-inside: avoid; }
+.choices .m { font-weight: 600; }
+
+/* ── 지문·자료 ─────────────────────────── */
+.passage, .material { margin: 0 0 2.5mm; }
+.passage { font-family: 'Batang', 'Noto Serif KR', serif; font-size: 9.6pt;
+           line-height: 1.72; text-align: justify; border: 0.7pt solid #444;
+           padding: 4mm 5mm; }
+.passage p { margin-bottom: 4pt; text-indent: 0; }
+.material { font-size: 9.5pt; }
+.material > p { text-align: justify; }
+u.ref { text-underline-offset: 2pt; }
+
+.box { border: 0.7pt solid #333; padding: 3mm 4mm; margin: 2.2mm 0; break-inside: avoid; }
+.box-title { text-align: center; font-weight: 700; margin-bottom: 1.8mm; }
+.box p { margin-bottom: 2.4pt; }
+
+table.data { border-collapse: collapse; width: 100%; font-size: 8.9pt; margin: 1.5mm 0 1mm; }
+table.data caption { font-weight: 700; text-align: left; margin-bottom: 1.2mm; font-size: 9.3pt; }
+table.data th, table.data td { border: 0.5pt solid #333; padding: 1.1mm 1.4mm; text-align: center; }
+table.data th { background: #efefef; font-weight: 700; }
+
+table.excel { border-collapse: collapse; font-size: 8.6pt; margin: 2mm auto; }
+table.excel th, table.excel td { border: 0.4pt solid #999; padding: 0.9mm 2.2mm; }
+table.excel th { background: #e6e6e6; text-align: center; font-weight: 700; }
+
+p.note { font-size: 8.5pt; margin: 0.6mm 0 0; line-height: 1.4; }
+p.unit { text-align: right; font-size: 8.5pt; margin: 0 0 0.5mm; }
+code { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; }
+
+/* ── OMR ───────────────────────────────── */
+.omr { break-before: page; }
+.omr h3 { text-align: center; font-size: 13pt; letter-spacing: 4pt; margin: 0 0 6mm; }
+.omr-wrap { display: flex; gap: 6mm; justify-content: center; }
+table.omr-t { border-collapse: collapse; font-size: 8.6pt; }
+table.omr-t th, table.omr-t td { border: 0.5pt solid #333; padding: 1.1mm 1.6mm; text-align: center; }
+table.omr-t th { background: #efefef; }
+table.omr-t td.n { font-weight: 700; background: #f7f7f7; width: 9mm; }
+</style>
+
+{# ─────────────────────────── 표지 ─────────────────────────── #}
+<div class="cover">
+  <div class="brand">공기업 채용대비</div>
+  <div class="rule"></div>
+  <h1>NCS 봉투모의고사</h1>
+  <h2>{{ exam_round }}</h2>
+  <div class="meta">
+    국가직무능력표준 기반 직업기초능력평가<br>
+    <strong>{{ total_q }}문항 / {{ total_min }}분</strong>
+  </div>
+  <div class="idbox">
+    <table>
+      <tr><td class="lab">수험번호</td><td class="blank"></td></tr>
+      <tr><td class="lab">성&nbsp;&nbsp;&nbsp;&nbsp;명</td><td class="blank"></td></tr>
+    </table>
+  </div>
+</div>
+
+{# ─────────────────────────── 안내면 ────────────────────────── #}
+<div class="info">
+  <h3>시험 안내</h3>
+  <div class="sub">문제 풀이 시작과 종료 시각을 정한 후 실전처럼 풀어 보십시오.</div>
+
+  <table class="plan">
+    <tr><th>구분</th><th>영역</th><th>문항 수</th><th>문항 번호</th></tr>
+    {% set ns = namespace(start=1) %}
+    {% for area, cnt in areas %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ area }}</td>
+      <td>{{ cnt }}문항</td>
+      <td>{{ '%02d'|format(ns.start) }} ~ {{ '%02d'|format(ns.start + cnt - 1) }}</td>
+    </tr>
+    {% set ns.start = ns.start + cnt %}
+    {% endfor %}
+    <tr><th colspan="2">합계</th><th>{{ total_q }}문항</th><th>{{ total_min }}분</th></tr>
+  </table>
+
+  <div class="notice">
+    <div class="t">수험생 유의사항</div>
+    <ol>
+      <li>답안지의 해당란에 수험번호와 성명을 정확히 기재하십시오.</li>
+      <li>모든 문항은 5지선다형이며, 각 문항당 하나의 답만 고르십시오.</li>
+      <li>영역별 풀이 시간은 자율적으로 배분하되, 전체 {{ total_min }}분을 넘기지 마십시오.</li>
+      <li>계산이 필요한 문항은 문두에 제시된 반올림·절사 조건을 반드시 확인하십시오.</li>
+      <li>자료 아래의 각주(※)에 계산식·적용 범위·예외 규정이 제시되는 경우가 있습니다.</li>
+      <li>시험이 시작되기 전까지 문제지를 넘기지 마십시오.</li>
+    </ol>
+  </div>
+</div>
+
+{# ─────────────────────────── 문항 ─────────────────────────── #}
+{% for b in blocks %}
+  {% if b.show_area %}<div class="area-header">{{ b.area }}</div>{% endif %}
+  <div class="qset">
+    {% if b.lead %}<div class="lead">{{ b.lead }}</div>{% endif %}
+    {% if b.passage %}<div class="passage">{{ b.passage }}</div>{% endif %}
+    {% for q in b.questions %}
+    <div class="question">
+      <div class="stem"><span class="qno">{{ '%02d'|format(q.no) }}</span>{{ q.stem }}</div>
+      {% if q.material %}<div class="material">{{ q.material }}</div>{% endif %}
+      <ul class="choices{% if q.cols == 2 %} c2{% endif %}">
+        {% for c in q.choices %}
+        <li><span class="m">{{ circled[loop.index0] }}</span> {{ c }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+
+{# ─────────────────────────── OMR ──────────────────────────── #}
+<div class="omr">
+  <h3>답 안 지</h3>
+  <div class="omr-wrap">
+    {% set per = (questions|length / 3)|round(0, 'ceil')|int %}
+    {% for chunk in range(3) %}
+    <table class="omr-t">
+      <tr><th>번호</th><th colspan="5">답 란</th></tr>
+      {% for q in questions[chunk*per:(chunk+1)*per] %}
+      <tr>
+        <td class="n">{{ '%02d'|format(q.no) }}</td>
+        {% for m in circled %}<td>{{ m }}</td>{% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+    {% endfor %}
+  </div>
+</div>
