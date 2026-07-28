@@ -170,7 +170,7 @@ BLOCKS = [
                 "type": "사례판정",
                 "stem": "위 공고문을 토대로 할 때, &lt;보기&gt;의 A~E 중 지원 대상으로 선정될 수 있는 사업장을 모두 고르면?",
                 "material": (
-                    '<div class="box"><div class="box-title">&lt;보기&gt;</div></div>'
+                    '<div class="box"><div class="box-title">&lt;보기&gt;</div>'
                     '<table class="data">'
                     "<tr><th>구분</th><th>월평균<br>전력사용량</th><th>사업자등록<br>경과기간</th>"
                     "<th>국고보조금 지원 이력</th><th>신청 품목</th><th>전기요금<br>체납</th></tr>"
@@ -180,6 +180,7 @@ BLOCKS = [
                     "<tr><td>D사</td><td>3,000kWh</td><td>5년</td><td>없음</td><td>폐열회수설비</td><td>없음</td></tr>"
                     "<tr><td>E사</td><td>5,000kWh</td><td>6년</td><td>없음</td><td>LED 조명</td><td>7개월</td></tr>"
                     "</table>"
+                    "</div>"
                 ),
                 "choices": ["A사, C사", "A사, D사", "B사, D사", "A사, D사, E사", "C사, D사, E사"],
                 "answer": 2,
