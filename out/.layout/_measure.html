@@ -1,0 +1,561 @@
+<meta charset="utf-8">
+<title>공기업 NCS 봉투모의고사 실전모의고사 제1회</title>
+<style>
+@page { size: A4; margin: 17mm 15mm 18mm 15mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  font-size: 9.8pt; line-height: 1.55; color: #000; margin: 0;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+p { margin: 0 0 3.2pt; }
+
+/* ── 표지 ───────────────────────────────── */
+.cover { height: 246mm; display: flex; flex-direction: column;
+         align-items: center; justify-content: center; text-align: center;
+         break-after: page; }
+.cover .brand { font-size: 12pt; letter-spacing: 6pt; color: #444; margin-bottom: 6mm; }
+.cover .rule { width: 62mm; border-top: 1.6pt solid #111; margin: 0 0 9mm; }
+.cover h1 { font-size: 31pt; font-weight: 800; letter-spacing: 2pt; margin: 0 0 5mm; }
+.cover h2 { font-size: 15pt; font-weight: 600; color: #333; margin: 0 0 14mm; letter-spacing: 3pt; }
+.cover .meta { font-size: 11pt; color: #222; line-height: 2; margin-bottom: 16mm; }
+.cover .idbox { border: 1pt solid #111; padding: 6mm 12mm; }
+.cover .idbox table { border-collapse: collapse; }
+.cover .idbox td { padding: 3mm 5mm; font-size: 10.5pt; }
+.cover .idbox td.lab { font-weight: 700; border-right: 0.6pt solid #999; }
+.cover .idbox td.blank { width: 46mm; border-bottom: 0.6pt solid #666; }
+
+/* ── 안내면 ─────────────────────────────── */
+.info { break-after: page; }
+.info h3 { font-size: 14pt; text-align: center; margin: 0 0 3mm; letter-spacing: 2pt; }
+.info .sub { text-align: center; color: #555; font-size: 9.5pt; margin-bottom: 8mm; }
+.info table.plan { width: 100%; border-collapse: collapse; margin-bottom: 8mm; font-size: 9.5pt; }
+.info table.plan th, .info table.plan td { border: 0.6pt solid #333; padding: 2mm 2mm; text-align: center; }
+.info table.plan th { background: #eee; font-weight: 700; }
+.info ol { margin: 0; padding-left: 6mm; }
+.info li { margin-bottom: 2.2mm; }
+.notice { border: 1pt solid #111; padding: 5mm 6mm; }
+.notice .t { font-weight: 700; margin-bottom: 3mm; font-size: 10.5pt; }
+
+/* ── 영역 헤더 ──────────────────────────── */
+.area-header { border-top: 2pt solid #111; border-bottom: 0.7pt solid #111;
+               padding: 1.6mm 0; margin: 7mm 0 4mm; text-align: center;
+               font-size: 12pt; font-weight: 800; letter-spacing: 5pt;
+               break-after: avoid; }
+.area-header:first-child { margin-top: 0; }
+
+/* ── 문항 ──────────────────────────────── */
+/* .qset 자체에는 break-inside:avoid 를 걸지 않는다. 펼침 배치에서
+   지문(.qhead) 뒤에 의도적으로 면을 넘겨야 하기 때문이다.
+   대신 지문 묶음과 개별 문항을 각각 통째로 유지한다. */
+.qset { margin-bottom: 2mm; }
+.qhead { break-inside: avoid; break-after: avoid; }
+.lead { font-weight: 700; margin: 4mm 0 2.2mm; break-after: avoid; }
+.question { margin-bottom: 5.5mm; break-inside: avoid; }
+.stem { margin-bottom: 2mm; padding-left: 6.6mm; text-indent: -6.6mm; break-after: avoid; }
+.qno { font-weight: 800; margin-right: 1.6mm; }
+.choices { list-style: none; margin: 1.6mm 0 0; padding: 0; break-inside: avoid; break-before: avoid; }
+.choices.c2 { column-count: 2; column-gap: 7mm; }
+.choices li { padding-left: 5.2mm; text-indent: -5.2mm; margin-bottom: 1mm;
+              break-inside: avoid; -webkit-column-break-inside: avoid; }
+.choices .m { font-weight: 600; }
+
+/* ── 지문·자료 ─────────────────────────── */
+.passage, .material { margin: 0 0 2.5mm; }
+.passage { font-family: 'Batang', 'Noto Serif KR', serif; font-size: 9.6pt;
+           line-height: 1.72; text-align: justify; border: 0.7pt solid #444;
+           padding: 4mm 5mm; }
+.passage p { margin-bottom: 4pt; text-indent: 0; }
+.material { font-size: 9.5pt; }
+.material > p { text-align: justify; }
+u.ref { text-underline-offset: 2pt; }
+
+.box { border: 0.7pt solid #333; padding: 3mm 4mm; margin: 2.2mm 0; break-inside: avoid; }
+.box-title { text-align: center; font-weight: 700; margin-bottom: 1.8mm; }
+.box p { margin-bottom: 2.4pt; }
+
+table.data { border-collapse: collapse; width: 100%; font-size: 8.9pt; margin: 1.5mm 0 1mm; }
+table.data caption { font-weight: 700; text-align: left; margin-bottom: 1.2mm; font-size: 9.3pt; }
+table.data th, table.data td { border: 0.5pt solid #333; padding: 1.1mm 1.4mm; text-align: center; }
+table.data th { background: #efefef; font-weight: 700; }
+
+table.excel { border-collapse: collapse; font-size: 8.6pt; margin: 2mm auto; }
+table.excel th, table.excel td { border: 0.4pt solid #999; padding: 0.9mm 2.2mm; }
+table.excel th { background: #e6e6e6; text-align: center; font-weight: 700; }
+
+p.note { font-size: 8.5pt; margin: 0.6mm 0 0; line-height: 1.4; }
+p.unit { text-align: right; font-size: 8.5pt; margin: 0 0 0.5mm; }
+code { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; }
+
+/* ── OMR ───────────────────────────────── */
+.omr { break-before: page; }
+.omr h3 { text-align: center; font-size: 13pt; letter-spacing: 4pt; margin: 0 0 6mm; }
+.omr-wrap { display: flex; gap: 6mm; justify-content: center; }
+table.omr-t { border-collapse: collapse; font-size: 8.6pt; }
+table.omr-t th, table.omr-t td { border: 0.5pt solid #333; padding: 1.1mm 1.6mm; text-align: center; }
+table.omr-t th { background: #efefef; }
+table.omr-t td.n { font-weight: 700; background: #f7f7f7; width: 9mm; }
+</style>
+
+<div class="cover">
+  <div class="brand">공기업 채용대비</div>
+  <div class="rule"></div>
+  <h1>NCS 봉투모의고사</h1>
+  <h2>실전모의고사 제1회</h2>
+  <div class="meta">
+    국가직무능력표준 기반 직업기초능력평가<br>
+    <strong>50문항 / 60분</strong>
+  </div>
+  <div class="idbox">
+    <table>
+      <tr><td class="lab">수험번호</td><td class="blank"></td></tr>
+      <tr><td class="lab">성&nbsp;&nbsp;&nbsp;&nbsp;명</td><td class="blank"></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="info">
+  <h3>시험 안내</h3>
+  <div class="sub">문제 풀이 시작과 종료 시각을 정한 후 실전처럼 풀어 보십시오.</div>
+
+  <table class="plan">
+    <tr><th>구분</th><th>영역</th><th>문항 수</th><th>문항 번호</th></tr>
+    <tr>
+      <td>1</td>
+      <td>의사소통능력</td>
+      <td>7문항</td>
+      <td>01 ~ 07</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>수리능력</td>
+      <td>7문항</td>
+      <td>08 ~ 14</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>문제해결능력</td>
+      <td>7문항</td>
+      <td>15 ~ 21</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>자원관리능력</td>
+      <td>6문항</td>
+      <td>22 ~ 27</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>정보능력</td>
+      <td>6문항</td>
+      <td>28 ~ 33</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>기술능력</td>
+      <td>6문항</td>
+      <td>34 ~ 39</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>조직이해능력</td>
+      <td>6문항</td>
+      <td>40 ~ 45</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>직업윤리</td>
+      <td>5문항</td>
+      <td>46 ~ 50</td>
+    </tr>
+    <tr><th colspan="2">합계</th><th>50문항</th><th>60분</th></tr>
+  </table>
+
+  <div class="notice">
+    <div class="t">수험생 유의사항</div>
+    <ol>
+      <li>답안지의 해당란에 수험번호와 성명을 정확히 기재하십시오.</li>
+      <li>모든 문항은 5지선다형이며, 각 문항당 하나의 답만 고르십시오.</li>
+      <li>영역별 풀이 시간은 자율적으로 배분하되, 전체 60분을 넘기지 마십시오.</li>
+      <li>계산이 필요한 문항은 문두에 제시된 반올림·절사 조건을 반드시 확인하십시오.</li>
+      <li>자료 아래의 각주(※)에 계산식·적용 범위·예외 규정이 제시되는 경우가 있습니다.</li>
+      <li>시험이 시작되기 전까지 문제지를 넘기지 마십시오.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="area-header" data-blk="hdr">의사소통능력</div>  <div class="qset" data-blk="0">
+    <div class="qhead" data-blk="0p">
+<div class="lead">[01~02] 다음 글을 읽고 물음에 답하시오.</div><div class="passage"><p>여러 공공기관이 생성형 인공지능(AI)을 업무에 도입하면서 활용 범위와 절차를 규정한 내부 지침을 마련하고 있다. ○○공사가 지난해 제정한 「생성형 AI 업무 활용지침」도 그중 하나에 해당한다. 이 지침은 전면 금지와 전면 허용이라는 이분법을 택하지 않았다. 업무의 성격에 따라 활용 수준을 달리 정하는 방식을 기준으로 한다.</p><p>지침의 첫 번째 축은 입력 정보에 대한 통제다. 생성형 AI는 이용자가 입력한 내용을 학습에 활용할 수 있어, 한 번 입력된 정보는 회수가 사실상 불가능하다. 지침은 미공개 사업정보와 계약 상대방의 영업비밀을 외부 서비스에 입력하는 행위를 금지한다. 이미 공개된 보도자료나 공고문을 요약하거나 문장을 다듬기 위한 입력은 제한 없이 허용된다. 기관 내부망에서만 작동하는 폐쇄형 모델을 도입한 부서는 미공개 사업정보까지 입력이 가능하다. 개인정보는 모델의 종류와 관계없이 입력이 금지된다.</p><p>두 번째 축은 결과물에 대한 책임이다. 지침은 생성형 AI가 만들어 낸 문장을 그대로 대외 문서에 사용하는 것을 금지하고, 담당자가 사실관계를 확인한 뒤 서명하도록 규정한다. 생성형 AI는 학습하지 않은 내용을 그럴듯하게 지어내는 경우가 있다. 근거 법령이나 통계 수치처럼 확인이 필요한 항목일수록 이런 오류가 눈에 잘 띄지 않는다는 점을 고려한 규정이다.</p><p>세 번째 축은 기록이다. 대외 공표 문서나 의사결정 자료를 작성하면서 생성형 AI를 이용한 경우, 어느 단계에서 어떻게 활용했는지를 업무 시스템에 남기도록 한다. 감사나 분쟁이 발생했을 때 판단 과정을 되짚기 위한 장치다. 개인 학습이나 자료 검색처럼 결과물이 문서로 남지 않는 활용은 기록 대상에서 제외된다.</p><p>○○공사는 지침 시행 후 6개월간 부서별 활용 실태를 점검해 허용 범위를 조정할 계획이다. 기술과 서비스가 바뀌는 속도를 고려하면 한 번 만든 기준을 그대로 오래 유지하기 어렵다는 판단이 반영되었다.</p></div>    </div>
+    <div class="qbody" data-blk="0q">
+      <div class="question">
+        <div class="stem"><span class="qno">01</span>윗글에서 추론할 수 있는 내용으로 적절하지 않은 것은?</div>
+        <ul class="choices">
+          <li><span class="m">①</span> 지침은 생성형 AI의 업무 활용을 원칙적으로 금지하고 예외적인 경우에만 허용한다.</li>
+          <li><span class="m">②</span> 이미 공개된 보도자료를 다듬기 위해 입력하는 것은 별도의 제한을 받지 않는다.</li>
+          <li><span class="m">③</span> 폐쇄형 모델을 운영하는 부서에서도 개인정보를 입력하는 것은 허용되지 않는다.</li>
+          <li><span class="m">④</span> 개인의 자료 검색 목적으로 생성형 AI를 이용한 경우에는 활용 사실을 남기지 않아도 된다.</li>
+          <li><span class="m">⑤</span> ○○공사는 지침의 허용 범위를 고정하지 않고 시행 이후 조정할 예정이다.</li>
+        </ul>
+      </div>
+      <div class="question">
+        <div class="stem"><span class="qno">02</span>윗글을 바탕으로 &lt;보기&gt;의 사례를 판단한 내용으로 적절한 것만을 모두 고르면?</div>
+<div class="material"><div class="box"><div class="box-title">&lt;보기&gt;</div><p>ㄱ. 홍보팀 A사원이 이미 배포된 보도자료를 외부 생성형 AI로 요약해 부서에 공유한 것은 지침에 어긋나지 않는다.</p><p>ㄴ. 계약팀 B주임이 외부 생성형 AI에 협력업체가 제출한 견적 내역을 입력해 비교표를 만든 것은 지침 위반이다.</p><p>ㄷ. 기획팀 C대리가 폐쇄형 모델로 만든 초안을 수정 없이 대외 공문으로 발송한 것은 지침에 부합한다.</p><p>ㄹ. 총무팀 D과장이 개인 학습을 위해 생성형 AI를 이용하고 그 사실을 업무 시스템에 남기지 않은 것은 지침에 어긋나지 않는다.</p></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> ㄱ, ㄴ</li>
+          <li><span class="m">②</span> ㄱ, ㄹ</li>
+          <li><span class="m">③</span> ㄴ, ㄷ</li>
+          <li><span class="m">④</span> ㄴ, ㄷ, ㄹ</li>
+          <li><span class="m">⑤</span> ㄱ, ㄴ, ㄹ</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="1">
+    <div class="qbody" data-blk="1q">
+      <div class="question">
+        <div class="stem"><span class="qno">03</span>다음은 ○○공사가 배포한 보도자료이다. 그 내용과 일치하지 않는 것은?</div>
+<div class="material"><div class="box"><p><strong>○○공사, 「제2차 장기 송·변전설비 확충계획」 확정</strong><br>− 2031년까지 송전선로 1,860c-km·변전소 22개소 신설<br>− 지중화 구간 확대에 따라 총사업비 4조 2,000억 원 투입</p><p>○○공사는 5월 12일 이사회를 열고 「제2차 장기 송·변전설비 확충계획」을 의결했다고 밝혔다. 이번 계획은 2027년부터 2031년까지 5년간 추진되며, 수도권 남부와 서해안 일대의 계통 포화를 해소하는 데 초점을 맞췄다.</p><p>계획에 따르면 ○○공사는 총 1,860c-km의 송전선로와 22개소의 변전소를 새로 건설한다. 이 가운데 345kV 이상 초고압 설비가 전체의 68%를 차지한다. 신규 건설 구간의 41%는 지중 방식으로 시공되며, 이는 직전 계획의 27%보다 14%p 높아진 수치다. 지중화 비율 상승으로 총사업비는 4조 2,000억 원으로 책정돼 직전 계획보다 1조 1,000억 원 늘었다.</p><p>○○공사는 사업 지연의 주된 원인이 기술적 요인보다 경과지 선정 단계의 협의 지연에 있다고 보고, 입지선정위원회를 사업 착수 이전 단계로 앞당겨 운영하기로 했다. 주민 수용성을 높이기 위해 지역협력사업비 산정 기준을 공개하고, 설계 단계부터 지방자치단체가 참여하는 사전협의 절차를 신설한다.</p><p>이번 계획에는 재생에너지 밀집 지역의 출력제어를 완화하기 위한 계통안정화 설비 투자도 포함됐다. ○○공사 관계자는 “설비 확충만으로는 한계가 있어 수요 분산 정책과 병행해야 한다”고 말했다.</p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> ○○공사는 사업이 지연되는 주된 원인을 시공의 기술적 난도에서 찾았다.</li>
+          <li><span class="m">②</span> 신설되는 송·변전설비 중 345kV 이상 초고압 설비가 3분의 2를 넘는다.</li>
+          <li><span class="m">③</span> 직전 계획의 총사업비는 3조 원을 넘는다.</li>
+          <li><span class="m">④</span> 직전 계획에서도 신규 건설 구간의 4분의 1 이상이 지중 방식으로 시공되었다.</li>
+          <li><span class="m">⑤</span> 계통안정화 설비 투자는 재생에너지 밀집 지역의 출력제어를 완화하기 위한 것이다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="2">
+    <div class="qbody" data-blk="2q">
+      <div class="question">
+        <div class="stem"><span class="qno">04</span>다음은 ○○공사 안전관리처가 작성한 공문 초안이다. ㉠~㉤에 대한 검토 의견으로 적절하지 않은 것은?</div>
+<div class="material"><div class="box"><p>수신  각 사업소장<br>(경유)<br>제목  2027년도 안전점검 계획 제출 요청</p><p>1. 관련: 안전관리처−1284(2026. 12. 3.)</p><p>2. 2027년도 정기 안전점검 시행에 앞서 사업소별 세부 계획을 취합하고자 합니다. 각 사업소에서는 아래 사항을 확인하시어 기한 내에 제출하여 주시기 바랍니다.</p><p>&nbsp;&nbsp;&nbsp;가. 제출기한: <u class="ref">㉠2027. 1. 15(금)</u> 18:00까지<br>&nbsp;&nbsp;&nbsp;나. 소요예산: <u class="ref">㉡금 5,000,000원 (금오백만원)</u><br>&nbsp;&nbsp;&nbsp;다. 제출항목<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u class="ref">㉢a.</u> 점검 대상 설비 목록 및 점검 주기<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b. 점검반 편성안 및 외주 위탁 여부<br>&nbsp;&nbsp;&nbsp;라. 문의: 안전관리처 안전기획부(내선 2317)</p><p><u class="ref">㉣붙임:</u> 2027년도 안전점검 계획 서식 1부.&nbsp;&nbsp;<u class="ref">㉤끝.</u></p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> ㉠은 연·월·일 자리에 모두 마침표를 찍어야 하므로 ‘2027. 1. 15.(금)’으로 고쳐야 한다.</li>
+          <li><span class="m">②</span> ㉡은 금액을 아라비아 숫자로 쓰고 괄호 안에 한글로 적되 띄어 쓰지 않으므로 ‘금5,000,000원(금오백만원)’으로 고쳐야 한다.</li>
+          <li><span class="m">③</span> ㉣은 ‘붙임’ 다음에 쌍점을 쓰지 않고 두 칸을 띄우므로 ‘붙임&nbsp;&nbsp;2027년도 …’로 고쳐야 한다.</li>
+          <li><span class="m">④</span> ㉤은 본문이 끝난 자리에 표시해야 하므로 ‘라. 문의’ 항목 아래로 옮겨야 한다.</li>
+          <li><span class="m">⑤</span> ㉢은 ‘가.’의 바로 아래 단계이므로 ‘a.’가 아니라 ‘1)’로 고쳐야 한다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="3">
+    <div class="qbody" data-blk="3q">
+      <div class="question">
+        <div class="stem"><span class="qno">05</span>다음은 ○○공사 고객지원처의 회의록이다. 이에 따른 후속 조치로 적절하지 않은 것은?</div>
+<div class="material"><div class="box"><p><strong>2027년 상반기 고객서비스 개선 실무회의 회의록</strong><br>일시: 2027. 3. 12.(금) 14:00~15:30 / 장소: 본사 3층 소회의실<br>참석: 고객지원처장(주재), 고객지원팀 김과장, 요금팀 이대리, 정보화팀 박대리, 홍보팀 최주임</p><p><strong>1. 민원 현황 공유</strong>(고객지원팀)<br>− 1~2월 접수 민원 4,120건으로 전년 동기 대비 18% 증가<br>− 증가분의 62%가 ‘요금 조회 화면 오류’ 관련</p><p><strong>2. 원인 분석</strong>(정보화팀)<br>− 1월 요금 조회 시스템 개편 이후 모바일 화면에서 청구 내역 일부가 누락되는 현상 확인<br>− 3월 2일 긴급 패치 완료, 이후 동일 유형 민원은 하루 12건 수준으로 감소</p><p><strong>3. 논의 사항</strong><br>− 요금팀: 패치 이전 기간에 잘못 안내된 고객에 한해 소급 정정이 필요함<br>− 홍보팀: 정정 사실을 홈페이지 공지로 알릴지, 개별 통지할지 결정이 필요함<br>− 처장: 개별 통지를 원칙으로 하고, 대상 규모는 명단 확인 단계에서 파악할 것</p><p><strong>4. 결정 사항</strong><br>− 정보화팀은 3월 20일까지 3월 2일 패치 이전에 오류의 영향을 받은 고객 명단을 추출해 요금팀에 전달<br>− 요금팀은 명단 확인 후 정정 대상과 금액을 산정해 4월 10일까지 처장 보고<br>− 홍보팀은 요금팀의 산정 결과가 확정된 후 개별 통지문 초안을 작성</p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> 홍보팀은 3월 20일 이전에 개별 통지문 초안을 완성해 요금팀에 전달한다.</li>
+          <li><span class="m">②</span> 정보화팀은 3월 20일까지 오류의 영향을 받은 고객 명단을 추출한다.</li>
+          <li><span class="m">③</span> 요금팀은 명단을 확인한 뒤 정정 대상과 금액을 산정해 4월 10일까지 보고한다.</li>
+          <li><span class="m">④</span> 고객 안내는 홈페이지 공지가 아니라 개별 통지를 원칙으로 한다.</li>
+          <li><span class="m">⑤</span> 소급 정정 대상은 3월 2일 패치 이전에 오류의 영향을 받은 고객으로 한정한다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="4">
+    <div class="qbody" data-blk="4q">
+      <div class="question">
+        <div class="stem"><span class="qno">06</span>다음 글을 바탕으로 추론한 내용으로 가장 적절한 것은?</div>
+<div class="material"><div class="passage"><p>공공데이터는 공공기관이 업무를 수행하는 과정에서 생성하거나 취득한 데이터를 의미한다. 관련 법률은 공공기관이 보유한 데이터를 국민이 자유롭게 이용할 수 있도록 개방하는 것을 원칙으로 한다. 개방의 목적은 정보 공개를 넘어 민간이 데이터를 가공해 새로운 서비스를 만들 수 있도록 하는 데 있다.</p><p>개방 수준은 다섯 단계로 구분된다. 1단계는 형식을 가리지 않고 온라인에 공개한 상태로, PDF로 올려 둔 보고서가 여기에 해당한다. 2단계는 표 계산 프로그램으로 열 수 있는 구조화된 형식, 3단계는 특정 회사의 프로그램 없이도 열 수 있는 개방형 형식을 뜻한다. 4단계는 각 데이터에 고유한 식별자를 부여해 외부에서 직접 지목할 수 있게 한 상태이고, 5단계는 다른 기관의 데이터와 서로 연결된 상태를 가리킨다. 단계가 올라갈수록 기계가 처리하기 쉬워지고 재활용 가능성이 커진다.</p><p>개방 건수와 활용도는 나란히 가지 않는다. 개방 목록은 해마다 늘고 있으나 실제로 내려받아 쓰이는 데이터는 일부에 몰려 있다. 이용자가 찾는 자료는 갱신 주기가 짧고 형식이 일정한 데이터인데, 기관은 관리하기 쉬운 정적 자료부터 공개하는 경향을 보인다. 한 번 올린 뒤 갱신이 끊긴 데이터는 목록에 남아 있어도 이용자에게는 없는 자료와 같다.</p><p>최근에는 개방의 초점이 ‘얼마나 많이’에서 ‘얼마나 쓸 수 있게’로 이동하고 있다. 파일을 내려받는 방식 대신 프로그램이 직접 호출해 최신 값을 가져가는 방식이 확대되고, 항목 이름과 단위를 기관마다 달리 쓰던 관행을 표준에 맞추는 작업이 진행되고 있다. 개방 실적을 집계할 때도 건수와 함께 이용 건수, 갱신 주기 준수율을 보는 방향으로 바뀌고 있다.</p><p>모든 데이터가 개방 대상이 되지는 않는다. 개인을 알아볼 수 있는 정보와 국가 안전에 관한 정보는 개방에서 제외된다. 이 가운데 개인정보는 식별 요소를 걷어 내 통계 형태로 제공하는 방법이 검토되고 있다.</p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> 개방 단계가 높은 데이터일수록 사람이 눈으로 읽고 이해하기에 편하다.</li>
+          <li><span class="m">②</span> 개방 건수가 많은 기관일수록 데이터 이용 건수도 많다.</li>
+          <li><span class="m">③</span> 표 계산 프로그램으로 열 수 있는 형식은 개방 수준의 3단계에 해당한다.</li>
+          <li><span class="m">④</span> 국가 안전에 관한 정보는 식별 요소를 제거하면 개방 대상이 된다.</li>
+          <li><span class="m">⑤</span> 갱신이 중단된 데이터는 개방 목록에 남아 있더라도 활용 가치가 낮다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="5">
+    <div class="qbody" data-blk="5q">
+      <div class="question">
+        <div class="stem"><span class="qno">07</span>다음 (가)~(마)를 문맥에 맞게 순서대로 배열한 것은?</div>
+<div class="material"><div class="box"><p><strong>(가)</strong> 열섬 현상을 완화하는 대표적인 방법은 도시 안의 녹지를 늘리는 것이다. 나무와 잔디는 잎에서 물을 내보내며 주변의 열을 흡수한다. 가로수가 만드는 그늘은 지표면에 닿는 햇빛을 줄여 노면 온도를 낮추는 역할을 한다.</p><p><strong>(나)</strong> 도시가 뜨거워지는 이유는 세 가지로 정리된다. 첫째는 아스팔트와 콘크리트처럼 열을 잘 흡수하고 천천히 내보내는 포장 재료다. 둘째는 냉방기와 자동차에서 나오는 인공 열이다. 셋째는 고층 건물이 바람길을 막아 열이 빠져나가지 못하게 만드는 구조다.</p><p><strong>(다)</strong> 열섬 현상은 도시의 기온이 주변 교외 지역보다 높게 나타나는 현상을 뜻한다. 기온 분포를 지도에 표시하면 도심을 중심으로 등온선이 섬 모양으로 그려져 이러한 이름이 붙었다.</p><p><strong>(라)</strong> 물을 활용하는 방식도 늘고 있다. 도로에 물을 뿌리는 살수 시설, 건물 외벽을 타고 물이 흐르도록 만든 설비가 여기에 해당한다. 물이 증발하면서 주변의 열을 빼앗는 원리를 이용한다.</p><p><strong>(마)</strong> 열섬 현상은 여름철 냉방 수요를 끌어올려 전력 사용량을 늘리고, 대기 정체와 맞물려 오존 농도를 높인다. 도시 규모가 커질수록 그 영향도 함께 커진다.</p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> (나) − (다) − (가) − (마) − (라)</li>
+          <li><span class="m">②</span> (다) − (마) − (나) − (라) − (가)</li>
+          <li><span class="m">③</span> (다) − (나) − (마) − (가) − (라)</li>
+          <li><span class="m">④</span> (마) − (다) − (나) − (가) − (라)</li>
+          <li><span class="m">⑤</span> (나) − (마) − (다) − (라) − (가)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+<div class="area-header" data-blk="hdr">수리능력</div>  <div class="qset" data-blk="6">
+    <div class="qbody" data-blk="6q">
+      <div class="question">
+        <div class="stem"><span class="qno">08</span>○○공사 배전운영부는 관내 배전선로 정기점검을 외주 점검업체에 맡기려 한다. 다음 &lt;조건&gt;에 따라 점검을 진행할 때, 점검을 모두 마치는 데 걸리는 총 소요일수는?</div>
+<div class="material"><div class="box"><div class="box-title">&lt;조건&gt;</div><p>• 전체 점검 물량을 갑 업체가 단독으로 수행하면 12일, 을 업체가 단독으로 수행하면 18일이 걸린다.</p><p>• 두 업체가 함께 작업하면 구역이 겹쳐 작업 능률이 떨어지므로, 각 업체는 단독 작업 시 하루 작업량의 90%만 수행한다.</p><p>• 먼저 두 업체가 함께 4일간 작업한 뒤, 남은 물량은 을 업체가 단독으로 마무리한다.</p><p>• 작업은 중단 없이 매일 이어서 진행한다.</p></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> 11일</li>
+          <li><span class="m">②</span> 12일</li>
+          <li><span class="m">③</span> 13일</li>
+          <li><span class="m">④</span> 14일</li>
+          <li><span class="m">⑤</span> 15일</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="7">
+    <div class="qbody" data-blk="7q">
+      <div class="question">
+        <div class="stem"><span class="qno">09</span>○○공사 자재관리팀은 배전 공사용 자재 A와 B를 합하여 500개 구매하려 한다. 다음 &lt;조건&gt;에 따를 때, 자재관리팀이 실제로 지불해야 할 금액은?</div>
+<div class="material"><div class="box"><div class="box-title">&lt;조건&gt;</div><p>• 자재 A의 단가는 8,000원, 자재 B의 단가는 12,000원이다.</p><p>• 할인을 적용하기 전 A와 B의 구매 금액 합계는 4,960,000원이다.</p><p>• 자재 A는 200개를 초과하는 수량에 대해서만 단가의 10%를 할인한다.</p><p>• 자재 B는 150개를 초과하는 수량에 대해서만 단가의 15%를 할인한다.</p></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> 4,702,000원</li>
+          <li><span class="m">②</span> 4,750,000원</li>
+          <li><span class="m">③</span> 4,780,000원</li>
+          <li><span class="m">④</span> 4,798,000원</li>
+          <li><span class="m">⑤</span> 4,912,000원</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="8">
+    <div class="qbody" data-blk="8q">
+      <div class="question">
+        <div class="stem"><span class="qno">10</span>다음은 ○○공사가 집계한 연도별 발전원별 발전량이다. 이에 대한 설명으로 옳은 것만을 &lt;보기&gt;에서 모두 고르면?</div>
+<div class="material"><p class="unit">(단위: TWh)</p><table class="data"><caption>&lt;표&gt; 연도별 발전원별 발전량</caption><tr><th>구분</th><th>2022년</th><th>2023년</th><th>2024년</th><th>2025년</th></tr><tr><td>원자력</td><td>176.1</td><td>180.5</td><td>188.8</td><td>196.2</td></tr><tr><td>석탄</td><td>193.2</td><td>174.3</td><td>160.4</td><td>148.6</td></tr><tr><td>LNG</td><td>163.6</td><td>158.9</td><td>152.7</td><td>149.1</td></tr><tr><td>신재생</td><td>53.2</td><td>60.1</td><td>68.5</td><td>77.3</td></tr><tr><td>기타</td><td>9.9</td><td>10.7</td><td>11.1</td><td>11.8</td></tr><tr><th>합계</th><th>596.0</th><th>584.5</th><th>581.5</th><th>583.0</th></tr></table><p class="note">※ 발전량 비중(%) = 해당 발전원 발전량 ÷ 전체 발전량 × 100</p><p class="note">※ 비중과 증감률은 소수점 셋째 자리에서 반올림한다.</p><div class="box"><div class="box-title">&lt;보기&gt;</div><p>ㄱ. 조사기간 동안 원자력과 신재생 발전량은 매년 증가하였다.</p><p>ㄴ. 2025년 석탄 발전량 비중은 2022년보다 7%p 이상 낮다.</p><p>ㄷ. 2023년 대비 2025년 신재생 발전량의 증가율은 30% 이상이다.</p><p>ㄹ. 조사기간 동안 원자력 발전량은 매년 LNG 발전량보다 많다.</p></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> ㄱ</li>
+          <li><span class="m">②</span> ㄴ</li>
+          <li><span class="m">③</span> ㄴ, ㄹ</li>
+          <li><span class="m">④</span> ㄱ, ㄹ</li>
+          <li><span class="m">⑤</span> ㄱ, ㄷ, ㄹ</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="9">
+    <div class="qhead" data-blk="9p">
+<div class="lead">[11~12] 다음은 ○○공사가 집계한 데이터센터 전력수요 자료이다. 이를 바탕으로 물음에 답하시오.</div><div class="passage"><p class="unit">(단위: 개소, MW, GWh)</p><table class="data"><caption>&lt;표 1&gt; 2024년 권역별 데이터센터 현황</caption><tr><th>구분</th><th>수도권</th><th>충청</th><th>영남</th><th>호남</th><th>강원·제주</th><th>합계</th></tr><tr><td>센터 수</td><td>92</td><td>28</td><td>21</td><td>12</td><td>7</td><td>160</td></tr><tr><td>계약전력</td><td>2,640</td><td>780</td><td>560</td><td>300</td><td>120</td><td>4,400</td></tr><tr><td>연간 사용량</td><td>12,348</td><td>3,120</td><td>2,684</td><td>1,240</td><td>433</td><td>19,825</td></tr></table><p class="unit">(단위: GWh, %)</p><table class="data"><caption>&lt;표 2&gt; 연도별 전국 데이터센터 전력사용량</caption><tr><th>구분</th><th>2021년</th><th>2022년</th><th>2023년</th><th>2024년</th></tr><tr><td>전력사용량</td><td>11,520</td><td>12,960</td><td>15,310</td><td>19,825</td></tr><tr><td>전년 대비 증가율</td><td>−</td><td>12.5</td><td>18.1</td><td>29.5</td></tr></table><p class="note">※ 비중과 증가율은 소수점 둘째 자리에서 반올림한다.</p><p class="note">※ 계약전력 1MW당 사용량 = 해당 권역 연간 사용량 ÷ 해당 권역 계약전력</p></div>    </div>
+    <div class="qbody" data-blk="9q">
+      <div class="question">
+        <div class="stem"><span class="qno">11</span>위 자료에 대한 설명으로 옳은 것만을 &lt;보기&gt;에서 모두 고르면?</div>
+<div class="material"><div class="box"><div class="box-title">&lt;보기&gt;</div><p>ㄱ. 2024년 수도권의 데이터센터 1개소당 평균 연간 사용량은 130GWh 이상이다.</p><p>ㄴ. 2024년 계약전력 1MW당 연간 사용량이 가장 많은 권역은 영남이다.</p><p>ㄷ. 2021년 대비 2024년 전국 데이터센터 전력사용량은 2배 이상 증가하였다.</p><p>ㄹ. 2024년 호남과 강원·제주의 연간 사용량 합은 전국의 8% 미만이다.</p></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> ㄱ</li>
+          <li><span class="m">②</span> ㄱ, ㄴ</li>
+          <li><span class="m">③</span> ㄴ, ㄷ</li>
+          <li><span class="m">④</span> ㄱ, ㄷ</li>
+          <li><span class="m">⑤</span> ㄱ, ㄴ, ㄹ</li>
+        </ul>
+      </div>
+      <div class="question">
+        <div class="stem"><span class="qno">12</span>위 자료를 토대로 ㉠과 ㉡을 구하면?</div>
+<div class="material"><div class="box"><p>㉠ 2024년 수도권과 충청 두 권역이 전국 연간 사용량에서 차지하는 비중</p><p>㉡ 2022년 대비 2024년 전국 데이터센터 전력사용량의 증가율</p></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> ㉠ 62.3%&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 29.5%</li>
+          <li><span class="m">②</span> ㉠ 62.3%&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 53.0%</li>
+          <li><span class="m">③</span> ㉠ 62.3%&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 72.1%</li>
+          <li><span class="m">④</span> ㉠ 78.0%&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 29.5%</li>
+          <li><span class="m">⑤</span> ㉠ 78.0%&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 53.0%</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="10">
+    <div class="qbody" data-blk="10q">
+      <div class="question">
+        <div class="stem"><span class="qno">13</span>다음은 공공기관 신규채용 현황이다. 이에 대한 설명으로 옳지 않은 것은?</div>
+<div class="material"><p class="unit">(단위: 명)</p><table class="data"><caption>&lt;표 1&gt; 연도별 총 신규채용 인원</caption><tr><th>구분</th><th>2022년</th><th>2023년</th><th>2024년</th></tr><tr><td>총 신규채용</td><td>22,500</td><td>24,000</td><td>25,600</td></tr></table><p class="unit">(단위: %)</p><table class="data"><caption>&lt;표 2&gt; 연도별 채용 유형 구성비</caption><tr><th>구분</th><th>일반전형</th><th>지역인재</th><th>장애인</th><th>보훈</th><th>기타</th><th>계</th></tr><tr><td>2022년</td><td>62.0</td><td>24.0</td><td>4.0</td><td>6.0</td><td>4.0</td><td>100.0</td></tr><tr><td>2023년</td><td>60.0</td><td>26.0</td><td>4.5</td><td>5.5</td><td>4.0</td><td>100.0</td></tr><tr><td>2024년</td><td>58.0</td><td>28.0</td><td>5.0</td><td>5.0</td><td>4.0</td><td>100.0</td></tr></table><p class="note">※ 유형별 채용 인원 = 총 신규채용 인원 × 해당 유형 구성비 ÷ 100</p></div>        <ul class="choices">
+          <li><span class="m">①</span> 2023년 일반전형 채용 인원은 전년보다 감소하였다.</li>
+          <li><span class="m">②</span> 2024년 지역인재 채용 인원은 7,000명을 넘는다.</li>
+          <li><span class="m">③</span> 조사기간 동안 장애인 채용 인원은 매년 증가하였다.</li>
+          <li><span class="m">④</span> 2024년 보훈 채용 인원은 2022년보다 적다.</li>
+          <li><span class="m">⑤</span> 조사기간 동안 기타 유형의 채용 인원은 매년 증가하였다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="11">
+    <div class="qbody" data-blk="11q">
+      <div class="question">
+        <div class="stem"><span class="qno">14</span>다음은 ○○공사 지역본부별 신재생에너지 설비용량이다. 표의 (A)와 (B)에 들어갈 수의 합은?</div>
+<div class="material"><p class="unit">(단위: MW, %)</p><table class="data"><caption>&lt;표&gt; 지역본부별 신재생에너지 설비용량</caption><tr><th>구분</th><th>2023년</th><th>2024년</th><th>전년 대비 증감률</th></tr><tr><td>수도권</td><td>420</td><td>483</td><td>15.0</td></tr><tr><td>강원</td><td>640</td><td>( A )</td><td>12.5</td></tr><tr><td>충청</td><td>850</td><td>918</td><td>8.0</td></tr><tr><td>영남</td><td>( B )</td><td>1,144</td><td>4.0</td></tr><tr><td>호남</td><td>1,260</td><td>1,197</td><td>−5.0</td></tr></table><p class="note">※ 전년 대비 증감률(%) = (2024년 설비용량 − 2023년 설비용량) ÷ 2023년 설비용량 × 100</p></div>        <ul class="choices c2">
+          <li><span class="m">①</span> 1,669</li>
+          <li><span class="m">②</span> 1,759</li>
+          <li><span class="m">③</span> 1,818</li>
+          <li><span class="m">④</span> 1,820</li>
+          <li><span class="m">⑤</span> 1,910</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+<div class="area-header" data-blk="hdr">문제해결능력</div>  <div class="qset" data-blk="12">
+    <div class="qbody" data-blk="12q">
+      <div class="question">
+        <div class="stem"><span class="qno">15</span>○○공사는 스마트그리드 실증사업 추진을 위해 김주임, 이대리, 박과장, 최차장 4명을 계통운영·설비진단·데이터분석·대외협력 4개 분과에 한 명씩 배정하려 한다. 다음 &lt;조건&gt;에 따를 때, 반드시 참인 것은?</div>
+<div class="material"><div class="box"><div class="box-title">&lt;조건&gt;</div><p>ㄱ. 박과장은 계통운영 분과나 설비진단 분과에 배정된다.</p><p>ㄴ. 김주임은 데이터분석 분과에 배정되지 않는다.</p><p>ㄷ. 최차장은 계통운영 분과와 대외협력 분과 어느 쪽에도 배정되지 않는다.</p><p>ㄹ. 데이터분석 분과에는 과장·차장급 직원을 배정하지 않는다.</p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> 김주임은 설비진단 분과에 배정된다.</li>
+          <li><span class="m">②</span> 이대리는 계통운영 분과에 배정된다.</li>
+          <li><span class="m">③</span> 박과장은 계통운영 분과에 배정된다.</li>
+          <li><span class="m">④</span> 최차장은 데이터분석 분과에 배정된다.</li>
+          <li><span class="m">⑤</span> 김주임과 이대리는 각각 데이터분석 분과와 대외협력 분과에 배정된다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="13">
+    <div class="qbody" data-blk="13q">
+      <div class="question">
+        <div class="stem"><span class="qno">16</span>○○공사 설비운영부는 관내 변전소 A~E 다섯 곳을 하루에 한 곳씩 순서대로 점검하려 한다. 다음 &lt;조건&gt;을 모두 만족할 때, 세 번째로 점검하는 변전소는?</div>
+<div class="material"><div class="box"><div class="box-title">&lt;조건&gt;</div><p>ㄱ. A는 C보다 먼저 점검한다.</p><p>ㄴ. B는 첫 번째로 점검하지 않는다.</p><p>ㄷ. C는 네 번째로 점검한다.</p><p>ㄹ. B는 D보다 먼저 점검한다.</p><p>ㅁ. A와 B는 연이어 점검하지 않는다.</p></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> A 변전소</li>
+          <li><span class="m">②</span> B 변전소</li>
+          <li><span class="m">③</span> C 변전소</li>
+          <li><span class="m">④</span> D 변전소</li>
+          <li><span class="m">⑤</span> E 변전소</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="14">
+    <div class="qhead" data-blk="14p">
+<div class="lead">[17~18] 다음은 ○○공사의 지원사업 공고문이다. 이를 바탕으로 물음에 답하시오.</div><div class="passage"><p><strong>2027년도 중소기업 에너지효율 개선 지원사업 공고</strong></p><p><strong>1. 사업 목적</strong><br>에너지 다소비 중소기업 사업장의 노후 설비 교체를 지원하여 전력 사용량을 줄인다.</p><p><strong>2. 지원 대상</strong><br>최근 1년간 월평균 전력사용량이 3,000kWh 이상인 중소기업 사업장</p><p><strong>3. 지원 품목</strong><br>고효율 전동기, LED 조명, 인버터, 폐열회수설비</p><p><strong>4. 지원 내용</strong><br>&nbsp;&nbsp;가. 설치비의 50%를 지원하며, 사업장당 최대 3,000만 원까지 지원한다.<br>&nbsp;&nbsp;나. 에너지진단 결과서를 제출한 사업장은 설치비의 60%까지 상향 지원한다.</p><p><strong>5. 지원 제외 대상</strong><br>&nbsp;&nbsp;가. 최근 3년 이내에 동일 품목으로 국고보조금을 지원받은 사업장<br>&nbsp;&nbsp;나. 사업자등록일부터 1년이 지나지 않은 사업장<br>&nbsp;&nbsp;다. 전기요금을 6개월 이상 체납 중인 사업장</p><p><strong>6. 신청 기간</strong>: 2027. 3. 2.(화) ~ 3. 31.(수) 18:00</p><p><strong>7. 제출 서류</strong>: 신청서, 사업자등록증 사본, 최근 1년간 전기요금 납부내역, 설치 견적서</p></div>    </div>
+    <div class="qbody" data-blk="14q">
+      <div class="question">
+        <div class="stem"><span class="qno">17</span>위 공고문을 이해한 내용으로 옳지 않은 것은?</div>
+        <ul class="choices">
+          <li><span class="m">①</span> 에너지진단 결과서를 제출하면 설치비의 60%까지 지원받을 수 있다.</li>
+          <li><span class="m">②</span> 한 사업장이 받을 수 있는 지원금은 3,000만 원을 넘지 못한다.</li>
+          <li><span class="m">③</span> 사업자등록일부터 1년이 지나지 않은 사업장은 신청할 수 없다.</li>
+          <li><span class="m">④</span> 4년 전에 동일 품목으로 국고보조금을 받은 사업장도 신청할 수 있다.</li>
+          <li><span class="m">⑤</span> 전기요금을 3개월 체납 중인 사업장은 지원 대상에서 제외된다.</li>
+        </ul>
+      </div>
+      <div class="question">
+        <div class="stem"><span class="qno">18</span>위 공고문을 토대로 할 때, &lt;보기&gt;의 A~E 중 지원 대상으로 선정될 수 있는 사업장을 모두 고르면?</div>
+<div class="material"><div class="box"><div class="box-title">&lt;보기&gt;</div><table class="data"><tr><th>구분</th><th>월평균<br>전력사용량</th><th>사업자등록<br>경과기간</th><th>국고보조금 지원 이력</th><th>신청 품목</th><th>전기요금<br>체납</th></tr><tr><td>A사</td><td>3,200kWh</td><td>3년</td><td>2년 전 LED 조명</td><td>인버터</td><td>없음</td></tr><tr><td>B사</td><td>2,800kWh</td><td>4년</td><td>없음</td><td>LED 조명</td><td>없음</td></tr><tr><td>C사</td><td>4,500kWh</td><td>8개월</td><td>없음</td><td>인버터</td><td>없음</td></tr><tr><td>D사</td><td>3,000kWh</td><td>5년</td><td>없음</td><td>폐열회수설비</td><td>없음</td></tr><tr><td>E사</td><td>5,000kWh</td><td>6년</td><td>없음</td><td>LED 조명</td><td>7개월</td></tr></table></div></div>        <ul class="choices c2">
+          <li><span class="m">①</span> A사, C사</li>
+          <li><span class="m">②</span> A사, D사</li>
+          <li><span class="m">③</span> B사, D사</li>
+          <li><span class="m">④</span> A사, D사, E사</li>
+          <li><span class="m">⑤</span> C사, D사, E사</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="15">
+    <div class="qbody" data-blk="15q">
+      <div class="question">
+        <div class="stem"><span class="qno">19</span>다음은 ○○공사 정보화팀이 작성한 장애 발생 보고서이다. 이를 근거로 추론한 내용으로 가장 적절한 것은?</div>
+<div class="material"><div class="box"><p><strong>정보시스템 장애 발생 보고서</strong></p><p><strong>1. 발생 일시</strong>: 2027. 6. 14.(월) 09:12</p><p><strong>2. 장애 현상</strong><br>고객포털 요금조회 화면의 응답이 지연되기 시작해 09:31부터 접속이 되지 않음</p><p><strong>3. 영향 범위</strong><br>고객포털(대외), 사내 통합민원시스템(대내), 야간 정산 배치 작업</p><p><strong>4. 확인 사항</strong><br>&nbsp;&nbsp;가. 요금DB 서버 CPU 사용률: 09:05 40% → 09:20 98%<br>&nbsp;&nbsp;나. 같은 시간대에 전월 정산 재처리 배치 작업이 예정보다 8시간 늦게 실행됨<br>&nbsp;&nbsp;다. 웹서버 자원 사용률과 네트워크 구간 지표는 모두 정상 범위<br>&nbsp;&nbsp;라. 최근 2주간 응용프로그램 배포 이력 없음</p><p><strong>5. 조치 내역</strong><br>09:47 배치 작업 강제 중지 → 09:55 CPU 사용률 62%로 하락, 고객포털 정상화</p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> 장애의 직접적인 원인은 웹서버의 자원 부족이다.</li>
+          <li><span class="m">②</span> 최근 배포된 응용프로그램의 결함이 장애를 유발하였다.</li>
+          <li><span class="m">③</span> 네트워크 구간의 병목이 요금조회 응답 지연으로 이어졌다.</li>
+          <li><span class="m">④</span> 지연 실행된 정산 배치 작업이 요금DB 부하를 높여 장애로 이어졌다.</li>
+          <li><span class="m">⑤</span> 사내 통합민원시스템은 이번 장애의 영향을 받지 않았다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qset" data-blk="16">
+    <div class="qbody" data-blk="16q">
+      <div class="question">
+        <div class="stem"><span class="qno">20</span>다음은 ○○공사의 계약 변경 요청 처리 절차이다. 이를 적용한 내용으로 옳지 않은 것은?</div>
+<div class="material"><div class="box"><p><strong>계약 변경 요청 처리 절차</strong></p><p><strong>1단계 접수</strong>(계약부)<br>&nbsp;&nbsp;가. 제출 서류: 변경요청서, 변경사유서, 산출내역서<br>&nbsp;&nbsp;나. 서류가 하나라도 빠진 경우 접수 단계에서 반려한다.</p><p><strong>2단계 검토</strong>(사업부) — 접수일부터 5근무일 이내</p><p><strong>3단계 심의</strong>(계약심의위원회)<br>&nbsp;&nbsp;변경금액이 당초 계약금액의 10%를 초과하는 경우에만 심의를 거친다.</p><p><strong>4단계 승인</strong><br>&nbsp;&nbsp;가. 변경금액 5천만 원 이하: 처장 전결<br>&nbsp;&nbsp;나. 변경금액 5천만 원 초과: 본부장 전결</p><p><strong>5단계 통보</strong>(계약부) — 승인일부터 3근무일 이내</p><p class="note">※ 다음에 해당하면 2단계 검토에서 반려한다.</p><p class="note">&nbsp;&nbsp;− 변경 사유가 계약상대자의 귀책인 경우</p><p class="note">&nbsp;&nbsp;− 변경금액이 당초 계약금액의 30%를 초과하는 경우</p></div></div>        <ul class="choices">
+          <li><span class="m">①</span> 당초 계약금액이 3억 원인 계약의 변경금액이 2,000만 원이면 계약심의위원회 심의를 거치지 않는다.</li>
+          <li><span class="m">②</span> 변경요청서와 변경사유서만 제출하고 산출내역서를 빠뜨린 요청은 접수 단계에서 반려한다.</li>
+          <li><span class="m">③</span> 당초 계약금액이 4억 원인 계약의 변경금액이 6,000만 원이면 처장 전결로 승인한다.</li>
+          <li><span class="m">④</span> 변경 사유가 계약상대자의 귀책인 경우 검토 단계에서 반려한다.</li>
+          <li><span class="m">⑤</span> 당초 계약금액이 2억 원인 계약을 7,000만 원 증액하는 요청은 반려한다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<div class="omr">
+  <h3>답 안 지</h3>
+  <div class="omr-wrap">
+    <table class="omr-t">
+      <tr><th>번호</th><th colspan="5">답 란</th></tr>
+      <tr>
+        <td class="n">01</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">02</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">03</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">04</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">05</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">06</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">07</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+    </table>
+    <table class="omr-t">
+      <tr><th>번호</th><th colspan="5">답 란</th></tr>
+      <tr>
+        <td class="n">08</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">09</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">10</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">11</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">12</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">13</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">14</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+    </table>
+    <table class="omr-t">
+      <tr><th>번호</th><th colspan="5">답 란</th></tr>
+      <tr>
+        <td class="n">15</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">16</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">17</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">18</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">19</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+      <tr>
+        <td class="n">20</td>
+<td>①</td><td>②</td><td>③</td><td>④</td><td>⑤</td>      </tr>
+    </table>
+  </div>
+</div>
+<style>
+/* 화면 렌더 폭을 인쇄 콘텐츠 폭(A4 210mm − 좌우 여백 15mm×2)에 맞춘다.
+   맞추지 않으면 줄바꿈이 달라져 높이 실측이 어긋난다. */
+html, body { width: 180mm !important; margin: 0 !important; padding: 0 !important; }
+.cover, .info, .omr { display: none !important; }
+</style>
+<script>
+/* getBoundingClientRect 는 마진을 제외하고, 인접 마진은 상쇄되기도 한다.
+   따라서 형제 블록의 '흐름상 위치 차이'로 실제 점유 높이를 잰다. */
+const flow=[];
+document.querySelectorAll('.area-header[data-blk], .qset[data-blk]').forEach(e=>{
+  const r=e.getBoundingClientRect();
+  flow.push({k:e.dataset.blk, t:Math.round(r.top+window.scrollY), h:Math.ceil(r.height)});
+});
+const inner={};
+document.querySelectorAll('.qhead[data-blk], .qbody[data-blk]').forEach(e=>{
+  const cs=getComputedStyle(e);
+  inner[e.dataset.blk]=Math.ceil(e.getBoundingClientRect().height
+      + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom));
+});
+const d=document.createElement('div');
+d.id='__M__';
+d.textContent='MEASURE='+JSON.stringify(
+  {flow:flow, inner:inner, doch:document.body.scrollHeight});
+document.body.appendChild(d);
+</script>

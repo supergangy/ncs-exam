@@ -47,9 +47,11 @@ python build.py --preview
 
 ### 작업을 이어가기 전에 읽을 것
 
-1. [`docs/PLAN.md`](docs/PLAN.md) — 참고 모의고사 10항목 분석, 50문항 블루프린트, 감수 13항목, 문체 감수 기준
-2. [`SPEC.md`](SPEC.md) — 문항 데이터 스키마, 허용 HTML, 분량·난이도 기준
-3. [`WORKLOG.md`](WORKLOG.md) — 지금까지 무엇을 왜 했는지
+1. **[`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) — 작업별 참조서.** 지문·자료·발문·선지·오답·조건추리·해설을 만들 때 각 절의 `사전 준비 → 규칙 → 자가검증`을 그대로 따른다. 실제 발생한 결함 39건이 규칙과 연결돼 있다. **문항을 만들기 전에 반드시 해당 절을 펼친다.**
+2. [`SPEC.md`](SPEC.md) — 데이터 스키마, 허용 HTML, 분량·난이도·정답분포·지면배치 기준
+3. [`docs/PLAN.md`](docs/PLAN.md) — 50문항 블루프린트, 감수 13항목, 문체 감수 기준
+4. [`docs/CORPUS_ANALYSIS.md`](docs/CORPUS_ANALYSIS.md) — 시판본 실측 수치. **0절의 신뢰도 등급을 먼저 볼 것**
+5. [`WORKLOG.md`](WORKLOG.md) — 시간순 이력(무엇을 왜 했는지)
 
 ## 폴더 구조
 
