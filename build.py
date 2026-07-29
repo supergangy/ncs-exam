@@ -38,6 +38,7 @@ def log(msg=""):
     print(msg)
     _LOG_LINES.append(str(msg))
 
+START_PAGE = 3          # 본문 첫 면의 PDF 쪽 번호 (표지1 + 안내1 다음). 짝수 = 왼쪽 면
 EXAM_TITLE = "공기업 NCS 봉투모의고사"
 EXAM_ROUND = "실전모의고사 제1회"
 TOTAL_Q = 50
@@ -93,7 +94,10 @@ def load_blocks(preview: bool):
 
     # 문항 번호 부여
     no = 1
-    for b in blocks:
+    for i, b in enumerate(blocks):
+        b["blk"] = i
+        b["pagebreak"] = False
+        b["spread_break"] = False
         b["first_no"] = no
         for q in b["questions"]:
             q["no"] = no
@@ -175,6 +179,32 @@ def build_html(blocks, kind: str, dist=None) -> str:
         answers=[(q["no"], q["answer"]) for q in flat],
         dist=dist or {},
     )
+
+
+def renumber(blocks):
+    """재배치 후 문항 번호와 세트 리드문을 다시 매긴다."""
+    no = 1
+    for b in blocks:
+        b["first_no"] = no
+        for q in b["questions"]:
+            q["no"] = no
+            no += 1
+        b["last_no"] = no - 1
+        if b["lead"]:
+            text = re.sub(r"^\s*\[\s*\d+\s*[~∼\-]\s*\d+\s*\]\s*", "", b["lead"])
+            b["lead"] = f"[{b['first_no']:02d}~{b['last_no']:02d}] {text}"
+
+
+def apply_layout(blocks, dist):
+    """블록 높이를 실측해 펼침면 기준으로 재배치한다."""
+    import layout as L
+    html = build_html(blocks, "exam", dist)          # 브레이크 없는 측정용 렌더
+    H = L.measure(html, find_chrome(), OUT / ".layout")
+    hdr, gap = H.get("hdr", 0), H.get("_gap", 8)
+    ordered, plog = L.plan(blocks, H, START_PAGE, hdr, gap)
+    log(f"[배치] 펼침면 기준 재배치 (면 용량 {L.CAP}px, 영역 헤더 {hdr}px, 블록 간격 {gap}px)")
+    log(L.report(plog))
+    return ordered
 
 
 def find_chrome():
@@ -266,6 +296,8 @@ def write_build_log(started: datetime.datetime, elapsed: float, outputs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preview", action="store_true", help="미완성 상태로 미리보기 빌드")
+    ap.add_argument("--no-layout", action="store_true",
+                    help="펼침면 재배치를 끄고 작성 순서 그대로 출력")
     args = ap.parse_args()
 
     started, t0 = datetime.datetime.now(), time.time()
@@ -302,6 +334,13 @@ def main():
         log("[경고]")
         for w in warnings:
             log(f"  - {w}")
+
+    if not args.no_layout:
+        blocks = apply_layout(blocks, dist)
+        renumber(blocks)                              # 재배치로 바뀐 번호를 다시 매긴다
+        log("[정답순서] " + " ".join(
+            f"{q['no']:02d}{CIRCLED[q['answer']-1]}"
+            for b in blocks for q in b["questions"]))
 
     suffix = "_preview" if args.preview else ""
     for kind, label in [("exam", "문제"), ("solution", "해설")]:

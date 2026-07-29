@@ -45,7 +45,11 @@ p { margin: 0 0 3.2pt; }
 .area-header:first-child { margin-top: 0; }
 
 /* ── 문항 ──────────────────────────────── */
+/* .qset 자체에는 break-inside:avoid 를 걸지 않는다. 펼침 배치에서
+   지문(.qhead) 뒤에 의도적으로 면을 넘겨야 하기 때문이다.
+   대신 지문 묶음과 개별 문항을 각각 통째로 유지한다. */
 .qset { margin-bottom: 2mm; }
+.qhead { break-inside: avoid; break-after: avoid; }
 .lead { font-weight: 700; margin: 4mm 0 2.2mm; break-after: avoid; }
 .question { margin-bottom: 5.5mm; break-inside: avoid; }
 .stem { margin-bottom: 2mm; padding-left: 6.6mm; text-indent: -6.6mm; break-after: avoid; }
@@ -146,21 +150,27 @@ table.omr-t td.n { font-weight: 700; background: #f7f7f7; width: 9mm; }
 
 {# ─────────────────────────── 문항 ─────────────────────────── #}
 {% for b in blocks %}
-  {% if b.show_area %}<div class="area-header">{{ b.area }}</div>{% endif %}
-  <div class="qset">
-    {% if b.lead %}<div class="lead">{{ b.lead }}</div>{% endif %}
-    {% if b.passage %}<div class="passage">{{ b.passage }}</div>{% endif %}
-    {% for q in b.questions %}
-    <div class="question">
-      <div class="stem"><span class="qno">{{ '%02d'|format(q.no) }}</span>{{ q.stem }}</div>
-      {% if q.material %}<div class="material">{{ q.material }}</div>{% endif %}
-      <ul class="choices{% if q.cols == 2 %} c2{% endif %}">
-        {% for c in q.choices %}
-        <li><span class="m">{{ circled[loop.index0] }}</span> {{ c }}</li>
-        {% endfor %}
-      </ul>
+  {% if b.show_area %}<div class="area-header" data-blk="hdr">{{ b.area }}</div>{% endif %}
+  <div class="qset" data-blk="{{ b.blk }}"{% if b.pagebreak %} style="break-before:page"{% endif %}>
+    {% if b.lead or b.passage %}
+    <div class="qhead" data-blk="{{ b.blk }}p">
+      {% if b.lead %}<div class="lead">{{ b.lead }}</div>{% endif %}
+      {% if b.passage %}<div class="passage">{{ b.passage }}</div>{% endif %}
     </div>
-    {% endfor %}
+    {% endif %}
+    <div class="qbody" data-blk="{{ b.blk }}q"{% if b.spread_break %} style="break-before:page"{% endif %}>
+      {% for q in b.questions %}
+      <div class="question">
+        <div class="stem"><span class="qno">{{ '%02d'|format(q.no) }}</span>{{ q.stem }}</div>
+        {% if q.material %}<div class="material">{{ q.material }}</div>{% endif %}
+        <ul class="choices{% if q.cols == 2 %} c2{% endif %}">
+          {% for c in q.choices %}
+          <li><span class="m">{{ circled[loop.index0] }}</span> {{ c }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
   </div>
 {% endfor %}
 
