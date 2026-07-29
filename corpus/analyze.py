@@ -95,6 +95,31 @@ def classify_stem(stem: str) -> str:
     return "기타"
 
 
+def extract_stem(qtext: str, limit: int = 240) -> str:
+    """문항 본문에서 발문만 뽑는다.
+
+    OCR이 발문을 2~3줄로 쪼개 놓는 일이 잦아 첫 줄만 보면 판정이 안 된다.
+    물음표나 '것은/고르면/구하면' 류 종결이 나올 때까지 줄을 이어 붙인다.
+    자료(표·보기 박스)가 시작되면 멈춘다.
+    """
+    stop = re.compile(r"[<\[]\s*(보\s*기|조\s*건|표|자\s*료|정\s*보|그\s*림)|^\s*구분\s")
+    end = re.compile(r"[?？]|것[은을]\s*[?？]?\s*$|고르[면시]|구하면|얼마인가")
+    buf = []
+    for line in qtext.split("\n"):
+        s = line.strip()
+        if not s:
+            continue
+        if buf and stop.search(s):
+            break
+        if any(c in s for c in CIRCLED):
+            break
+        buf.append(s)
+        joined = " ".join(buf)
+        if end.search(fuzzy(s)) or len(joined) >= limit:
+            break
+    return " ".join(buf)[:limit]
+
+
 def parse_dump(path: Path):
     txt = path.read_text(encoding="utf-8")
     parts = re.split(r"########## PAGE (\d+) \(chars=(\d+)\) ##########", txt)
@@ -197,14 +222,13 @@ def analyze(path, label, areas, area_names):
             if mk["kind"] != "Q":
                 continue
             t = mk["text"]
-            lines = [l.strip() for l in t.split("\n") if l.strip()]
-            stem = lines[0] if lines else ""
+            stem = extract_stem(t)
             # 선택지 이전까지를 본문(발문+자료)으로 본다
             ci = min([t.find(c) for c in CIRCLED if t.find(c) >= 0] or [len(t)])
             records.append({
                 "round": rd["round"], "no": mk["a"],
                 "area": area_names[area_of(mk["a"], areas)],
-                "stem": stem[:160],
+                "stem": stem,
                 "type": classify_stem(stem),
                 "body_chars": ci + leads.get(mk["a"], 0),
                 "shared": mk["a"] in leads,
