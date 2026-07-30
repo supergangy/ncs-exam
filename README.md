@@ -21,8 +21,10 @@ Python으로 문항 데이터를 관리하고, HTML 템플릿을 거쳐 **문제
 | 1차 | 01~10 (의사소통 7 + 수리 3) | **완료** — 제작·내용감수·문체감수·수정 반영 |
 | 2차 | 11~20 (수리 4 + 문제해결 6) | **완료** — 감수 지적 12건 반영 |
 | 3차 | 21~30 (문제해결 1 + 자원관리 6 + 정보 3) | **완료** — 플레이북 적용, 사전 검증으로 결함 2건 선제 차단 |
-| 4차 | 31~40 (정보 3 + 기술 6 + 조직이해 1) | 대기 |
-| 5차 | 41~50 (조직이해 5 + 직업윤리 5) | 대기 |
+| 4차 | 31~40 (정보 3 + 기술 6 + 조직이해 1) | **완료** — 감수 후 재작성 없이 통과, 자가검증 스캐너 상시화 |
+| 5차 | 41~50 (조직이해 5 + 직업윤리 5) | 다음 작업 |
+
+현재 미리보기: 문제집 25쪽 / 해설집 20쪽 (40문항). 정답 분포 ①~⑤ 각 8개, 최대 연속 2.
 
 세부 이력은 [`WORKLOG.md`](WORKLOG.md), 설계 근거 전문은 [`docs/PLAN.md`](docs/PLAN.md) 참고.
 
@@ -59,14 +61,26 @@ python build.py --preview
 ├─ build.py              검증 + HTML 렌더 + PDF 변환 + 쪽번호 + 자동 로그
 ├─ SPEC.md               집필 스펙 (스키마 · 허용 HTML · 분량 기준)
 ├─ WORKLOG.md            작업 로그 (진행 현황표 + 시간순 기록, append-only)
+├─ layout.py             펼침면 기준 조판기 (지문/문항 좌우 분리 · 여백 채움)
+├─ SPEC.md               집필 스펙 (스키마 · 허용 HTML · 분량 기준)
+├─ WORKLOG.md            작업 로그 (진행 현황표 + 시간순 기록, append-only)
 ├─ content/              영역별 문항 데이터
 │  ├─ a1_communication.py   의사소통 01~07
 │  ├─ a2_math.py            수리 08~14
 │  ├─ a3_problem.py         문제해결 15~21
 │  ├─ a4_resource.py        자원관리 22~27
-│  └─ a5_info.py            정보 28~30 (31~33 미작성)
+│  ├─ a5_info.py            정보 28~33
+│  ├─ a6_tech.py            기술 34~39
+│  └─ a7_org.py             조직이해 40 (41~45 미작성) · a8_ethics.py 미작성
+├─ tools/selfcheck.py    자가검증 스캐너 (집필 직후 · 감수 전에 실행)
+├─ corpus/               시판본 분석 파이프라인 (원문·추출본은 커밋하지 않음)
 ├─ templates/            exam.html.j2 / solution.html.j2
-├─ docs/PLAN.md          분석 · 설계 · 감수 이력 전문
+├─ docs/
+│  ├─ PLAYBOOK.md           작업별 참조서 — 집필 전에 펼친다
+│  ├─ PLAN.md               분석 · 설계 · 감수 이력 전문
+│  ├─ CORPUS_ANALYSIS.md    시판본 실측 수치 (0절 신뢰도 등급 먼저 볼 것)
+│  ├─ INSTITUTION_PROFILES.md  기관별 출제 비율
+│  └─ ANSWER_DISTRIBUTION.md   기관별 정답 분포
 ├─ logs/                 빌드 로그 (실행마다 자동 생성)
 └─ out/                  생성된 PDF
 ```
@@ -76,6 +90,12 @@ python build.py --preview
 ```bash
 python build.py --preview   # 미완성 상태로 현재까지 작성된 문항만 빌드
 python build.py             # 50문항 완성 후 최종 빌드
+```
+
+문항을 쓰거나 고친 뒤에는 **빌드 전에** 자가검증 스캐너를 돌린다. 치명 0건이 통과 조건이다.
+
+```bash
+python tools/selfcheck.py
 ```
 
 실행하면 다음을 자동으로 수행한다.
