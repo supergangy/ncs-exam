@@ -30,7 +30,7 @@ DB = HERE / "db.json"
 
 sys.path.insert(0, str(HERE))
 from lexicon import (AREAS, TYPES, DIFFICULTY, TIME_PRESSURE, TOPICS,  # noqa: E402
-                     STOPWORDS, ORG_ALIASES, ORG_SUFFIX)
+                     STOPWORDS, ORG_ALIASES, ORG_SUFFIX, section_kind, major_of)
 
 DATE_PAT = [
     (re.compile(r"(20\d{2})[.\-/년]\s*(\d{1,2})[.\-/월]\s*(\d{1,2})"), 3),
@@ -343,6 +343,11 @@ def parse(text: str, org: str) -> dict:
         "topics": find_topics(body, who),
         # 응시자가 직접 적어 준 영역별 출제 소재. 사전 추측보다 이쪽이 정확하다.
         "keywords": keywords,
+        # 절마다 NCS·전공·법률 중 무엇인지. 한 후기에 NCS와 전공이 함께 담기는 일이 잦다.
+        "kinds": {a: section_kind(a) for a in keywords},
+        # 전공 계열. 직렬명에서 먼저 보고, 없으면 키워드 절 제목에서 찾는다.
+        "major": (major_of(form.get("track") or "")
+                  or next((major_of(a) for a in keywords if major_of(a)), None)),
         # 양식에 적힌 난이도가 자유서술 추론보다 정확하다.
         "difficulty": normalize_difficulty(form.get("diff_raw")) or pick_one(body, DIFFICULTY),
         "time_pressure": pick_one(body, TIME_PRESSURE),

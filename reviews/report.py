@@ -145,6 +145,17 @@ def matrix(rows: list[dict]) -> list[str]:
                                          for n in row) + f"{sum(row):>7}건")
     out.append("")
     out.append("  표본 5건 미만인 칸은 경향으로 읽지 않는다.")
+
+    # 전공 계열별 현황. 전기·전산·토목처럼 직렬이 갈리면 전공 후기도 갈린다.
+    maj = Counter((r["org"], r["major"]) for r in rows if r.get("major"))
+    if maj:
+        out.append("")
+        out.append("전공 후기가 함께 담긴 건")
+        out.append("")
+        for (o, m), n in maj.most_common():
+            out.append(f"  {o:<16} {m:<6} {n}건")
+        out.append("")
+        out.append("  전공은 NCS 모의고사 대상이 아니다. 직렬별 참고용으로만 쌓는다.")
     out.append("")
     return out
 
@@ -182,17 +193,37 @@ def brief(org: str, rows: list[dict]) -> list[str]:
                    "같은 글을 다시 담으면 게시일이 채워집니다.")
         out.append("")
 
-    if kw:
-        out.append("■ 소재 후보 — 응시자가 직접 적은 출제 키워드. 그대로 골라 쓰면 된다.")
+    # 절마다 NCS·전공·법률 중 무엇인지 저장돼 있다. 갈래를 섞으면
+    # 「전기이론」이 NCS 영역처럼 보여 모의고사 설계를 오염시킨다.
+    kind_of = {}
+    for r in cur:
+        kind_of.update(r.get("kinds") or {})
+
+    def block(title, want, note=""):
+        picked = [a for a in kw if kind_of.get(a, "기타") == want]
+        if not picked:
+            return
+        out.append(f"■ {title}{note}")
         out.append("")
-        for area in sorted(kw, key=lambda a: -sum(kw[a].values())):
+        for area in sorted(picked, key=lambda a: -sum(kw[a].values())):
             out.append(f"  [{area}]")
             items = [w + (f" ×{c}" if c > 1 else "") for w, c in kw[area].most_common()]
             for chunk in (items[i:i + 3] for i in range(0, len(items), 3)):
                 out.append("    " + " · ".join(chunk))
         out.append("")
+
+    if kw:
+        block("NCS 소재 후보", "ncs", " — 모의고사에 그대로 골라 쓰면 된다.")
+        block("전공 소재", "major", " — NCS 모의고사 대상이 아니다. 직렬별 참고용.")
+        block("직무시험(법률) 소재", "law", " — NCS 모의고사 대상이 아니다.")
+        block("분류 미상", "기타", " — lexicon.py 의 갈래 판정을 손볼 후보.")
     else:
         out.append("■ 소재 후보 — 없음. 「기억 나는 문항 / 출제 키워드」 절이 있는 후기를 모으십시오.")
+        out.append("")
+
+    majors = Counter(r["major"] for r in cur if r.get("major"))
+    if majors:
+        out.append("■ 전공 계열 — " + " · ".join(f"{m} {n}건" for m, n in majors.most_common()))
         out.append("")
 
     if diff or tp:
