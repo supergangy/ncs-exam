@@ -238,45 +238,90 @@ def parse_form(text: str) -> dict:
 #     - 무역수지
 #
 # 사전으로 추측할 필요가 없다. 적힌 그대로 읽는다.
+#
+# 기관마다 표기 습관이 다르다. 건보는 꺾쇠와 불릿을 쓰지만 코레일은 둘 다 안 쓴다.
+#
+#     ncs                    ← 맨줄 헤더
+#     맞춤법                  ← 불릿 없는 항목
+#     9로 나누기
+#     등등
+#
+# 꺾쇠·불릿을 필수로 두면 코레일 후기 263건이 통째로 빠진다. 둘 다 받는다.
 KW_SECTION = re.compile(r"(기억\s*나는\s*문항|출제\s*키워드|기억나는\s*키워드)")
 KW_HEADER = re.compile(r"^\s*[<〈\[【]\s*([^>〉\]】]{1,20})\s*[>〉\]】]\s*$", re.M)
 KW_ITEM = re.compile(r"^\s*(?:[-–—•*]|\d{1,2}[.)])\s*(.+?)\s*$")
 
 # 영역 표기를 정식 이름으로 접는다. 「문해」 「의통」이 그대로 쓰인다.
+# 「ncs」처럼 영역이 안 갈리는 총칭은 「NCS 전반」으로 담는다 —
+# 어느 영역인지 모르는 것이 사실이므로 그렇게 표시한다.
 KW_AREA_ALIAS = {
     "의사소통": "의사소통", "의통": "의사소통", "의사소통능력": "의사소통",
     "수리": "수리", "수리능력": "수리",
     "문해": "문제해결", "문제해결": "문제해결", "문제해결능력": "문제해결",
     "자원관리": "자원관리", "정보": "정보", "기술": "기술",
     "조직이해": "조직이해", "직업윤리": "직업윤리",
+    "ncs": "NCS 전반", "NCS": "NCS 전반", "엔시에스": "NCS 전반",
+    "의수문": "NCS 전반", "직업기초": "NCS 전반", "직업기초능력": "NCS 전반",
 }
+
+# 항목이 아니라 잡음인 줄.
+KW_NOISE = {"등등", "기타", "없음", "없습니다", "생각 안남", "기억 안남", "미상",
+            "전공", "직무", "직무수행", "법령", "이상", "끝", "그 외"}
+# 서술문 꼬리. 이걸로 끝나면 문항이 아니라 후기 문장이다.
+KW_TAIL = re.compile(r"(습니다|했어요|였어요|네요|같아요|봅니다|하세요|해요|"
+                     r"았음|었음|됐음|하심|드림|바랍니다|감사)\s*[.!~]*$")
+
+
+def _kw_header(line: str) -> str | None:
+    """헤더로 볼 만한 줄이면 정식 절 이름을 돌려준다.
+
+    꺾쇠가 없어도 받되, 자유서술을 헤더로 삼키지 않도록 조건을 건다 —
+    짧아야 하고, 알려진 영역·과목명이어야 한다.
+    """
+    m = KW_HEADER.match(line)
+    if m:
+        raw = m.group(1).strip()
+        return KW_AREA_ALIAS.get(raw, KW_AREA_ALIAS.get(raw.lower(), raw))
+    s = line.strip().strip("[]<>()【】·-— \t")
+    if not s or len(s) > 20:
+        return None
+    if s in KW_AREA_ALIAS or s.lower() in KW_AREA_ALIAS:
+        return KW_AREA_ALIAS.get(s, KW_AREA_ALIAS.get(s.lower()))
+    # 사전에 없어도 전공·법률 과목명이면 헤더로 본다 (경영학, 철도법령, 정보보호개론 …)
+    return s if section_kind(s) in {"major", "law"} else None
+
+
+def _kw_item(line: str) -> str | None:
+    """항목으로 볼 만한 줄이면 정리해서 돌려준다."""
+    m = KW_ITEM.match(line)
+    v = (m.group(1) if m else line).strip(" :·-–—*\t")
+    if not (1 < len(v) <= 45) or v in KW_NOISE:
+        return None
+    # 서술문은 뺀다. 다만 「~인지」·물음표로 끝나면 문항 자체일 수 있어 살린다.
+    if KW_TAIL.search(v) and not re.search(r"(인지|\?)\s*$", v):
+        return None
+    return v
 
 
 def parse_keywords(text: str) -> dict[str, list[str]]:
-    """출제 키워드 절을 영역별로 뽑는다. 직무시험(법) 절도 그대로 담는다."""
+    """출제 키워드 절을 영역별로 뽑는다. 전공·법률 절도 그대로 담는다."""
     m = KW_SECTION.search(text)
     if not m:
         return {}
-    tail = text[m.end():]
 
     out: dict[str, list[str]] = {}
     cur = None
-    for line in tail.split("\n"):
-        h = KW_HEADER.match(line)
+    for line in text[m.end():].split("\n"):
+        h = _kw_header(line)
         if h:
-            raw = h.group(1).strip()
-            cur = KW_AREA_ALIAS.get(raw, raw)          # 법 과목명은 적힌 그대로 둔다
+            cur = h
             out.setdefault(cur, [])
             continue
         if cur is None:
             continue
-        it = KW_ITEM.match(line)
-        if it:
-            v = it.group(1).strip(" :·-")
-            if 1 < len(v) <= 60:
-                out[cur].append(v)
-        elif line.strip() and not line.strip().startswith(("저는", "그래도", "이제", "이번")):
-            continue
+        v = _kw_item(line)
+        if v:
+            out[cur].append(v)
     return {k: v for k, v in out.items() if v}
 
 

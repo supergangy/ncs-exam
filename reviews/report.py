@@ -265,9 +265,11 @@ def brief(org: str, rows: list[dict]) -> list[str]:
 
 
 # 신뢰도 등급 — **몇 명이 독립적으로 같은 말을 했는가**로 나눈다.
-TIERS = [(3, "높음", "여러 명이 일치. 설계에 반영해도 된다"),
-         (2, "중간", "두 명이 일치. 반영하되 표시해 둔다"),
-         (1, "낮음", "단일 증언. 참고만 한다")]
+# 낮은 등급이라고 버리지 않는다. 소재가 많으면 여러 회차로 나눠 만들 것이므로
+# 단일 증언은 **후속 회차 소재 풀**로 남는다.
+TIERS = [(3, "높음", "여러 명이 일치. 이번 회차에 먼저 배치"),
+         (2, "중간", "두 명이 일치. 이번 회차 또는 다음 회차"),
+         (1, "낮음", "단일 증언. 후속 회차 소재 풀로 남긴다")]
 
 
 def tier_of(n: int) -> tuple[str, str]:
@@ -277,17 +279,20 @@ def tier_of(n: int) -> tuple[str, str]:
     return "낮음", ""
 
 
-def _cluster(word: str, org: str) -> str:
-    """원문 키워드를 소재 카테고리로 접는다.
+def _cluster(word: str, org: str) -> tuple[str, str]:
+    """원문 키워드를 소재 카테고리로 접는다. (묶음키, 보여줄 이름) 을 돌려준다.
 
     「제주도 애견 파크」와 「반려견 놀이공원」은 다른 사람이 같은 지문을 적은 것이다.
     글자만 비교하면 둘을 못 묶으므로 lexicon 의 TOPICS 로 접는다.
+
+    사전에 없으면 공백을 지운 형태를 **묶음키로만** 쓰고, 화면에는 원문을 그대로 낸다.
+    묶음키를 그대로 찍으면 「180m를20m줄자로측정」처럼 붙어 나온다.
     """
     table = {**TOPICS.get("_공통", {}), **TOPICS.get(org, {})}
     for label, words in table.items():
         if any(w in word for w in words):
-            return label
-    return "".join(word.split())          # 사전에 없으면 공백만 지워 원문 그대로
+            return label, label
+    return "".join(word.split()), word.strip()
 
 
 def consensus(org: str, rows: list[dict]) -> list[str]:
@@ -300,28 +305,34 @@ def consensus(org: str, rows: list[dict]) -> list[str]:
     out.append("")
 
     # ── 소재 — NCS 절만 본다. 전공·법률은 모의고사 대상이 아니다 ──────
-    seen: dict[str, set] = defaultdict(set)      # 카테고리 → 그것을 말한 후기 인덱스
-    raw_of: dict[str, set] = defaultdict(set)    # 카테고리 → 원문 표현들
+    seen: dict[str, set] = defaultdict(set)      # 묶음 → 그것을 말한 후기 인덱스
+    raw_of: dict[str, set] = defaultdict(set)    # 묶음 → 원문 표현들
+    show_of: dict[str, str] = {}                 # 묶음 → 화면에 낼 이름
     for i, r in enumerate(rows):
         kinds = r.get("kinds") or {}
         for area, ws in (r.get("keywords") or {}).items():
             if kinds.get(area, "기타") != "ncs":
                 continue
             for w in ws:
-                c = _cluster(w, org)
-                seen[f"{area}|{c}"].add(i)
-                raw_of[f"{area}|{c}"].add(w)
+                key_c, show = _cluster(w, org)
+                k = f"{area}|{key_c}"
+                seen[k].add(i)
+                raw_of[k].add(w)
+                show_of.setdefault(k, show)
 
     if seen:
-        out.append("■ 소재 — 겹치는 순")
+        multi = sum(1 for v in seen.values() if len(v) >= 2)
+        out.append(f"■ 소재 {len(seen)}개 — 겹치는 순 (2건 이상 겹친 것 {multi}개)")
         out.append("")
-        for key, who in sorted(seen.items(), key=lambda kv: (-len(kv[1]), kv[0])):
-            area, c = key.split("|", 1)
-            tier, _ = tier_of(len(who))
+        for key, who in sorted(seen.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:60]:
+            area, _ = key.split("|", 1)
+            tier, _t = tier_of(len(who))
             mark = {"높음": "★★★", "중간": "★★ ", "낮음": "★  "}[tier]
             raws = sorted(raw_of[key])
-            detail = f"  ({' / '.join(raws)})" if len(raws) > 1 else ""
-            out.append(f"  {mark} {len(who)}건  [{area}] {c}{detail}")
+            detail = f"   ({' / '.join(raws[:3])})" if len(raws) > 1 else ""
+            out.append(f"  {mark} {len(who):>2}건  [{area}] {show_of[key]}{detail}")
+        if len(seen) > 60:
+            out.append(f"  … 그 밖에 {len(seen) - 60}개. 전체는 --brief 로 본다.")
         out.append("")
 
     # ── 체감·구조 — 후기가 서로 어긋나면 그 사실을 드러낸다 ──────────
@@ -354,12 +365,16 @@ def consensus(org: str, rows: list[dict]) -> list[str]:
         out.append("   구조 지표(코퍼스)가 낡았을 수 있다. 계획서에서 함께 판단한다.")
         out.append("")
 
-    top3 = [k for k, v in sorted(seen.items(), key=lambda kv: -len(kv[1])) if len(v) >= 3]
+    hi = sum(1 for v in seen.values() if len(v) >= 3)
+    mid = sum(1 for v in seen.values() if len(v) == 2)
+    lo = sum(1 for v in seen.values() if len(v) == 1)
     out.append("─" * 62)
-    if top3:
-        out.append(f"신뢰도 높음 소재 {len(top3)}개. 이것부터 문항에 배치한다.")
-    else:
-        out.append("신뢰도 높음(3건 이상) 소재가 아직 없다. 후기를 더 모으는 편이 낫다.")
+    out.append(f"소재 재고 — 높음 {hi}개 · 중간 {mid}개 · 낮음 {lo}개 (합계 {len(seen)}개)")
+    if hi or mid:
+        out.append(f"이번 회차는 높음·중간 {hi + mid}개부터 배치한다.")
+    # 낮은 등급도 버리지 않는다. 회차를 늘려 소진한다.
+    if lo:
+        out.append(f"단일 증언 {lo}개는 **후속 회차 소재 풀**이다. 버리지 않는다.")
     out.append("다음: 이 결과로 제작 계획서를 쓰고 승인을 받은 뒤 집필한다.")
     out.append("")
     return out
