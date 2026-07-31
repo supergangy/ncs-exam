@@ -202,7 +202,7 @@ def apply_layout(blocks, dist):
     H = L.measure(html, find_chrome(), OUT / ".layout")
     hdr, gap = H.get("hdr", 0), H.get("_gap", 8)
     ordered, plog = L.plan(blocks, H, START_PAGE, hdr, gap)
-    log(f"[배치] 펼침면 기준 재배치 (면 용량 {L.CAP}px, 영역 헤더 {hdr}px, 블록 간격 {gap}px)")
+    log(f"[배치] 펼침면 기준 재배치 (면 용량 {L.CAP}px, 블록 간격 {gap}px)")
     log(L.report(plog))
     return ordered
 
@@ -279,7 +279,8 @@ def write_build_log(started: datetime.datetime, elapsed: float, outputs):
     ]
     path.write_text("\n".join(header + _LOG_LINES) + "\n", encoding="utf-8")
 
-    if WORKLOG.exists() and outputs:
+    # 확인용 HTML 빌드는 WORKLOG에 남기지 않는다. 반복 실행이라 로그만 지저분해진다.
+    if WORKLOG.exists() and outputs and "--html" not in sys.argv:
         summary = " / ".join(f"{name} {pages}쪽" for name, pages in outputs)
         entry = (
             f"\n### {started:%H:%M} · [빌드] {'미리보기' if '--preview' in sys.argv else '전체'} 빌드\n"
@@ -298,6 +299,8 @@ def main():
     ap.add_argument("--preview", action="store_true", help="미완성 상태로 미리보기 빌드")
     ap.add_argument("--no-layout", action="store_true",
                     help="펼침면 재배치를 끄고 작성 순서 그대로 출력")
+    ap.add_argument("--html", action="store_true",
+                    help="HTML만 생성하고 PDF 변환·쪽번호를 건너뛴다 (수정 확인용)")
     args = ap.parse_args()
 
     started, t0 = datetime.datetime.now(), time.time()
@@ -319,10 +322,12 @@ def main():
     log(f"[적재] 블록 {len(blocks)}개 / 문항 {n_q}개")
     log("[정답분포] " + " ".join(f"{CIRCLED[i-1]}{dist[i]}" for i in range(1, 6)))
 
-    log("[문항목록]")
-    for b in blocks:
-        for q in b["questions"]:
-            log(f"  {q['no']:02d}  {b['area']:<7} {q.get('type',''):<18} 정답 {CIRCLED[q['answer']-1]}")
+    # 문항목록은 50줄이라 확인용 HTML 빌드에서는 접는다.
+    if not args.html:
+        log("[문항목록]")
+        for b in blocks:
+            for q in b["questions"]:
+                log(f"  {q['no']:02d}  {b['area']:<7} {q.get('type',''):<18} 정답 {CIRCLED[q['answer']-1]}")
 
     if errors:
         log("[오류]")
@@ -347,10 +352,16 @@ def main():
         html_path = OUT / f"{kind}{suffix}.html"
         pdf_path = OUT / f"NCS_봉투모의고사_1회_{label}{suffix}.pdf"
         html_path.write_text(build_html(blocks, kind, dist), encoding="utf-8")
+        if args.html:                                 # 수정 확인용 — PDF는 굽지 않는다
+            log(f"[출력] {html_path.relative_to(ROOT)}  (PDF 미생성)")
+            continue
         html_to_pdf(html_path, pdf_path)
         pages = stamp_page_numbers(pdf_path)
         log(f"[출력] {pdf_path.name}  ({pages}쪽)")
         outputs.append((pdf_path.name, pages))
+
+    if args.html:
+        log("[안내] 브라우저로 열어 확인하고, 쪽나눔은 Ctrl+P(A4·배율 100%·여백 없음)로 본다.")
 
     p = write_build_log(started, time.time() - t0, outputs)
     print(f"[로그] {p.relative_to(ROOT)}")

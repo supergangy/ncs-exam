@@ -37,14 +37,10 @@ p { margin: 0 0 3.2pt; }
 .notice { border: 1pt solid #111; padding: 5mm 6mm; }
 .notice .t { font-weight: 700; margin-bottom: 3mm; font-size: 10.5pt; }
 
-/* ── 영역 헤더 ──────────────────────────── */
-.area-header { border-top: 2pt solid #111; border-bottom: 0.7pt solid #111;
-               padding: 1.6mm 0; margin: 7mm 0 4mm; text-align: center;
-               font-size: 12pt; font-weight: 800; letter-spacing: 5pt;
-               break-after: avoid; }
-.area-header:first-child { margin-top: 0; }
-
 /* ── 문항 ──────────────────────────────── */
+/* 문제집에는 영역 헤더를 두지 않는다. 지면을 잡아먹고, 영역 구성은
+   응시 안내 페이지의 구성표(영역별 문항 수·번호 범위)로 충분하다.
+   해설집(solution.html.j2)에는 채점 편의를 위해 남겨 둔다. */
 /* .qset 자체에는 break-inside:avoid 를 걸지 않는다. 펼침 배치에서
    지문(.qhead) 뒤에 의도적으로 면을 넘겨야 하기 때문이다.
    대신 지문 묶음과 개별 문항을 각각 통째로 유지한다. */
@@ -150,7 +146,6 @@ table.omr-t td.n { font-weight: 700; background: #f7f7f7; width: 9mm; }
 
 {# ─────────────────────────── 문항 ─────────────────────────── #}
 {% for b in blocks %}
-  {% if b.show_area %}<div class="area-header" data-blk="hdr">{{ b.area }}</div>{% endif %}
   <div class="qset" data-blk="{{ b.blk }}"{% if b.pagebreak %} style="break-before:page"{% endif %}>
     {% if b.lead or b.passage %}
     <div class="qhead" data-blk="{{ b.blk }}p">

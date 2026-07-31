@@ -168,6 +168,14 @@ def main() -> int:
                 if tag.lower() not in ALLOWED_TAGS:
                     findings.append(("치명", no, "SPEC 4", f"{fname}: 미등록 태그 <{tag}>"))
 
+        # 7a 발문·리드문은 순수 텍스트 (D46)
+        #    7번 검사는 태그 이름만 보므로 <strong> 같은 허용 태그가 발문에 박혀 있어도 통과한다.
+        #    허용 여부가 아니라 **어느 필드인가**로 판정해야 잡힌다.
+        for fname in ("stem", "lead"):
+            for _, tag in TAG.findall(fields.get(fname) or ""):
+                findings.append(("치명", no, "SPEC 4",
+                                 f"{fname}: 태그 <{tag}> — 발문·리드문은 순수 텍스트다"))
+
     # ── 전체 검사 ────────────────────────────────────────────────
     stems = Counter(strip_tags(q["stem"]) for _, _, q in items)
     for s, n in stems.items():
