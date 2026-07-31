@@ -376,9 +376,20 @@ def main():
     if not args.no_layout:
         blocks = apply_layout(blocks, dist)
         renumber(blocks)                              # 재배치로 바뀐 번호를 다시 매긴다
+        printed = [q["answer"] for b in blocks for q in b["questions"]]
         log("[정답순서] " + " ".join(
             f"{q['no']:02d}{CIRCLED[q['answer']-1]}"
             for b in blocks for q in b["questions"]))
+        # selfcheck 는 적재 순서만 본다. 재배치로 같은 정답이 이어 붙는 것은
+        # 여기서만 잡힌다 (SPEC 8절 — 3연속 금지).
+        run = mx = 1
+        for a, nxt in zip(printed, printed[1:]):
+            run = run + 1 if a == nxt else 1
+            mx = max(mx, run)
+        if mx >= 3:
+            log(f"[경고] 재배치 후 같은 정답이 {mx}번 이어집니다. 선지 순서를 손보십시오.")
+        elif mx == 2:
+            log("[안내] 재배치 후 같은 정답이 2번 이어지는 곳이 있습니다 (허용 범위).")
 
     suffix = "_preview" if args.preview else ""
     kinds = [("exam", "문제"), ("solution", "해설")]
