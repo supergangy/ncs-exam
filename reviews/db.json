@@ -57,7 +57,67 @@
     "chars": 1585,
     "fingerprint": "073d43981038",
     "form_sig": "09296854bc09",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "2026년 상반기 국민건강보험공단 필기 후기(6급가 행정직)",
+    "term": "2026 상반기",
+    "date": "2026-04-04",
+    "track": "행정직",
+    "total_q": 50,
+    "total_min": 60,
+    "subject": "NCS(의사소통, 수리, 문제해결) + 국민건강보험법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "모듈",
+      "추론",
+      "자료해석",
+      "계산",
+      "규정적용"
+    ],
+    "topics": [
+      "학교폭력",
+      "디지털 소통",
+      "AI·디지털",
+      "노인·돌봄",
+      "ESG·지속가능",
+      "무역·경제지표"
+    ],
+    "keywords": {
+      "의사소통": [
+        "학교폭력",
+        "제주도 애견 파크",
+        "AI 로봇",
+        "비판적 독해"
+      ],
+      "수리": [
+        "무역수지",
+        "성과급 배분",
+        "탄소법",
+        "농촌 소득세",
+        "재무제표"
+      ],
+      "문제해결": [
+        "KTX 요금"
+      ],
+      "국민건강보험법": [
+        "벌금 상한액 높은 것 순서대로 나열",
+        "가입자 자격",
+        "징수시 옳지 않은 것"
+      ]
+    },
+    "difficulty": "상",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 4126,
+    "fingerprint": "ae761746a9fd",
+    "form_sig": "561113477c1f",
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -84,7 +144,7 @@
     "chars": 444,
     "fingerprint": "b1f57df5c70d",
     "form_sig": "bab3fdbffef6",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -121,7 +181,7 @@
     "chars": 1119,
     "fingerprint": "1b49f2ede64d",
     "form_sig": "b1a81191618b",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -151,7 +211,7 @@
     "chars": 992,
     "fingerprint": "2d61ef863366",
     "form_sig": "792ced568df1",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -176,7 +236,7 @@
     "chars": 943,
     "fingerprint": "3a7de88e33b7",
     "form_sig": "c012f7f6bb57",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -202,7 +262,7 @@
     "chars": 897,
     "fingerprint": "8d19cb96da2b",
     "form_sig": "c93f93ad4fac",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -237,7 +297,7 @@
     "chars": 663,
     "fingerprint": "b6508ef21bef",
     "form_sig": "783fdb37359f",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -269,7 +329,7 @@
     "chars": 1111,
     "fingerprint": "a7d718a9164c",
     "form_sig": "e264205593f0",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -298,7 +358,7 @@
     "chars": 885,
     "fingerprint": "c9b057356dac",
     "form_sig": "1bf5daad5426",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -327,7 +387,7 @@
     "chars": 722,
     "fingerprint": "32989cc20ccc",
     "form_sig": "28b9b4398773",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -355,7 +415,7 @@
     "chars": 794,
     "fingerprint": "dba83b928a92",
     "form_sig": "dcadc4de6681",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -383,7 +443,7 @@
     "chars": 971,
     "fingerprint": "de0684bf463e",
     "form_sig": "fe1e1932de10",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -412,7 +472,7 @@
     "chars": 950,
     "fingerprint": "ec048782e29d",
     "form_sig": "c75213d7d5f7",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:21"
   },
   {
     "org": "국민건강보험공단",
@@ -450,6 +510,245 @@
     "chars": 6988,
     "fingerprint": "ede7c5708f2e",
     "form_sig": "561113477c1f",
-    "ingested_at": "2026-07-31 14:09"
+    "ingested_at": "2026-07-31 14:24"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "NCS + 국민건강보험법",
+    "areas": [],
+    "types": [],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 158,
+    "fingerprint": "8fcc3f251509",
+    "form_sig": "3c78ecd11d83",
+    "ingested_at": "2026-07-31 14:24"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "요양직",
+    "total_q": 20,
+    "total_min": 60,
+    "subject": "ncs 노인장기요양법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "자료해석",
+      "규정적용",
+      "계산"
+    ],
+    "topics": [
+      "노인·돌봄",
+      "장기요양보험",
+      "반려동물",
+      "학교폭력",
+      "AI·디지털",
+      "재정",
+      "무역·경제지표"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "부족",
+    "change_signal": false,
+    "chars": 2241,
+    "fingerprint": "cc12b33018de",
+    "form_sig": "9fc05e55b098",
+    "ingested_at": "2026-07-31 14:24"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "요양직",
+    "total_q": null,
+    "total_min": 80,
+    "subject": "의사소통 수리 문제해결 법률",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [],
+    "topics": [
+      "노인·돌봄"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "부족",
+    "change_signal": true,
+    "chars": 981,
+    "fingerprint": "2d21cb461fb4",
+    "form_sig": "019bb700f813",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정",
+    "total_q": 20,
+    "total_min": 10,
+    "subject": "ncs, 법령",
+    "areas": [
+      "수리",
+      "의사소통",
+      "문제해결"
+    ],
+    "types": [
+      "규정적용"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "부족",
+    "change_signal": true,
+    "chars": 1035,
+    "fingerprint": "156723044d98",
+    "form_sig": "afded40e5143",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "요양직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "ncs(의수문), 노인장기요양보험법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "모듈",
+      "추론"
+    ],
+    "topics": [
+      "노인·돌봄",
+      "장기요양보험",
+      "학교폭력",
+      "재정",
+      "요양급여"
+    ],
+    "keywords": {},
+    "difficulty": "상",
+    "time_pressure": "부족",
+    "change_signal": false,
+    "chars": 1309,
+    "fingerprint": "87f333b0613d",
+    "form_sig": "cdcccf5be377",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "전산",
+    "total_q": 35,
+    "total_min": 60,
+    "subject": "NCS + C/JAVA/SQL + 국민건강보험법",
+    "areas": [
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "엑셀",
+      "추론",
+      "모듈"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 785,
+    "fingerprint": "15b825fb9bd0",
+    "form_sig": "16ed72927b13",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "건강직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "의사소통/수리/문제해결",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결",
+      "자원관리"
+    ],
+    "types": [
+      "자료해석"
+    ],
+    "topics": [
+      "무역·경제지표",
+      "재정",
+      "AI·디지털",
+      "노인·돌봄",
+      "학교폭력",
+      "반려동물"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 685,
+    "fingerprint": "3bc36ecce112",
+    "form_sig": "92428d31ceb9",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정",
+    "total_q": null,
+    "total_min": 10,
+    "subject": "ncs, 건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "추론",
+      "자료해석"
+    ],
+    "topics": [
+      "건강검진"
+    ],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": "부족",
+    "change_signal": true,
+    "chars": 1062,
+    "fingerprint": "eacaee8bd0ab",
+    "form_sig": "b16a4cca06cd",
+    "ingested_at": "2026-07-31 14:25"
   }
 ]

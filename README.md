@@ -20,6 +20,20 @@ python build.py --round r2_nhis      # 다른 회차
 
 회차별 사양·블루프린트·이력은 각 `rounds/<회차>/README.md`, 기계가 읽는 값은 `config.py`에 있다.
 
+### 제작 순서 — 후기 먼저, 판단은 사용자가
+
+```
+① 후기를 담는다                python reviews/serve.py --org <기관> --open
+② 제작 차수 시작
+③ 후기를 읽는다                python reviews/report.py --brief <기관>
+④ 읽어낸 내용을 제시하고 판단을 받는다    ← 건너뛰지 않는다
+⑤ 집필 → selfcheck → 감수 → 확인
+```
+
+**④를 반드시 거친다.** 후기에서 무엇을 읽었는지, 기존 설계와 어디서 충돌하는지를 표로 보이고
+**「이러이러한 내용이 있는데 어떤 식으로 할까요?」로 묻는다.** 설계 변경을 집필자가 확정하지 않는다.
+표본이 작을 때 무엇을 경향으로 볼지는 판단이 들어가는 문제다.
+
 ### 새 회차를 추가할 때
 
 1. `rounds/<이름>/config.py` — `BRAND` · `EXAM_TITLE` · `EXAM_ROUND` · `FILE_TAG` · `TOTAL_Q` · `TOTAL_MIN` · `AREAS` · `PROFILE`

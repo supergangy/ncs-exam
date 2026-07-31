@@ -235,7 +235,9 @@ def parse_keywords(text: str) -> dict[str, list[str]]:
     return {k: v for k, v in out.items() if v}
 
 
-TITLE_TERM = re.compile(r"(20\d{2})\s*(상반기|하반기)?")
+# 「2026 상반기」와 「2026년 상반기」가 섞여 쓰인다. 「년」을 건너뛰지 않으면
+# 같은 시행이 2026 과 2026 상반기 로 갈린다.
+TITLE_TERM = re.compile(r"(20\d{2})\s*년?\s*(상반기|하반기)?")
 
 # 「유형이 바뀌었다」는 언급. 구조 지표를 대체하진 못하지만,
 # 코퍼스(시판본 실측)가 낡았다는 경보로는 이만한 게 없다.
