@@ -31,7 +31,10 @@ if(f&&f.contentDocument)d=f.contentDocument;
 var s=['.se-main-container','.ArticleContentBox','#postViewArea','.article_viewer','article','body'],e;
 for(var i=0;i<s.length;i++){e=d.querySelector(s[i]);if(e&&e.innerText.length>200)break;}
 if(!e){alert('본문을 찾지 못했습니다');return;}
-var t=(d.title||'')+'\\n'+e.innerText;
+var ds=['.article_info .date','.ArticleTool .date','.date','.se_publishDate','.post_date'],dt='';
+for(var j=0;j<ds.length;j++){var n=d.querySelector(ds[j]);
+ if(n&&/20\\d\\d/.test(n.innerText)){dt=n.innerText.trim();break;}}
+var t=(d.title||'')+'\\n작성일 '+dt+'\\n'+e.innerText;
 fetch('http://127.0.0.1:%PORT%/ingest',{method:'POST',mode:'cors',
  headers:{'Content-Type':'text/plain;charset=UTF-8'},body:t})
 .then(function(r){return r.text()}).then(function(m){alert(m)})

@@ -80,6 +80,24 @@ def section(org: str, rows: list[dict], md: bool) -> list[str]:
             for k, v in f:
                 out.append(f"  {k:<14} {v:>3}건 {bar(v, n)}")
 
+    # 응시자가 직접 적은 출제 소재. 이 절이 후기에서 가장 값어치 있다.
+    kw = defaultdict(Counter)
+    for r in rows:
+        for area, ws in (r.get("keywords") or {}).items():
+            kw[area].update(ws)
+    if kw:
+        out.append("")
+        out.append("### 출제 키워드 (응시자 기재)")
+        out.append("")
+        for area in sorted(kw, key=lambda a: -sum(kw[a].values())):
+            items = [f"{w}" + (f" ×{c}" if c > 1 else "") for w, c in kw[area].most_common()]
+            if md:
+                out.append(f"- **{area}** — {' · '.join(items)}")
+            else:
+                out.append(f"  [{area}]")
+                for chunk in (items[i:i + 4] for i in range(0, len(items), 4)):
+                    out.append("    " + " · ".join(chunk))
+
     for label, key in (("체감 난이도", "difficulty"), ("시간 압박", "time_pressure")):
         f = freq(rows, key)
         if f:
