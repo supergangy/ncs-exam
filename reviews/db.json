@@ -56,7 +56,7 @@
     "chars": 1585,
     "fingerprint": "073d43981038",
     "form_sig": "09296854bc09",
-    "ingested_at": "2026-07-31 13:39"
+    "ingested_at": "2026-07-31 13:48"
   },
   {
     "org": "국민건강보험공단",
@@ -82,7 +82,7 @@
     "chars": 444,
     "fingerprint": "b1f57df5c70d",
     "form_sig": "bab3fdbffef6",
-    "ingested_at": "2026-07-31 13:39"
+    "ingested_at": "2026-07-31 13:48"
   },
   {
     "org": "국민건강보험공단",
@@ -107,7 +107,7 @@
     "chars": 897,
     "fingerprint": "8d19cb96da2b",
     "form_sig": "c93f93ad4fac",
-    "ingested_at": "2026-07-31 13:39"
+    "ingested_at": "2026-07-31 13:48"
   },
   {
     "org": "국민건강보험공단",
@@ -141,7 +141,7 @@
     "chars": 663,
     "fingerprint": "b6508ef21bef",
     "form_sig": "783fdb37359f",
-    "ingested_at": "2026-07-31 13:39"
+    "ingested_at": "2026-07-31 13:48"
   },
   {
     "org": "국민건강보험공단",
@@ -169,6 +169,6 @@
     "chars": 722,
     "fingerprint": "32989cc20ccc",
     "form_sig": "28b9b4398773",
-    "ingested_at": "2026-07-31 13:39"
+    "ingested_at": "2026-07-31 13:48"
   }
 ]

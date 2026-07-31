@@ -108,11 +108,132 @@ def section(org: str, rows: list[dict], md: bool) -> list[str]:
     return out
 
 
+UNKNOWN_TERM = "시기 미상"
+
+
+def term_of(r: dict) -> str:
+    """시행 시기. 제목의 「2026 상반기」를 우선하고, 없으면 작성일에서 추정한다."""
+    if r.get("term"):
+        return r["term"]
+    d = r.get("date")
+    if d:
+        y, m = int(d[:4]), int(d[5:7])
+        return f"{y} {'상반기' if m <= 8 else '하반기'}"
+    return UNKNOWN_TERM
+
+
+def term_key(t: str) -> tuple:
+    """시기 정렬 키. 문자열로 비교하면 한글 「시기 미상」이 숫자보다 뒤로 가
+
+    가장 최신으로 잡힌다. 미상은 언제나 맨 뒤(가장 오래된 것)로 보낸다.
+    """
+    return (0, t) if t == UNKNOWN_TERM else (1, t)
+
+
+def matrix(rows: list[dict]) -> list[str]:
+    """기관 × 시행 시기 수집 현황. 어디가 비었는지 한눈에 본다."""
+    cells = Counter((r["org"], term_of(r)) for r in rows)
+    orgs = sorted({o for o, _ in cells}, key=lambda o: -sum(
+        v for (oo, _), v in cells.items() if oo == o))
+    terms = sorted({t for _, t in cells}, key=term_key, reverse=True)
+
+    w = max(len(o) for o in orgs) + 2
+    out = ["", "기관 × 시행 시기 수집 현황", ""]
+    out.append(" " * w + "".join(f"{t:>12}" for t in terms) + f"{'합계':>8}")
+    for o in orgs:
+        row = [cells.get((o, t), 0) for t in terms]
+        out.append(f"{o:<{w}}" + "".join(f"{(str(n) + '건' if n else '·'):>12}"
+                                         for n in row) + f"{sum(row):>7}건")
+    out.append("")
+    out.append("  표본 5건 미만인 칸은 경향으로 읽지 않는다.")
+    out.append("")
+    return out
+
+
+def profile_draft(org: str, rows: list[dict]) -> list[str]:
+    """가장 최근 시기 후기로 회차 PROFILE 초안을 만든다.
+
+    rounds/<회차>/config.py 에 그대로 붙여 넣을 수 있는 형태로 낸다.
+    """
+    # 시기가 확인된 것 중 최신을 기준으로 삼는다. 전부 미상이면 시기를 나누지 않는다.
+    known = {term_of(r) for r in rows} - {UNKNOWN_TERM}
+    latest = max(known, key=term_key) if known else UNKNOWN_TERM
+    cur = [r for r in rows if term_of(r) == latest] if known else list(rows)
+
+    q = Counter(r["total_q"] for r in cur if r.get("total_q"))
+    m = Counter(r["total_min"] for r in cur if r.get("total_min"))
+    diff = Counter(r["difficulty"] for r in cur if r.get("difficulty"))
+    areas = Counter(a for r in cur for a in r.get("areas") or [])
+    types = Counter(t for r in cur for t in r.get("types") or [])
+
+    kw = defaultdict(Counter)
+    for r in cur:
+        for area, ws in (r.get("keywords") or {}).items():
+            kw[area].update(ws)
+
+    head_term = latest if known else "전 기간(시행 시기 미상)"
+    out = ["", "=" * 60, f"{org} — {head_term} 기준 PROFILE 초안 (후기 {len(cur)}건)",
+           "=" * 60, ""]
+    if len(cur) < MIN_SAMPLE:
+        out.append(f"⚠️ 표본 {len(cur)}건. 이대로 확정하지 말고 후기를 더 모으십시오.")
+        out.append("")
+    n_unknown = sum(1 for r in rows if term_of(r) == UNKNOWN_TERM)
+    if known and n_unknown:
+        out.append(f"※ 시행 시기를 모르는 후기 {n_unknown}건은 이 초안에서 빠졌습니다.")
+        out.append("   같은 글을 북마클릿으로 다시 담으면 게시일이 채워집니다.")
+        out.append("")
+
+    out.append("PROFILE = {")
+    out.append(f'    "문항/시간": "{q.most_common(1)[0][0] if q else "?"}문항 / '
+               f'{m.most_common(1)[0][0] if m else "?"}분",')
+    out.append(f'    "체감 난이도": "{diff.most_common(1)[0][0] if diff else "?"}",')
+    out.append(f'    "영역": "{" · ".join(a for a, _ in areas.most_common())}",')
+    out.append(f'    "빈출 유형": "{" · ".join(t for t, _ in types.most_common(5))}",')
+    out.append("}")
+    out.append("")
+
+    if kw:
+        out.append("소재 후보 — 응시자가 직접 적은 출제 키워드. 그대로 골라 쓰면 된다.")
+        out.append("")
+        for area in sorted(kw, key=lambda a: -sum(kw[a].values())):
+            out.append(f"  [{area}]")
+            items = [w for w, _ in kw[area].most_common()]
+            for chunk in (items[i:i + 3] for i in range(0, len(items), 3)):
+                out.append("    " + " · ".join(chunk))
+        out.append("")
+
+    # 시기가 확인된 것끼리만 비교한다. 미상 뭉치와 견주면 의미 없는 diff가 나온다.
+    prev = sorted(known - {latest}, key=term_key, reverse=True)
+    if prev:
+        old = [r for r in rows if term_of(r) == prev[0]]
+        old_t = {t for r in old for t in r.get("types") or []}
+        new_t = {t for r in cur for t in r.get("types") or []}
+        gone, came = old_t - new_t, new_t - old_t
+        out.append(f"직전 시기({prev[0]}, {len(old)}건) 대비 변화")
+        out.append(f"  사라진 유형  {' · '.join(sorted(gone)) or '없음'}")
+        out.append(f"  새로 나온 유형 {' · '.join(sorted(came)) or '없음'}")
+        out.append("")
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--org", help="기관 약칭. 생략하면 전 기관")
     ap.add_argument("--md", action="store_true", help="마크다운으로 출력")
+    ap.add_argument("--matrix", action="store_true", help="기관 × 시행 시기 수집 현황")
+    ap.add_argument("--profile", metavar="기관",
+                    help="그 기관의 최신 시기 기준 회차 PROFILE 초안을 만든다")
     args = ap.parse_args()
+
+    if args.matrix:
+        print("\n".join(matrix(load())))
+        return 0
+    if args.profile:
+        rs = [r for r in load() if r["org"] == args.profile]
+        if not rs:
+            raise SystemExit(f"[중단] '{args.profile}' 후기가 없습니다.")
+        print("\n".join(profile_draft(args.profile, rs)))
+        return 0
 
     rows = load()
     if args.org:
