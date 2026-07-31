@@ -22,3 +22,7 @@ desktop.ini
 # 시판 교재 원문 — 상용 저작물이므로 커밋 금지 (corpus/README.md 참고)
 corpus/raw/
 corpus/parsed/
+
+# 필기후기 원문 — 작성자 저작물이므로 커밋 금지 (reviews/README.md 참고)
+# db.json 의 분류 결과만 커밋한다.
+reviews/raw/
