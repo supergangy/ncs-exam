@@ -47,6 +47,10 @@ PROVISO_OK_TYPES = {"규정이해", "절차적용", "금액산출", "사례판�
 # 걸러낼 표현 24종은 **지문 문체** 기준이다. 해설문은 논증하는 글이라
 # 논리 접속사가 오히려 필요하므로 아래는 해설(explain·each)에서 허용한다 (D43 → 규칙 1-2a)
 EXPLAIN_OK = {"따라서", "즉,", "결국"}
+
+# 접속어를 고르는 문항은 **선지가 접속어 자체**다. 걸러낼 표현 규칙을 그대로 적용하면
+# 문항이 성립할 수 없다. 이 유형의 선지에서는 접속 부사를 검사하지 않는다 (D49 → 규칙 1-2b)
+CONNECTIVE_TYPES = {"접속어", "접속사", "빈칸접속어"}
 EXPLAIN_FIELDS = ("explain",)          # each 는 선지 단평이라 짧아 별도 검사가 무의미하다
 
 # 해설은 계산식·수치 나열이 섞여 지문보다 길어지는 것이 자연스럽다 (D44 → 규칙 7-6)
@@ -137,6 +141,8 @@ def main() -> int:
                     continue      # 규정문 단서 형식 — 1-4a
                 if is_expl and w in EXPLAIN_OK:
                     continue      # 해설의 논리 접속사 — 1-2a
+                if fname.startswith("choice") and q["type"] in CONNECTIVE_TYPES:
+                    continue      # 접속어를 고르는 문항의 선지 — 1-2b
                 findings.append(("경고", no, "1-2", f"{fname}: 걸러낼 표현 '{w}'"))
 
         # 2 문장 길이
