@@ -221,6 +221,13 @@ def main() -> int:
                     for b in {id(b): b for _, b, _ in items}.values())
     print(f"각주(※)      {footnote}개 (회차 목표 "
           f"{getattr(cfg, 'PROFILE', {}).get('각주(※) 개수', '미정')})")
+    # 출제 이유서는 네 칸(근거·설계·함정·검증)이 다 차 있어야 쓸모가 있다.
+    WHY_KEYS = ("근거", "설계", "함정", "검증")
+    n_why = sum(1 for _, _, q in items if q.get("why"))
+    n_full = sum(1 for _, _, q in items
+                 if q.get("why") and all(q["why"].get(k) for k in WHY_KEYS))
+    print(f"출제이유      {n_why}/{len(items)}문항 기록 · 네 칸 모두 채운 문항 {n_full}개")
+
     nset = sum(1 for _, b, q in items if len(b["questions"]) > 1)
     print(f"세트문항      {nset}/{len(items)}문항 ({nset / len(items) * 100:.0f}%, 회차 목표 "
           f"{getattr(cfg, 'PROFILE', {}).get('세트문항 비율', '미정')})")

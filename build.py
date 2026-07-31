@@ -117,6 +117,7 @@ def load_blocks(preview: bool):
             q.setdefault("type", "")
             q.setdefault("explain", "")
             q.setdefault("each", [])
+            q.setdefault("why", None)          # 출제 이유서용. 없으면 굽지 않는다
             no += 1
         b["last_no"] = no - 1
         # 세트 리드문의 [NN~NN] 접두사를 계산된 번호로 강제 교체
@@ -168,9 +169,20 @@ def choice_cols(choices):
     return 2 if max(len(p) for p in plain) <= 22 else 1
 
 
+def mini_md(s: str) -> str:
+    """출제 이유서 전용 — **굵게** 와 `코드` 만 HTML로 바꾼다.
+
+    출제 이유는 산문이라 본문에 태그를 박아 두면 소스가 읽히지 않는다.
+    지문·해설과 달리 표현이 단순해 두 가지만 있으면 충분하다.
+    """
+    s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
+    return re.sub(r"`(.+?)`", r"<code>\1</code>", s)
+
+
 def build_html(blocks, kind: str, dist=None) -> str:
     env = Environment(loader=FileSystemLoader(str(TEMPLATES)), autoescape=False,
                       trim_blocks=True, lstrip_blocks=True)
+    env.filters["md"] = mini_md
     tpl = env.get_template(f"{kind}.html.j2")
 
     for b in blocks:
@@ -191,6 +203,7 @@ def build_html(blocks, kind: str, dist=None) -> str:
         areas=[(a, n) for _, a, n in CFG.AREAS],
         answers=[(q["no"], q["answer"]) for q in flat],
         dist=dist or {},
+        rationale_intro=getattr(CFG, "RATIONALE_INTRO", None),
     )
 
 
@@ -368,7 +381,15 @@ def main():
             for b in blocks for q in b["questions"]))
 
     suffix = "_preview" if args.preview else ""
-    for kind, label in [("exam", "문제"), ("solution", "해설")]:
+    kinds = [("exam", "문제"), ("solution", "해설")]
+    # 출제 이유서는 문항에 why 가 하나라도 있을 때만 낸다.
+    # 없는 회차에서 굽으면 「기록 없음」만 늘어선 책이 된다.
+    n_why = sum(1 for b in blocks for q in b["questions"] if q.get("why"))
+    if n_why:
+        kinds.append(("rationale", "출제이유"))
+        log(f"[출제이유] {n_why}/{n_q}문항 기록")
+
+    for kind, label in kinds:
         html_path = OUT / f"{kind}{suffix}.html"
         pdf_path = OUT / f"{CFG.FILE_TAG}_{label}{suffix}.pdf"
         html_path.write_text(build_html(blocks, kind, dist), encoding="utf-8")

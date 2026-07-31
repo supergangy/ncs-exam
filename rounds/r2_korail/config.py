@@ -35,3 +35,51 @@ PROFILE = {
     "수리 성격": "순수 계산·규칙 찾기 (나머지·진법·수열·도형·확률)",
     "소재": "철도·교통 30% · 일반 70%",
 }
+
+# 출제 이유서(rationale.html.j2) 앞머리. 없으면 개요 쪽을 건너뛴다.
+RATIONALE_INTRO = """
+<h4>무엇을 근거로 만들었나</h4>
+<p>공준모 필기후기 <strong>247건</strong>(2026 상반기 한국철도공사)에서 응시자들이 적어 둔
+출제 소재 <strong>336개</strong>를 뽑았다. 같은 소재를 말한 후기가 몇 건인지 세어 등급을 매기고,
+등급이 높은 순서로 문항을 배치했다. 수집·집계 도구는 저장소의 <code>reviews/</code> 에 있다.</p>
+<p>후기에서 가져온 것은 <strong>소재와 키워드</strong>다. 문제의 형식과 난이도는
+1회에서 정리한 자체 기준(<code>docs/PLAYBOOK.md</code>)을 따랐다.</p>
+
+<h4>후기가 말한 코레일의 세 가지 특징</h4>
+<table>
+  <tr><th style="width:34mm">특징</th><th>근거</th><th style="width:24mm">반영</th></tr>
+  <tr><td class="c"><strong>국어 어문 규범</strong></td>
+      <td>사자성어 7건 · 속담 2건 · 맞춤법 2건 · 띄어쓰기 · 한자.
+          후기 표현으로는 「공무원 문제 느낌」</td>
+      <td class="c">01~05<br>5문항</td></tr>
+  <tr><td class="c"><strong>모듈 이론</strong></td>
+      <td>로직트리 5건 · SWOT 5건 · 경영 4건 · PEST 2건 · JIT 2건.
+          「기법 설명 → 답: 로직트리」 형태로 나온다</td>
+      <td class="c">24~28<br>5문항</td></tr>
+  <tr><td class="c"><strong>중학 수학 색</strong></td>
+      <td>9로 나눈 나머지 3건 · 진법 변환 4건 · 수열 · 도형 넓이와 둘레 · 확률.
+          자료해석 위주인 다른 기관과 다르다</td>
+      <td class="c">11~17<br>7문항</td></tr>
+</table>
+
+<h4>영역별 배분</h4>
+<table>
+  <tr><th style="width:30mm">영역</th><th class="c" style="width:16mm">문항</th><th>구성</th></tr>
+  <tr><td class="c">의사소통능력</td><td class="c">10</td>
+      <td>어문 규범 5 · 독해 5(접속어 · 문장삽입 · 지문 세트 2 · 추론)</td></tr>
+  <tr><td class="c">수리능력</td><td class="c">10</td>
+      <td>순수 계산·규칙 7 · 자료해석 세트 2 · 금액 산출 1</td></tr>
+  <tr><td class="c">문제해결능력</td><td class="c">10</td>
+      <td>명제 2 · 논리 오류 1 · 모듈 이론 5 · 자원관리 세트 2</td></tr>
+</table>
+
+<h4>지켜야 했던 선</h4>
+<ul>
+  <li>후기의 <strong>소재</strong>는 그대로 쓰되, 지문·선지·수치는 전부 새로 썼다.
+      기출을 복원하지 않는다.</li>
+  <li>모듈 이론은 <strong>개념 정의를 묻지 않는다.</strong>
+      「로직트리란?」이 아니라 「이 로직트리에서 겹치는 가지는?」으로 낸다.</li>
+  <li>계산·명제 문항은 <strong>정답 유일성이 확인되기 전에 쓰지 않는다.</strong>
+      아래 각 문항의 「검증」 칸이 그 기록이다.</li>
+</ul>
+"""

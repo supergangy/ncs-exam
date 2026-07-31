@@ -1,0 +1,131 @@
+<meta charset="utf-8">
+<title>{{ exam_title }} {{ exam_round }} 출제 이유서</title>
+<style>
+@page { size: A4; margin: 17mm 15mm 18mm 15mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  font-size: 9.5pt; line-height: 1.6; color: #000; margin: 0;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+p { margin: 0 0 3.2pt; }
+
+/* ── 표지 ───────────────────────────────── */
+.cover { height: 246mm; display: flex; flex-direction: column;
+         align-items: center; justify-content: center; text-align: center;
+         break-after: page; }
+.cover .brand { font-size: 12pt; letter-spacing: 6pt; color: #444; margin-bottom: 6mm; }
+.cover .rule { width: 62mm; border-top: 1.6pt solid #111; margin: 0 0 9mm; }
+.cover h1 { font-size: 29pt; font-weight: 800; letter-spacing: 2pt; margin: 0 0 5mm; }
+.cover h2 { font-size: 15pt; font-weight: 600; color: #333; margin: 0 0 12mm; letter-spacing: 3pt; }
+.cover .tag { font-size: 17pt; font-weight: 700; border: 1.4pt solid #111;
+              padding: 4mm 14mm; letter-spacing: 4pt; }
+.cover .note { margin-top: 12mm; font-size: 9.5pt; color: #555; line-height: 1.9; }
+
+/* ── 개요 ───────────────────────────────── */
+.intro { break-after: page; }
+.intro h3 { text-align: center; font-size: 14pt; letter-spacing: 4pt; margin: 0 0 3mm; }
+.intro .sub { text-align: center; color: #555; font-size: 9.3pt; margin-bottom: 7mm; }
+.intro h4 { font-size: 10.5pt; font-weight: 800; margin: 6mm 0 2mm;
+            border-left: 2.6pt solid #111; padding-left: 2.4mm; }
+.intro table { border-collapse: collapse; width: 100%; font-size: 9.2pt; margin-bottom: 2mm; }
+.intro th, .intro td { border: 0.5pt solid #333; padding: 1.4mm 2.4mm; }
+.intro th { background: #efefef; font-weight: 700; text-align: center; }
+.intro td.c { text-align: center; }
+.intro ol, .intro ul { margin: 0 0 2mm; padding-left: 6mm; }
+.intro li { margin-bottom: 1.4mm; }
+
+/* ── 영역 헤더 ──────────────────────────── */
+.area-header { border-top: 2pt solid #111; border-bottom: 0.7pt solid #111;
+               padding: 1.6mm 0; margin: 7mm 0 4mm; text-align: center;
+               font-size: 12pt; font-weight: 800; letter-spacing: 5pt;
+               break-after: avoid; }
+.area-header:first-child { margin-top: 0; }
+
+/* ── 문항 카드 ──────────────────────────── */
+.why { margin-bottom: 6mm; break-inside: avoid; }
+.why-head { display: flex; align-items: baseline; gap: 3mm;
+            border-bottom: 0.7pt solid #111; padding-bottom: 1.2mm; margin-bottom: 2mm; }
+.why-no { font-size: 12pt; font-weight: 800; }
+.why-ans { font-size: 11pt; font-weight: 800; }
+.why-type { font-size: 8.6pt; color: #fff; background: #555;
+            padding: 0.5mm 2.2mm; border-radius: 2pt; }
+.why-stem { font-size: 8.9pt; color: #555; margin-left: auto; text-align: right;
+            max-width: 106mm; }
+table.wt { border-collapse: collapse; width: 100%; font-size: 9.3pt; }
+table.wt th { width: 17mm; background: #f2f2f2; font-weight: 700; text-align: center;
+              border: 0.5pt solid #999; padding: 1.5mm 1mm; vertical-align: middle; }
+table.wt td { border: 0.5pt solid #999; padding: 1.5mm 2.6mm; }
+table.wt tr.ev th { background: #e6e6e6; }
+.tier { font-weight: 800; }
+.none { color: #888; }
+code { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; }
+</style>
+
+{# ─────────────────────────── 표지 ─────────────────────────── #}
+<div class="cover">
+  <div class="brand">{{ brand }}</div>
+  <div class="rule"></div>
+  <h1>{{ exam_title }}</h1>
+  <h2>{{ exam_round }}</h2>
+  <div class="tag">출제 이유서</div>
+  <div class="note">
+    문항마다 <strong>무엇을 근거로</strong> 골랐고 <strong>어떻게 짰는지</strong>,<br>
+    오답을 어디에 놓았고 정답을 어떻게 검증했는지 적었습니다.
+  </div>
+</div>
+
+{# ─────────────────────────── 개요 ─────────────────────────── #}
+{% if rationale_intro %}
+<div class="intro">
+  <h3>출 제 개 요</h3>
+  <div class="sub">{{ exam_round }} · {{ total_q }}문항 / {{ total_min }}분</div>
+  {{ rationale_intro }}
+
+  {# 등급 설명은 별도 표로 두면 개요가 두 쪽으로 갈라진다. 「근거」 행 안에 접어 넣는다. #}
+  <h4>이 문서를 읽는 법 — 문항마다 네 칸</h4>
+  <table>
+    <tr><th style="width:18mm">항목</th><th>뜻</th></tr>
+    <tr><td class="c"><strong>근거</strong></td>
+        <td>이 소재를 고른 이유. 같은 소재를 말한 후기가 몇 건인지 등급으로 적었다 —
+            <span class="tier">★★★</span> 서로 다른 후기 3건 이상(주력) ·
+            <span class="tier">★★</span> 2건(보조) ·
+            <span class="tier">★</span> 1건 또는 영역 구성상 필요 ·
+            <span class="tier">기본</span> 후기와 무관하게 그 영역이면 반드시 나오는 유형</td></tr>
+    <tr><td class="c"><strong>설계</strong></td>
+        <td>문항을 어떤 구조로 짰는지. 무엇을 묻고 무엇을 묻지 않았는지</td></tr>
+    <tr><td class="c"><strong>함정</strong></td>
+        <td>오답을 어디에 놓았는지. 어떤 오해를 하면 그 선지로 가는지</td></tr>
+    <tr><td class="c"><strong>검증</strong></td>
+        <td>정답이 유일한지 어떻게 확인했는지</td></tr>
+  </table>
+</div>
+{% endif %}
+
+{# ───────────────────────── 문항별 이유 ─────────────────────── #}
+{% for b in blocks %}
+  {% if b.show_area %}<div class="area-header">{{ b.area }}</div>{% endif %}
+  {% for q in b.questions %}
+  <div class="why">
+    <div class="why-head">
+      <span class="why-no">{{ '%02d'|format(q.no) }}</span>
+      <span class="why-ans">{{ circled[q.answer - 1] }}</span>
+      {% if q.type %}<span class="why-type">{{ q.type }}</span>{% endif %}
+      <span class="why-stem">{{ q.stem }}</span>
+    </div>
+    {% if q.why %}
+    <table class="wt">
+      {% for key in ['근거', '설계', '함정', '검증'] %}
+      {% if q.why.get(key) %}
+      <tr{% if key == '검증' %} class="ev"{% endif %}>
+        <th>{{ key }}</th><td>{{ q.why[key]|md }}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="none">출제 이유 기록 없음</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endfor %}
