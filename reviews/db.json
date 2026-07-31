@@ -750,5 +750,386 @@
     "fingerprint": "eacaee8bd0ab",
     "form_sig": "b16a4cca06cd",
     "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "의사, 수리, 문해(60) + 건강법(20)",
+    "areas": [
+      "수리",
+      "의사소통",
+      "문제해결"
+    ],
+    "types": [
+      "추론"
+    ],
+    "topics": [
+      "학교폭력"
+    ],
+    "keywords": {},
+    "difficulty": "중하",
+    "time_pressure": null,
+    "change_signal": true,
+    "chars": 648,
+    "fingerprint": "bd228d3e318d",
+    "form_sig": "182894299029",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "ncs, 법률",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "모듈",
+      "피셋형",
+      "추론"
+    ],
+    "topics": [
+      "학교폭력"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": null,
+    "change_signal": true,
+    "chars": 743,
+    "fingerprint": "d02812431449",
+    "form_sig": "30e74753e1df",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정",
+    "total_q": 60,
+    "total_min": 60,
+    "subject": "ncs / 건보법",
+    "areas": [],
+    "types": [
+      "피셋형",
+      "내용일치",
+      "추론"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "부족",
+    "change_signal": false,
+    "chars": 299,
+    "fingerprint": "bb4841822cdd",
+    "form_sig": "320f95a54fdf",
+    "ingested_at": "2026-07-31 14:25"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "전산직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "ncs+프로그래밍 / 법률",
+    "areas": [],
+    "types": [
+      "추론"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": null,
+    "change_signal": true,
+    "chars": 429,
+    "fingerprint": "8813319fe969",
+    "form_sig": "37f8f7e49a06",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "일반직",
+    "total_q": 60,
+    "total_min": 60,
+    "subject": "의,수,문(60문제) / 건강보험법(20문제)",
+    "areas": [
+      "의사소통",
+      "문제해결"
+    ],
+    "types": [
+      "규정적용",
+      "모듈",
+      "피셋형",
+      "피듈형"
+    ],
+    "topics": [
+      "학교폭력",
+      "노인·돌봄",
+      "보험료 부과",
+      "요양급여"
+    ],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": null,
+    "change_signal": true,
+    "chars": 905,
+    "fingerprint": "4681eda154f5",
+    "form_sig": "4c751daca095",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직(가)",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "의사소통 수리 문제해결 건강보험법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "자료해석"
+    ],
+    "topics": [
+      "노인·돌봄",
+      "AI·디지털",
+      "학교폭력",
+      "보험료 부과"
+    ],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 1013,
+    "fingerprint": "8702751b5375",
+    "form_sig": "97cb5c6b4866",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "6급가 강원인재",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "의사소통/수리/문제해결/건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "규정적용"
+    ],
+    "topics": [
+      "요양급여",
+      "주거·복지",
+      "재정"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "부족",
+    "change_signal": true,
+    "chars": 1029,
+    "fingerprint": "dfc24ec4a687",
+    "form_sig": "cd51a4041d14",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정",
+    "total_q": null,
+    "total_min": 10,
+    "subject": "ncs 건강보험법",
+    "areas": [],
+    "types": [],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 265,
+    "fingerprint": "bf7b1e0638af",
+    "form_sig": "2b3fb6d2319a",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 10,
+    "subject": "Ncs +법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "자료해석",
+      "추론",
+      "내용일치"
+    ],
+    "topics": [
+      "AI·디지털",
+      "노인·돌봄"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 1022,
+    "fingerprint": "18806888504c",
+    "form_sig": "50455fea67ec",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "ncs + 건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "모듈",
+      "자료해석",
+      "계산"
+    ],
+    "topics": [
+      "보험료 부과",
+      "노인·돌봄"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": null,
+    "change_signal": true,
+    "chars": 919,
+    "fingerprint": "e3ba4b8aca07",
+    "form_sig": "517050dce8b0",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "서울6급가",
+    "total_q": 60,
+    "total_min": 60,
+    "subject": "ncs,법령",
+    "areas": [
+      "의사소통",
+      "수리"
+    ],
+    "types": [
+      "자료해석",
+      "규정적용",
+      "추론"
+    ],
+    "topics": [
+      "보험료 부과",
+      "무역·경제지표"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "부족",
+    "change_signal": false,
+    "chars": 972,
+    "fingerprint": "8895a3632523",
+    "form_sig": "0aa9d506411d",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "요양직",
+    "total_q": 20,
+    "total_min": 60,
+    "subject": "ncs(의수문) / 장기요양법",
+    "areas": [
+      "수리",
+      "문제해결",
+      "의사소통"
+    ],
+    "types": [
+      "추론",
+      "내용일치",
+      "규정적용"
+    ],
+    "topics": [
+      "장기요양보험",
+      "요양급여"
+    ],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "부족",
+    "change_signal": false,
+    "chars": 895,
+    "fingerprint": "b0e38dfb16b0",
+    "form_sig": "ae166cad9648",
+    "ingested_at": "2026-07-31 14:26"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "ncs+법률",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "모듈",
+      "피듈형"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "하",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 1061,
+    "fingerprint": "c3876d0db00e",
+    "form_sig": "8eaacc2b672d",
+    "ingested_at": "2026-07-31 14:27"
   }
 ]
