@@ -30,7 +30,7 @@ DB = HERE / "db.json"
 
 sys.path.insert(0, str(HERE))
 from lexicon import (AREAS, TYPES, DIFFICULTY, TIME_PRESSURE, TOPICS,  # noqa: E402
-                     STOPWORDS, ORG_ALIASES)
+                     STOPWORDS, ORG_ALIASES, ORG_SUFFIX)
 
 DATE_PAT = [
     (re.compile(r"(20\d{2})[.\-/년]\s*(\d{1,2})[.\-/월]\s*(\d{1,2})"), 3),
@@ -137,19 +137,64 @@ def unmatched_candidates(text: str, org: str, limit: int = 12) -> list[tuple[str
 
 
 # 긴 별칭부터 본다. 「건강보험」이 「건강보험심사평가원」보다 먼저 걸리면 안 된다.
-_ALIAS_ORDER = sorted(((a, o) for o, al in ORG_ALIASES.items() for a in al),
+# 공백은 양쪽 모두 지우고 비교한다 — 「한국 서부발전」과 「한국서부발전」은 같은 기관이다.
+_ALIAS_ORDER = sorted((("".join(a.split()).lower(), o)
+                       for o, al in ORG_ALIASES.items() for a in al),
                       key=lambda p: -len(p[0]))
+
+UNCLASSIFIED = "_미분류"
+
+# 제목에서 기관명을 뽑는다. 탐욕 매칭 + 역추적이 가장 긴 기관명을 고르므로
+# 「한국수자원공사」가 「한국수자원」으로 잘리지 않는다.
+TITLE_ORG = re.compile(
+    r"(?:20\d{2}\s*년?\s*)?(?:상[·/]?하?반기|하반기|상반기)?\s*"
+    r"([가-힣]{2,}(?:\s[가-힣]{2,})?(?:" + "|".join(ORG_SUFFIX) + r"))")
+
+
+def match_alias(text: str | None) -> str | None:
+    """사전 별칭에 걸리면 정식명, 아니면 None. 공백은 무시하고 비교한다."""
+    if not text:
+        return None
+    s = "".join(str(text).split()).lower()
+    for alias, official in _ALIAS_ORDER:
+        if alias in s:
+            return official
+    return None
 
 
 def normalize_org(name: str | None) -> str | None:
     """표기가 흔들리는 기관명을 정식명으로 접는다. 「건보」→「국민건강보험공단」."""
     if not name:
         return None
-    s = name.strip()
-    for alias, official in _ALIAS_ORDER:
-        if alias in s:
-            return official
-    return s          # 사전에 없으면 적힌 그대로 둔다
+    return match_alias(name) or str(name).strip() or None   # 사전에 없으면 적힌 그대로
+
+
+def org_from_title(title: str | None) -> str | None:
+    """제목에서 기관명을 뽑는다.
+
+    「2026 상반기 한국 서부발전 일반 기계직 필기 후기」 → 한국서부발전
+    「2026 하반기 한전 배전 필기 복원」 → 한국전력공사
+
+    사전 별칭을 먼저 댄다. 「건보」 「한전」 「코레일」 같은 약칭은 꼬리말이 없어
+    정규식으로는 잡히지 않기 때문이다.
+    """
+    if not title:
+        return None
+    # 「필기」 앞까지만 본다. 뒤쪽 직렬·부연에서 잘못 집는 것을 막는다.
+    head = re.split(r"필기|후기|복원", title)[0] or title
+    hit = match_alias(head)
+    if hit:
+        return hit
+    m = TITLE_ORG.search(head)
+    return "".join(m.group(1).split()) if m else None
+
+
+def decide_org(form: dict, title: str | None, fallback: str | None) -> str:
+    """기관 판정 — 양식 > 제목 > 수집기에 넘긴 값 순. 전부 실패하면 `_미분류`."""
+    return (normalize_org(form.get("org_raw"))
+            or org_from_title(title)
+            or normalize_org(fallback)
+            or UNCLASSIFIED)
 
 
 # 양식 칸의 난이도는 「중상」 「중~중상」 「상」처럼 등급만 적혀 온다.
@@ -265,7 +310,15 @@ def parse(text: str, org: str) -> dict:
     # 제목(첫 줄)에 연도·상하반기가 들어 있는 경우가 많다. 시행 시기 판정에 쓴다.
     head = text.split("\n", 1)[0]
     tm = TITLE_TERM.search(head)
-    term = f"{tm.group(1)} {tm.group(2)}" if tm and tm.group(2) else (tm.group(1) if tm else None)
+    date = find_date(body)
+    if tm and tm.group(2):
+        term = f"{tm.group(1)} {tm.group(2)}"
+    elif date:
+        # 제목에 상·하반기가 없으면 작성일로 보완한다. 「2026」만 남기면
+        # 같은 해 상·하반기가 한 칸으로 뭉쳐 시기별 비교가 안 된다.
+        term = f"{date[:4]} {'상반기' if int(date[5:7]) <= 8 else '하반기'}"
+    else:
+        term = tm.group(1) if tm else None
 
     # 시험시간은 「60+20」 「60분/ 30분」처럼 NCS와 직무시험이 붙어 나온다. 앞이 NCS다.
     time_raw = form.get("time_raw", "")
@@ -274,9 +327,10 @@ def parse(text: str, org: str) -> dict:
     nq = [int(x) for x in NQ_PAT.findall(body)]
     track = TRACK_PAT.search(form.get("track") or body)
 
+    who = decide_org(form, head, org)
     return {
-        # 양식의 기관명을 우선한다. 수집기에 넘긴 --org 는 폴백일 뿐이다.
-        "org": normalize_org(form.get("org_raw")) or normalize_org(org),
+        # 양식 > 제목 > 수집기에 넘긴 값. 기관을 지정하지 않아도 알아서 갈린다.
+        "org": who,
         "title": head[:80] or None,
         "term": term,                       # 「2026 상반기」 — 시행 시기
         "date": find_date(body),
@@ -286,7 +340,7 @@ def parse(text: str, org: str) -> dict:
         "subject": form.get("subject_raw"),
         "areas": match_lexicon(body, AREAS),
         "types": match_lexicon(body, TYPES),
-        "topics": find_topics(body, normalize_org(form.get("org_raw")) or org),
+        "topics": find_topics(body, who),
         # 응시자가 직접 적어 준 영역별 출제 소재. 사전 추측보다 이쪽이 정확하다.
         "keywords": keywords,
         # 양식에 적힌 난이도가 자유서술 추론보다 정확하다.
@@ -394,8 +448,6 @@ def main() -> int:
 
     if args.rebuild:
         return rebuild()
-    if not args.org:
-        raise SystemExit("[중단] --org 를 주십시오 (--rebuild 제외).")
 
     if args.clip:
         text = read_clipboard()

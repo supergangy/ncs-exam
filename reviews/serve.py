@@ -27,25 +27,37 @@ import ingest  # noqa: E402
 # 카페 새 UI 에는 iframe#cafe_main 이 없다. 있으면 들어가고 없으면 그냥 현재 문서를 쓴다.
 # 제목·작성일은 셀렉터가 자주 바뀌므로 **셀렉터를 먼저 보고, 실패하면 텍스트에서 찾는다.**
 # document.title 은 새 UI 에서 「네이버 카페」로만 나와 쓸모가 없다.
+# 제목과 작성일은 본문 컨테이너(.se-main-container 등) **밖**에 있다.
+# 본문만 긁으면 「네이버 카페 | ✅서류 합격 스펙…」으로 시작해 날짜가 통째로 빠진다.
+# 그래서 **본문 바로 앞 구간(헤더 블록)** 을 잘라 함께 보낸다.
+# document.title 은 새 UI 에서 「네이버 카페」로만 나와 쓸모가 없다.
 BOOKMARKLET = """javascript:(function(){
 var d=document,f=d.querySelector('iframe#cafe_main');
 if(f&&f.contentDocument)d=f.contentDocument;
 var s=['.se-main-container','.ArticleContentBox','#postViewArea','.article_viewer','article','body'],e;
 for(var i=0;i<s.length;i++){e=d.querySelector(s[i]);if(e&&e.innerText.length>200)break;}
 if(!e){alert('본문을 찾지 못했습니다');return;}
+var bt=e.innerText,all=d.body.innerText||'';
+var at=all.indexOf(bt.slice(0,50));
+var head=at>0?all.slice(Math.max(0,at-1200),at):all.slice(0,1200);
 var ts=['.title_text','.ArticleTitle .title_text','h3.title_text','.post_title','.tit_area .tit'],ti='';
 for(var j=0;j<ts.length;j++){var tn=d.querySelector(ts[j]);
  if(tn&&tn.innerText.trim()){ti=tn.innerText.trim();break;}}
-if(!ti||/^네이버\\s*카페$/.test(ti))ti=(d.title||'').trim();
-var ds=['.article_info .date','.ArticleTool .date','.date','.se_publishDate','.post_date'],dt='';
+if(!ti||/^네이버\\s*카페$/.test(ti)){
+ var ls=head.split('\\n').map(function(x){return x.trim()}).filter(function(x){
+  return x.length>8&&!/^(프로필|정회원|구독|1:1|카페|전체글|검색|메뉴|📜|댓글)/.test(x);});
+ var hm=ls.filter(function(x){return /후기|복원/.test(x);});
+ ti=(hm.length?hm[0]:(ls[0]||d.title||'')).trim();}
+var dt='';
+var ds=['.article_info .date','.ArticleTool .date','.date','.se_publishDate','.post_date'];
 for(var k=0;k<ds.length;k++){var dn=d.querySelector(ds[k]);
  if(dn&&/20\\d\\d/.test(dn.innerText)){dt=dn.innerText.trim();break;}}
-if(!dt){var head=(d.body.innerText||'').slice(0,2000);
- var dm=head.match(/20\\d\\d\\s*[.\\-\\/]\\s*\\d{1,2}\\s*[.\\-\\/]\\s*\\d{1,2}/);
- if(dm)dt=dm[0];}
-if(!ti){var hm=(d.body.innerText||'').split('\\n').filter(function(x){
- return /후기/.test(x)&&x.trim().length>6;}); if(hm.length)ti=hm[0].trim();}
-var t=ti+'\\n작성일 '+dt+'\\n'+e.innerText;
+var DT=/20\\d\\d\\s*[.\\-\\/]\\s*\\d{1,2}\\s*[.\\-\\/]\\s*\\d{1,2}/;
+if(!dt){var m1=all.match(/20\\d\\d\\s*[.\\-\\/]\\s*\\d{1,2}\\s*[.\\-\\/]\\s*\\d{1,2}\\.?\\s*\\d{1,2}:\\d{2}/);
+ if(m1)dt=m1[0];}
+if(!dt){var m2=head.match(DT); if(m2)dt=m2[0];}
+if(!dt){var m3=all.slice(0,3000).match(DT); if(m3)dt=m3[0];}
+var t=ti+'\\n작성일 '+dt+'\\n'+head+'\\n'+bt;
 fetch('http://127.0.0.1:%PORT%/ingest',{method:'POST',mode:'cors',
  headers:{'Content-Type':'text/plain;charset=UTF-8'},body:t})
 .then(function(r){return r.text()}).then(function(m){alert(m)})
@@ -91,7 +103,7 @@ INSTALL_PAGE = """<!doctype html><meta charset="utf-8">
  .warn{color:#b45309}
 </style>
 <h1>필기후기 수집기</h1>
-<p class="sub">지금 <b>%ORG%</b> 후기를 받는 중입니다. 누적 <b>%N%</b>건.</p>
+<p class="sub">%ORG% &nbsp;·&nbsp; 누적 <b>%N%</b>건.</p>
 
 <h2>설치 — 최초 한 번만</h2>
 
@@ -192,13 +204,13 @@ def render_records(db: list[dict], limit: int = 20) -> str:
 
 
 class Handler(BaseHTTPRequestHandler):
-    org = "건보"
+    org = None            # None 이면 글마다 자동 판별한다
 
     def do_GET(self):                                        # noqa: N802
         db = ingest.load_db()
-        n = sum(1 for r in db if r["org"] == self.org)
+        n = sum(1 for r in db if r["org"] == self.org) if self.org else len(db)
         raw = BOOKMARKLET.replace("%PORT%", str(self.server.server_port)).replace("\n", "")
-        page = (INSTALL_PAGE.replace("%ORG%", self.org).replace("%N%", str(n))
+        page = (INSTALL_PAGE.replace("%ORG%", f"<b>{esc(self.org)}</b> 후기를 받는 중" if self.org else "기관을 <b>자동 판별</b>합니다 — 아무 기관 후기나 담으면 됩니다").replace("%N%", str(n))
                 .replace("%BM%", raw.replace('"', "&quot;"))
                 .replace("%BMRAW%", raw.replace("&", "&amp;").replace("<", "&lt;"))
                 .replace("%RECORDS%", render_records(db)))
@@ -246,7 +258,7 @@ class Handler(BaseHTTPRequestHandler):
         if any(r["fingerprint"] == rec["fingerprint"] for r in db):
             return f"이미 등록된 글입니다 ({rec['fingerprint']})"
 
-        d = ingest.RAW / self.org
+        d = ingest.RAW / rec["org"]
         d.mkdir(parents=True, exist_ok=True)
         stamp = rec["date"] or "날짜미상"
         (d / f"{stamp}_{rec['fingerprint']}.txt").write_text(
@@ -254,13 +266,16 @@ class Handler(BaseHTTPRequestHandler):
         db.append(rec)
         ingest.save_db(db)
 
-        mine = sum(1 for r in db if r["org"] == self.org)
-        line = (f"[적재] {self.org} {rec['date'] or '날짜미상'} · "
+        mine = sum(1 for r in db if r["org"] == rec["org"])
+        line = (f"[적재] {rec['org']} {rec['date'] or '날짜미상'} · "
                 f"유형 {', '.join(rec['types']) or '-'} · "
                 f"소재 {', '.join(rec['topics']) or '-'} · "
                 f"난이도 {rec['difficulty'] or '-'}")
         print(line)
-        return f"저장했습니다 — {self.org} 누적 {mine}건\n{line}"
+        tail = ("\n※ 기관을 판별하지 못해 _미분류 로 넣었습니다. "
+                "lexicon.py 의 ORG_ALIASES 에 추가한 뒤 --rebuild 하면 정리됩니다."
+                if rec["org"] == ingest.UNCLASSIFIED else "")
+        return f"저장했습니다 — {rec['org']} 누적 {mine}건\n{line}{tail}"
 
     def log_message(self, *a):                               # 접속 로그는 끈다
         pass
@@ -268,14 +283,15 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--org", required=True, help="이번에 모을 기관 약칭 (예: 건보)")
+    ap.add_argument("--org", default=None, metavar="기관",
+                    help="생략하면 글마다 양식·제목에서 자동 판별한다 (권장)")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--open", action="store_true", help="설치 페이지를 바로 연다")
     args = ap.parse_args()
 
     Handler.org = args.org
     url = f"http://127.0.0.1:{args.port}"
-    print(f"[수집기] {args.org} 후기를 받습니다.")
+    print(f"[수집기] {args.org + ' 후기를 받습니다.' if args.org else '기관을 자동 판별합니다. 아무 기관 후기나 담으면 됩니다.'}")
     print(f"[설치] 브라우저로 {url} 를 여십시오.")
     print("       초록 버튼을 즐겨찾기 바로 끌어다 놓으면 끝입니다 (최초 1회).")
     print("       이후 후기 글을 열고 그 즐겨찾기를 누르면 적재됩니다.")
