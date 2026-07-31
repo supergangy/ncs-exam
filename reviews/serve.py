@@ -43,25 +43,73 @@ fetch('http://127.0.0.1:%PORT%/ingest',{method:'POST',mode:'cors',
 INSTALL_PAGE = """<!doctype html><meta charset="utf-8">
 <title>후기 수집기</title>
 <style>
- body{font:15px/1.7 'Malgun Gothic',sans-serif;max-width:640px;margin:60px auto;padding:0 20px;color:#222}
- h1{font-size:20px;margin:0 0 4px} .sub{color:#666;margin:0 0 28px}
- .bm{display:inline-block;padding:10px 20px;background:#03c75a;color:#fff;
-     border-radius:6px;text-decoration:none;font-weight:700;cursor:grab}
- ol{padding-left:20px} li{margin:8px 0}
- code{background:#f3f3f3;padding:2px 6px;border-radius:3px;font-size:13px}
- .now{margin-top:28px;padding:12px 16px;background:#f7f7f7;border-radius:6px;font-size:14px}
+ body{font:15px/1.75 'Malgun Gothic',sans-serif;max-width:680px;margin:48px auto;padding:0 20px;color:#222}
+ h1{font-size:21px;margin:0 0 4px} .sub{color:#666;margin:0 0 12px}
+ h2{font-size:16px;margin:34px 0 10px;padding-top:18px;border-top:1px solid #e5e5e5}
+ .step{margin:14px 0 14px 0}
+ .num{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;
+      background:#222;color:#fff;border-radius:50%;font-size:13px;font-weight:700;margin-right:8px}
+ .bm{display:inline-block;padding:11px 22px;background:#03c75a;color:#fff;
+     border-radius:6px;text-decoration:none;font-weight:700;cursor:grab;font-size:15px}
+ .bm:active{cursor:grabbing}
+ .hint{color:#666;font-size:13.5px;margin:6px 0 0 30px}
+ code,kbd{background:#f1f3f5;padding:2px 6px;border-radius:3px;font-size:13px;
+     font-family:Consolas,monospace}
+ kbd{border:1px solid #ccc;border-bottom-width:2px}
+ .bar{margin:14px 0;border:1px dashed #bbb;border-radius:6px;padding:0}
+ .bar .chrome{background:#f1f3f5;border-bottom:1px solid #ddd;padding:7px 12px;font-size:13px;color:#555}
+ .bar .body{padding:26px 12px;text-align:center;color:#aaa;font-size:13px}
+ .arrow{font-size:22px;color:#03c75a;margin:0 0 0 96px}
+ details{margin-top:12px;background:#fafafa;border:1px solid #e5e5e5;border-radius:6px;padding:12px 16px}
+ summary{cursor:pointer;font-weight:700;font-size:14px}
+ textarea{width:100%;height:80px;margin-top:10px;font-family:Consolas,monospace;font-size:11px;
+     border:1px solid #ddd;border-radius:4px;padding:8px;box-sizing:border-box}
+ .now{margin-top:30px;padding:12px 16px;background:#f7f7f7;border-radius:6px;font-size:14px}
 </style>
 <h1>필기후기 수집기</h1>
 <p class="sub">지금 <b>%ORG%</b> 후기를 받는 중입니다. 누적 <b>%N%</b>건.</p>
-<ol>
- <li>아래 초록 버튼을 <b>즐겨찾기 바로 끌어다 놓으십시오.</b> (최초 1회)</li>
- <li>카페에서 후기 글을 엽니다.</li>
- <li>즐겨찾기에 등록한 <b>후기 담기</b>를 누릅니다. 끝입니다.</li>
-</ol>
-<p><a class="bm" href="%BM%">후기 담기</a></p>
+
+<h2>설치 — 최초 한 번만</h2>
+
+<div class="step"><span class="num">1</span>
+ <b>즐겨찾기 바를 먼저 켜십시오.</b> <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd>
+ <div class="hint">브라우저 주소창 바로 아래에 가로줄이 하나 생깁니다. 이미 보이면 넘어가십시오.</div>
+</div>
+
+<div class="step"><span class="num">2</span>
+ <b>아래 초록 버튼을 마우스로 꾹 눌러 잡은 채, 그 즐겨찾기 바 위로 끌어다 놓으십시오.</b>
+ <div class="hint">클릭이 아니라 <b>드래그</b>입니다. 파일을 폴더로 옮기듯 끌어 올리면 됩니다.</div>
+</div>
+
+<div class="bar">
+  <div class="chrome">⬆ 여기가 즐겨찾기 바입니다 — 이 줄 위로 끌어다 놓으십시오</div>
+  <div class="body">
+    <div class="arrow">↑</div>
+    <a class="bm" href="%BM%">후기 담기</a>
+  </div>
+</div>
+
+<div class="step"><span class="num">3</span>
+ 즐겨찾기 바에 <b>후기 담기</b>가 생겼으면 설치 끝입니다.
+</div>
+
+<details>
+ <summary>드래그가 잘 안 되면 — 직접 등록하기</summary>
+ <p style="font-size:14px;margin:10px 0 0">
+  <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> 로 즐겨찾기 관리자를 열고
+  <b>새 북마크 추가</b> → 이름은 <code>후기 담기</code>, URL 칸에 아래를 통째로 붙여넣으십시오.<br>
+  <span style="color:#666">주소창에 붙여넣으면 안 됩니다. 브라우저가 <code>javascript:</code> 를 지웁니다.</span>
+ </p>
+ <textarea readonly onclick="this.select()">%BMRAW%</textarea>
+</details>
+
+<h2>사용</h2>
+<p>카페에서 후기 글을 열고, 즐겨찾기 바의 <b>후기 담기</b>를 누르면 끝입니다.
+ 알림창에 적재 결과가 뜹니다. 같은 글을 두 번 눌러도 걸러집니다.</p>
+
 <div class="now">
  다른 기관을 모으려면 수집기를 끄고 <code>python reviews/serve.py --org 한전</code> 처럼 다시 띄우십시오.<br>
- 즐겨찾기는 그대로 쓰면 됩니다. 기관은 수집기가 정합니다.
+ <b>즐겨찾기는 그대로 씁니다. 기관은 수집기가 정합니다.</b>
 </div>"""
 
 
@@ -70,9 +118,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):                                        # noqa: N802
         n = sum(1 for r in ingest.load_db() if r["org"] == self.org)
+        raw = BOOKMARKLET.replace("%PORT%", str(self.server.server_port)).replace("\n", "")
         page = (INSTALL_PAGE.replace("%ORG%", self.org).replace("%N%", str(n))
-                .replace("%BM%", BOOKMARKLET.replace("%PORT%", str(self.server.server_port))
-                         .replace("\n", "").replace('"', "&quot;")))
+                .replace("%BM%", raw.replace('"', "&quot;"))
+                .replace("%BMRAW%", raw.replace("&", "&amp;").replace("<", "&lt;")))
         body = page.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
