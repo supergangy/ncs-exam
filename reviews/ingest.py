@@ -20,7 +20,9 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+# stdout 을 새 TextIOWrapper 로 갈아끼우면 안 된다. 이 모듈을 import 하는 쪽에서 이미
+# 감싸 두었을 경우 중간 래퍼가 GC 되면서 버퍼가 닫힌다(serve.py 에서 실제로 터졌다).
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 HERE = Path(__file__).resolve().parent
 RAW = HERE / "raw"

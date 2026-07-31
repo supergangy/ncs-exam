@@ -26,7 +26,9 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    # 새 래퍼로 갈아끼우지 않는다. 이 모듈을 import 하는 쪽(selfcheck.py)에서 이미
+    # 감쌌다면 중간 래퍼가 GC 되면서 버퍼가 닫힌다.
+    sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent
 ROUNDS = ROOT / "rounds"

@@ -17,7 +17,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -39,8 +39,46 @@ fetch('http://127.0.0.1:%PORT%/ingest',{method:'POST',mode:'cors',
 })();"""
 
 
+# 붙여넣기보다 드래그가 확실하다. 브라우저에 따라 주소창 붙여넣기는 javascript: 를 지운다.
+INSTALL_PAGE = """<!doctype html><meta charset="utf-8">
+<title>후기 수집기</title>
+<style>
+ body{font:15px/1.7 'Malgun Gothic',sans-serif;max-width:640px;margin:60px auto;padding:0 20px;color:#222}
+ h1{font-size:20px;margin:0 0 4px} .sub{color:#666;margin:0 0 28px}
+ .bm{display:inline-block;padding:10px 20px;background:#03c75a;color:#fff;
+     border-radius:6px;text-decoration:none;font-weight:700;cursor:grab}
+ ol{padding-left:20px} li{margin:8px 0}
+ code{background:#f3f3f3;padding:2px 6px;border-radius:3px;font-size:13px}
+ .now{margin-top:28px;padding:12px 16px;background:#f7f7f7;border-radius:6px;font-size:14px}
+</style>
+<h1>필기후기 수집기</h1>
+<p class="sub">지금 <b>%ORG%</b> 후기를 받는 중입니다. 누적 <b>%N%</b>건.</p>
+<ol>
+ <li>아래 초록 버튼을 <b>즐겨찾기 바로 끌어다 놓으십시오.</b> (최초 1회)</li>
+ <li>카페에서 후기 글을 엽니다.</li>
+ <li>즐겨찾기에 등록한 <b>후기 담기</b>를 누릅니다. 끝입니다.</li>
+</ol>
+<p><a class="bm" href="%BM%">후기 담기</a></p>
+<div class="now">
+ 다른 기관을 모으려면 수집기를 끄고 <code>python reviews/serve.py --org 한전</code> 처럼 다시 띄우십시오.<br>
+ 즐겨찾기는 그대로 쓰면 됩니다. 기관은 수집기가 정합니다.
+</div>"""
+
+
 class Handler(BaseHTTPRequestHandler):
     org = "건보"
+
+    def do_GET(self):                                        # noqa: N802
+        n = sum(1 for r in ingest.load_db() if r["org"] == self.org)
+        page = (INSTALL_PAGE.replace("%ORG%", self.org).replace("%N%", str(n))
+                .replace("%BM%", BOOKMARKLET.replace("%PORT%", str(self.server.server_port))
+                         .replace("\n", "").replace('"', "&quot;")))
+        body = page.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -100,14 +138,19 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--org", required=True, help="이번에 모을 기관 약칭 (예: 건보)")
     ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--open", action="store_true", help="설치 페이지를 바로 연다")
     args = ap.parse_args()
 
     Handler.org = args.org
-    print(f"[수집기] {args.org} 후기를 받습니다. http://127.0.0.1:{args.port}")
-    print("[안내] 아래 한 줄을 브라우저 즐겨찾기 URL로 등록하십시오 (최초 1회).")
-    print("       후기 글을 연 상태에서 그 즐겨찾기를 누르면 적재됩니다.\n")
-    print(BOOKMARKLET.replace("%PORT%", str(args.port)).replace("\n", ""))
-    print("\n[종료] Ctrl+C\n")
+    url = f"http://127.0.0.1:{args.port}"
+    print(f"[수집기] {args.org} 후기를 받습니다.")
+    print(f"[설치] 브라우저로 {url} 를 여십시오.")
+    print("       초록 버튼을 즐겨찾기 바로 끌어다 놓으면 끝입니다 (최초 1회).")
+    print("       이후 후기 글을 열고 그 즐겨찾기를 누르면 적재됩니다.")
+    print("[종료] Ctrl+C\n")
+    if args.open:
+        import webbrowser
+        webbrowser.open(url)
 
     # 로컬 전용. 외부에서 접근할 수 있게 열지 않는다.
     srv = HTTPServer(("127.0.0.1", args.port), Handler)
