@@ -89,7 +89,10 @@ python build.py
 ├─ tools/selfcheck.py    자가검증 스캐너 (집필 직후 · 감수 전에 실행)
 ├─ corpus/               시판본 분석 파이프라인 (원문·추출본은 커밋하지 않음)
 ├─ reviews/              필기후기 → 기관별·시기별 출제경향 DB (후기 원문은 커밋하지 않음)
-│  └─ report.py --profile <기관>   최신 시행분 기준 회차 PROFILE 초안
+│  └─ report.py --brief <기관>     최신 시행분 소재 브리프 (NCS/전공/법률 분리)
+├─ 수집기 켜기.bat        더블클릭 — 후기 수집기 실행
+├─ 후기 현황 보기.bat     더블클릭 — 수집 현황 + 소재 브리프
+└─ 바탕화면 바로가기 만들기.bat   최초 1회 — 위 둘을 바탕화면에 등록
 ├─ templates/            exam.html.j2 / solution.html.j2 (회차 무관)
 ├─ docs/
 │  ├─ PLAYBOOK.md           작업별 참조서 — 집필 전에 펼친다
