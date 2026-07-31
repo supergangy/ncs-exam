@@ -11,11 +11,12 @@ Python으로 문항 데이터를 관리하고, HTML 템플릿을 거쳐 **문제
 | 회차 | 기관 | 사양 | 상태 |
 |---|---|---|---|
 | [`r1_public`](rounds/r1_public/README.md) | 범용 공기업 (`○○공사`) | 50문항 / 60분 · 8영역 · 피듈형 | **완성** — 문제집 30쪽 / 해설집 25쪽 |
-| [`r2_nhis`](rounds/r2_nhis/README.md) | 국민건강보험공단 | 60문항 / 60분 · 의사소통·수리·문제해결 각 20 | 설계 완료, 집필 대기 |
+| [`r2_korail`](rounds/r2_korail/README.md) | 한국철도공사 | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | 계획서 완료, 집필 대기 |
+| [`r3_nhis`](rounds/r3_nhis/README.md) | 국민건강보험공단 | 60문항 / 60분 · 의사소통·수리·문제해결 각 20 | 설계 완료, 후기 보강 대기 |
 
 ```bash
 python build.py                      # 기본 회차(r1_public)
-python build.py --round r2_nhis      # 다른 회차
+python build.py --round r2_korail    # 다른 회차
 ```
 
 회차별 사양·블루프린트·이력은 각 `rounds/<회차>/README.md`, 기계가 읽는 값은 `config.py`에 있다.
@@ -91,9 +92,9 @@ python build.py
 │  │  ├─ config.py          기관명 · 문항수 · 시간 · 영역 배분 · PROFILE
 │  │  ├─ README.md          회차 사양 · 블루프린트 · 제작 이력
 │  │  └─ content/           a1_communication.py … a8_ethics.py
-│  └─ r2_nhis/           국민건강보험공단 60문항
-│     ├─ config.py
-│     ├─ README.md
+│  ├─ r2_korail/         한국철도공사 NCS 30문항
+│  │  └─ content/           k1_communication.py · k2_math.py · k3_problem.py
+│  └─ r3_nhis/           국민건강보험공단 60문항
 │     └─ content/           c1_communication.py · c2_math.py · c3_problem.py
 ├─ tools/selfcheck.py    자가검증 스캐너 (집필 직후 · 감수 전에 실행)
 ├─ corpus/               시판본 분석 파이프라인 (원문·추출본은 커밋하지 않음)
