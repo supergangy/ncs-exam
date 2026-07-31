@@ -57,37 +57,7 @@
     "chars": 1585,
     "fingerprint": "073d43981038",
     "form_sig": "09296854bc09",
-    "ingested_at": "2026-07-31 14:02"
-  },
-  {
-    "org": "국민건강보험공단",
-    "title": "네이버 카페",
-    "term": null,
-    "date": null,
-    "track": "6급(가)",
-    "total_q": 60,
-    "total_min": 10,
-    "subject": "ncs 건보법",
-    "areas": [
-      "의사소통",
-      "수리",
-      "문제해결"
-    ],
-    "types": [
-      "자료해석"
-    ],
-    "topics": [
-      "학교폭력",
-      "무역·경제지표"
-    ],
-    "keywords": {},
-    "difficulty": "중",
-    "time_pressure": null,
-    "change_signal": false,
-    "chars": 992,
-    "fingerprint": "2d61ef863366",
-    "form_sig": "792ced568df1",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
@@ -114,7 +84,7 @@
     "chars": 444,
     "fingerprint": "b1f57df5c70d",
     "form_sig": "bab3fdbffef6",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
@@ -151,28 +121,37 @@
     "chars": 1119,
     "fingerprint": "1b49f2ede64d",
     "form_sig": "b1a81191618b",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
-    "title": "후기 수집기",
+    "title": "네이버 카페",
     "term": null,
     "date": null,
-    "track": null,
-    "total_q": null,
-    "total_min": null,
-    "subject": null,
-    "areas": [],
-    "types": [],
-    "topics": [],
+    "track": "6급(가)",
+    "total_q": 60,
+    "total_min": 10,
+    "subject": "ncs 건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "자료해석"
+    ],
+    "topics": [
+      "학교폭력",
+      "무역·경제지표"
+    ],
     "keywords": {},
-    "difficulty": null,
+    "difficulty": "중",
     "time_pressure": null,
     "change_signal": false,
-    "chars": 508,
-    "fingerprint": "1e6d3b0e2011",
-    "form_sig": null,
-    "ingested_at": "2026-07-31 14:02"
+    "chars": 992,
+    "fingerprint": "2d61ef863366",
+    "form_sig": "792ced568df1",
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
@@ -197,7 +176,7 @@
     "chars": 943,
     "fingerprint": "3a7de88e33b7",
     "form_sig": "c012f7f6bb57",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
@@ -223,7 +202,7 @@
     "chars": 897,
     "fingerprint": "8d19cb96da2b",
     "form_sig": "c93f93ad4fac",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
@@ -258,7 +237,68 @@
     "chars": 663,
     "fingerprint": "b6508ef21bef",
     "form_sig": "783fdb37359f",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "ncs(의,수,문) + 건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "피셋형",
+      "규정적용"
+    ],
+    "topics": [
+      "학교폭력",
+      "설탕세·건강부담금",
+      "보험료 부과"
+    ],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 1111,
+    "fingerprint": "a7d718a9164c",
+    "form_sig": "e264205593f0",
+    "ingested_at": "2026-07-31 14:09"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "NCS, 직무 법률시험",
+    "areas": [
+      "의사소통",
+      "수리"
+    ],
+    "types": [],
+    "topics": [
+      "반려동물",
+      "설탕세·건강부담금",
+      "건강검진",
+      "요양급여"
+    ],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 885,
+    "fingerprint": "c9b057356dac",
+    "form_sig": "1bf5daad5426",
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
@@ -287,7 +327,63 @@
     "chars": 722,
     "fingerprint": "32989cc20ccc",
     "form_sig": "28b9b4398773",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": null,
+    "total_min": 30,
+    "subject": "ncs, 건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "피셋형",
+      "자료해석"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 794,
+    "fingerprint": "dba83b928a92",
+    "form_sig": "dcadc4de6681",
+    "ingested_at": "2026-07-31 14:09"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": 60,
+    "total_min": 80,
+    "subject": "건간보험법 NCS",
+    "areas": [
+      "문제해결",
+      "수리"
+    ],
+    "types": [
+      "피셋형",
+      "피듈형",
+      "모듈"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": "부족",
+    "change_signal": true,
+    "chars": 971,
+    "fingerprint": "de0684bf463e",
+    "form_sig": "fe1e1932de10",
+    "ingested_at": "2026-07-31 14:09"
   },
   {
     "org": "국민건강보험공단",
@@ -316,6 +412,44 @@
     "chars": 950,
     "fingerprint": "ec048782e29d",
     "form_sig": "c75213d7d5f7",
-    "ingested_at": "2026-07-31 14:02"
+    "ingested_at": "2026-07-31 14:09"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정직",
+    "total_q": 50,
+    "total_min": 60,
+    "subject": "NCS(의사소통, 수리, 문제해결) + 국민건강보험법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "모듈",
+      "추론",
+      "자료해석",
+      "계산",
+      "규정적용"
+    ],
+    "topics": [
+      "학교폭력",
+      "디지털 소통",
+      "AI·디지털",
+      "노인·돌봄",
+      "ESG·지속가능",
+      "무역·경제지표"
+    ],
+    "keywords": {},
+    "difficulty": "상",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 6988,
+    "fingerprint": "ede7c5708f2e",
+    "form_sig": "561113477c1f",
+    "ingested_at": "2026-07-31 14:09"
   }
 ]

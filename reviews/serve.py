@@ -24,16 +24,28 @@ import ingest  # noqa: E402
 
 # 페이지에서 본문을 긁어 이 서버로 보내는 한 줄짜리 스크립트.
 # iframe(cafe_main) 안에 본문이 있는 경우까지 훑는다.
+# 카페 새 UI 에는 iframe#cafe_main 이 없다. 있으면 들어가고 없으면 그냥 현재 문서를 쓴다.
+# 제목·작성일은 셀렉터가 자주 바뀌므로 **셀렉터를 먼저 보고, 실패하면 텍스트에서 찾는다.**
+# document.title 은 새 UI 에서 「네이버 카페」로만 나와 쓸모가 없다.
 BOOKMARKLET = """javascript:(function(){
 var d=document,f=d.querySelector('iframe#cafe_main');
 if(f&&f.contentDocument)d=f.contentDocument;
 var s=['.se-main-container','.ArticleContentBox','#postViewArea','.article_viewer','article','body'],e;
 for(var i=0;i<s.length;i++){e=d.querySelector(s[i]);if(e&&e.innerText.length>200)break;}
 if(!e){alert('본문을 찾지 못했습니다');return;}
+var ts=['.title_text','.ArticleTitle .title_text','h3.title_text','.post_title','.tit_area .tit'],ti='';
+for(var j=0;j<ts.length;j++){var tn=d.querySelector(ts[j]);
+ if(tn&&tn.innerText.trim()){ti=tn.innerText.trim();break;}}
+if(!ti||/^네이버\\s*카페$/.test(ti))ti=(d.title||'').trim();
 var ds=['.article_info .date','.ArticleTool .date','.date','.se_publishDate','.post_date'],dt='';
-for(var j=0;j<ds.length;j++){var n=d.querySelector(ds[j]);
- if(n&&/20\\d\\d/.test(n.innerText)){dt=n.innerText.trim();break;}}
-var t=(d.title||'')+'\\n작성일 '+dt+'\\n'+e.innerText;
+for(var k=0;k<ds.length;k++){var dn=d.querySelector(ds[k]);
+ if(dn&&/20\\d\\d/.test(dn.innerText)){dt=dn.innerText.trim();break;}}
+if(!dt){var head=(d.body.innerText||'').slice(0,2000);
+ var dm=head.match(/20\\d\\d\\s*[.\\-\\/]\\s*\\d{1,2}\\s*[.\\-\\/]\\s*\\d{1,2}/);
+ if(dm)dt=dm[0];}
+if(!ti){var hm=(d.body.innerText||'').split('\\n').filter(function(x){
+ return /후기/.test(x)&&x.trim().length>6;}); if(hm.length)ti=hm[0].trim();}
+var t=ti+'\\n작성일 '+dt+'\\n'+e.innerText;
 fetch('http://127.0.0.1:%PORT%/ingest',{method:'POST',mode:'cors',
  headers:{'Content-Type':'text/plain;charset=UTF-8'},body:t})
 .then(function(r){return r.text()}).then(function(m){alert(m)})
@@ -225,6 +237,9 @@ class Handler(BaseHTTPRequestHandler):
     def _store(self, text: str) -> str:
         if len(ingest.norm(text)) < 120:
             return "본문이 너무 짧습니다. 글 전체가 보이는 상태에서 눌러 주십시오."
+        # 설치 페이지에서 눌러 자기 자신을 담는 사고가 실제로 있었다.
+        if "필기후기 수집기" in text or "후기 담기" in text:
+            return "여기는 수집기 페이지입니다. 카페의 후기 글에서 눌러 주십시오."
 
         rec = ingest.parse(text, self.org)
         db = ingest.load_db()
