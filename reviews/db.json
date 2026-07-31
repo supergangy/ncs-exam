@@ -57,7 +57,37 @@
     "chars": 1585,
     "fingerprint": "073d43981038",
     "form_sig": "09296854bc09",
-    "ingested_at": "2026-07-31 13:54"
+    "ingested_at": "2026-07-31 14:02"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "6급(가)",
+    "total_q": 60,
+    "total_min": 10,
+    "subject": "ncs 건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "자료해석"
+    ],
+    "topics": [
+      "학교폭력",
+      "무역·경제지표"
+    ],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 992,
+    "fingerprint": "2d61ef863366",
+    "form_sig": "792ced568df1",
+    "ingested_at": "2026-07-31 14:02"
   },
   {
     "org": "국민건강보험공단",
@@ -84,7 +114,90 @@
     "chars": 444,
     "fingerprint": "b1f57df5c70d",
     "form_sig": "bab3fdbffef6",
-    "ingested_at": "2026-07-31 13:54"
+    "ingested_at": "2026-07-31 14:02"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정",
+    "total_q": 20,
+    "total_min": 10,
+    "subject": "의, 수, 문, 건보법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결",
+      "자원관리"
+    ],
+    "types": [
+      "모듈",
+      "피듈형",
+      "추론",
+      "자료해석"
+    ],
+    "topics": [
+      "노인·돌봄",
+      "AI·디지털",
+      "학교폭력",
+      "반려동물",
+      "재정"
+    ],
+    "keywords": {},
+    "difficulty": "중",
+    "time_pressure": "부족",
+    "change_signal": true,
+    "chars": 1119,
+    "fingerprint": "1b49f2ede64d",
+    "form_sig": "b1a81191618b",
+    "ingested_at": "2026-07-31 14:02"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "후기 수집기",
+    "term": null,
+    "date": null,
+    "track": null,
+    "total_q": null,
+    "total_min": null,
+    "subject": null,
+    "areas": [],
+    "types": [],
+    "topics": [],
+    "keywords": {},
+    "difficulty": null,
+    "time_pressure": null,
+    "change_signal": false,
+    "chars": 508,
+    "fingerprint": "1e6d3b0e2011",
+    "form_sig": null,
+    "ingested_at": "2026-07-31 14:02"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "행정",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "ncs, 국민건강보험법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "중상",
+    "time_pressure": "매우 부족",
+    "change_signal": true,
+    "chars": 943,
+    "fingerprint": "3a7de88e33b7",
+    "form_sig": "c012f7f6bb57",
+    "ingested_at": "2026-07-31 14:02"
   },
   {
     "org": "국민건강보험공단",
@@ -110,7 +223,7 @@
     "chars": 897,
     "fingerprint": "8d19cb96da2b",
     "form_sig": "c93f93ad4fac",
-    "ingested_at": "2026-07-31 13:54"
+    "ingested_at": "2026-07-31 14:02"
   },
   {
     "org": "국민건강보험공단",
@@ -145,7 +258,7 @@
     "chars": 663,
     "fingerprint": "b6508ef21bef",
     "form_sig": "783fdb37359f",
-    "ingested_at": "2026-07-31 13:54"
+    "ingested_at": "2026-07-31 14:02"
   },
   {
     "org": "국민건강보험공단",
@@ -174,6 +287,35 @@
     "chars": 722,
     "fingerprint": "32989cc20ccc",
     "form_sig": "28b9b4398773",
-    "ingested_at": "2026-07-31 13:54"
+    "ingested_at": "2026-07-31 14:02"
+  },
+  {
+    "org": "국민건강보험공단",
+    "title": "네이버 카페",
+    "term": null,
+    "date": null,
+    "track": "전산",
+    "total_q": null,
+    "total_min": 60,
+    "subject": "NCS, 프로그래밍 언어, 건강보험법",
+    "areas": [
+      "의사소통",
+      "수리",
+      "문제해결"
+    ],
+    "types": [
+      "자료해석",
+      "조건추리",
+      "추론"
+    ],
+    "topics": [],
+    "keywords": {},
+    "difficulty": "하",
+    "time_pressure": null,
+    "change_signal": true,
+    "chars": 950,
+    "fingerprint": "ec048782e29d",
+    "form_sig": "c75213d7d5f7",
+    "ingested_at": "2026-07-31 14:02"
   }
 ]

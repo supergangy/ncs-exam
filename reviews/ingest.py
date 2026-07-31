@@ -136,13 +136,18 @@ def unmatched_candidates(text: str, org: str, limit: int = 12) -> list[tuple[str
     return cnt.most_common(limit)
 
 
+# 긴 별칭부터 본다. 「건강보험」이 「건강보험심사평가원」보다 먼저 걸리면 안 된다.
+_ALIAS_ORDER = sorted(((a, o) for o, al in ORG_ALIASES.items() for a in al),
+                      key=lambda p: -len(p[0]))
+
+
 def normalize_org(name: str | None) -> str | None:
     """표기가 흔들리는 기관명을 정식명으로 접는다. 「건보」→「국민건강보험공단」."""
     if not name:
         return None
     s = name.strip()
-    for official, aliases in ORG_ALIASES.items():
-        if any(a in s for a in aliases):
+    for alias, official in _ALIAS_ORDER:
+        if alias in s:
             return official
     return s          # 사전에 없으면 적힌 그대로 둔다
 

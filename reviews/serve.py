@@ -11,9 +11,8 @@
 from __future__ import annotations
 
 import argparse
-import io
-import json
 import sys
+from collections import Counter
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -68,6 +67,16 @@ INSTALL_PAGE = """<!doctype html><meta charset="utf-8">
  textarea{width:100%;height:80px;margin-top:10px;font-family:Consolas,monospace;font-size:11px;
      border:1px solid #ddd;border-radius:4px;padding:8px;box-sizing:border-box}
  .now{margin-top:30px;padding:12px 16px;background:#f7f7f7;border-radius:6px;font-size:14px}
+ .sum{margin:0 0 14px;padding:10px 14px;background:#eef7f1;border-radius:6px;font-size:14px}
+ table.rec{width:100%;border-collapse:collapse;font-size:13.5px}
+ table.rec th,table.rec td{border-bottom:1px solid #eee;padding:7px 8px;text-align:left;
+   vertical-align:top}
+ table.rec th{background:#fafafa;font-weight:700;color:#555;white-space:nowrap}
+ table.rec td.n{color:#999;white-space:nowrap}
+ .kw{margin:4px 0 0;font-size:12.5px;color:#555}
+ .kw summary{cursor:pointer;color:#03723a}
+ .kw b{color:#222}
+ .warn{color:#b45309}
 </style>
 <h1>필기후기 수집기</h1>
 <p class="sub">지금 <b>%ORG%</b> 후기를 받는 중입니다. 누적 <b>%N%</b>건.</p>
@@ -113,18 +122,74 @@ INSTALL_PAGE = """<!doctype html><meta charset="utf-8">
 <div class="now">
  다른 기관을 모으려면 수집기를 끄고 <code>python reviews/serve.py --org 한전</code> 처럼 다시 띄우십시오.<br>
  <b>즐겨찾기는 그대로 씁니다. 기관은 수집기가 정합니다.</b>
-</div>"""
+</div>
+
+<h2>수집 기록</h2>
+<p class="sub" style="margin-bottom:14px">
+ <b>담는 즉시 분류·저장됩니다.</b> 양식·출제 키워드·난이도까지 읽어
+ <code>reviews/raw/&lt;기관&gt;/</code> 에 원문을, <code>reviews/db.json</code> 에 분류 결과를 넣습니다.
+ 따로 가공할 것이 없습니다. &nbsp;<a href="/">새로고침</a>
+</p>
+%RECORDS%"""
+
+EMPTY_RECORDS = """<p style="padding:20px;background:#fafafa;border-radius:6px;color:#666">
+아직 담은 후기가 없습니다. 위 즐겨찾기를 설치하고 후기 글에서 눌러 보십시오.</p>"""
+
+
+def esc(s) -> str:
+    return (str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def render_records(db: list[dict], limit: int = 20) -> str:
+    """지금까지 담은 후기를 최근순으로 보여 준다."""
+    if not db:
+        return EMPTY_RECORDS
+
+    by_org = Counter(r["org"] for r in db)
+    unknown = sum(1 for r in db if not r.get("term") and not r.get("date"))
+    summary = (f"총 <b>{len(db)}건</b> &nbsp;·&nbsp; "
+               + " &nbsp;·&nbsp; ".join(f"{esc(o)} {c}건" for o, c in by_org.most_common()))
+    if unknown:
+        summary += (f'<br><span class="warn">시행 시기를 모르는 후기 {unknown}건 — '
+                    "같은 글을 다시 담으면 게시일이 채워집니다.</span>")
+
+    rows = sorted(db, key=lambda r: r.get("ingested_at") or "", reverse=True)[:limit]
+    out = [f'<p class="sum">{summary}</p>', '<table class="rec">',
+           "<tr><th>담은 시각</th><th>기관</th><th>시행</th><th>직렬</th>"
+           "<th>난이도</th><th>소재</th></tr>"]
+    for r in rows:
+        kw = r.get("keywords") or {}
+        n_kw = sum(len(v) for v in kw.values())
+        cell = f"{n_kw}개" if n_kw else "—"
+        if kw:
+            parts = "".join(
+                f"<div><b>{esc(a)}</b> {esc(' · '.join(ws))}</div>" for a, ws in kw.items())
+            cell = (f'<details class="kw"><summary>{n_kw}개</summary>{parts}</details>')
+        out.append(
+            f'<tr><td class="n">{esc((r.get("ingested_at") or "")[5:])}</td>'
+            f"<td>{esc(r.get('org'))}</td>"
+            f"<td>{esc(r.get('term') or r.get('date') or '—')}</td>"
+            f"<td>{esc(r.get('track') or '—')}</td>"
+            f"<td>{esc(r.get('difficulty') or '—')}</td>"
+            f"<td>{cell}</td></tr>")
+    out.append("</table>")
+    if len(db) > limit:
+        out.append(f'<p class="sub" style="margin-top:10px">최근 {limit}건만 표시했습니다. '
+                   "전체는 <code>python reviews/report.py --matrix</code></p>")
+    return "\n".join(out)
 
 
 class Handler(BaseHTTPRequestHandler):
     org = "건보"
 
     def do_GET(self):                                        # noqa: N802
-        n = sum(1 for r in ingest.load_db() if r["org"] == self.org)
+        db = ingest.load_db()
+        n = sum(1 for r in db if r["org"] == self.org)
         raw = BOOKMARKLET.replace("%PORT%", str(self.server.server_port)).replace("\n", "")
         page = (INSTALL_PAGE.replace("%ORG%", self.org).replace("%N%", str(n))
                 .replace("%BM%", raw.replace('"', "&quot;"))
-                .replace("%BMRAW%", raw.replace("&", "&amp;").replace("<", "&lt;")))
+                .replace("%BMRAW%", raw.replace("&", "&amp;").replace("<", "&lt;"))
+                .replace("%RECORDS%", render_records(db)))
         body = page.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
