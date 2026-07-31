@@ -63,6 +63,14 @@ table.data th, table.data td { border: 0.5pt solid #333; padding: 1mm 1.6mm; tex
 table.data th { background: #efefef; }
 code { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; }
 span.gap { border-bottom: 0.6pt solid #333; padding: 0 1mm; letter-spacing: 1pt; }
+
+/* ── 그림(인라인 SVG) ──────────────────── */
+/* 해설에는 보조선을 더한 같은 그림을 다시 넣는다 (규칙 8-15).
+   도형 해설은 그림 없이 읽히지 않는다. */
+.figure { text-align: center; margin: 2mm 0 1.5mm; break-inside: avoid; }
+.figure svg { display: block; margin: 0 auto; }
+.figure .cap { font-size: 8.4pt; color: #333; margin-top: 0.8mm; }
+svg text { font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif; }
 </style>
 
 {# ─────────────────────────── 표지 ─────────────────────────── #}

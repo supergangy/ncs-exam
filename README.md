@@ -13,7 +13,8 @@ Python으로 문항 데이터를 관리하고, HTML 템플릿을 거쳐 **문제
 | [`r1_public`](rounds/r1_public/README.md) | 범용 공기업 (`○○공사`) | 50문항 / 60분 · 8영역 · 피듈형 | **완성** — 문제집 30쪽 / 해설집 25쪽 |
 | [`r2_korail`](rounds/r2_korail/README.md) | 한국철도공사 | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 문제집 12쪽 / 해설집 15쪽 / 출제 이유서 10쪽 |
 | [`r3_korail`](rounds/r3_korail/README.md) | 한국철도공사 (2회차) | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 문제집 13쪽 / 해설집 16쪽 / 출제 이유서 11쪽 |
-| [`r4_nhis`](rounds/r4_nhis/README.md) | 국민건강보험공단 | 60문항 / 60분 · 의사소통·수리·문제해결 각 20 | 설계 완료, 후기 보강 대기 |
+| [`r4_korail`](rounds/r4_korail/README.md) | 한국철도공사 (3회차) | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 13쪽 / 18쪽 / 12쪽 · **그림 5곳** |
+| [`r5_nhis`](rounds/r5_nhis/README.md) | 국민건강보험공단 | 60문항 / 60분 · 의사소통·수리·문제해결 각 20 | 설계 완료, 후기 보강 대기 |
 
 ```bash
 python build.py                      # 기본 회차(r1_public)
@@ -99,9 +100,12 @@ python build.py
 │  │  └─ content/           k1_communication.py · k2_math.py · k3_problem.py
 │  ├─ r3_korail/         한국철도공사 2회차 30문항 — 2회와 소재가 겹치지 않는다
 │  │  └─ content/           k1_communication.py · k2_math.py · k3_problem.py
-│  └─ r4_nhis/           국민건강보험공단 60문항
+│  ├─ r4_korail/         한국철도공사 3회차 30문항 — 모듈 전면 신규 · 그림 도입
+│  │  └─ content/           k1_communication.py · k2_math.py · k3_problem.py
+│  └─ r5_nhis/           국민건강보험공단 60문항
 │     └─ content/           c1_communication.py · c2_math.py · c3_problem.py
 ├─ tools/selfcheck.py    자가검증 스캐너 (집필 직후 · 감수 전에 실행)
+├─ tools/reorder_choices.py  선지 순서를 바꿔 정답 위치를 옮긴다 (정답 분포 조정용)
 ├─ corpus/               시판본 분석 파이프라인 (원문·추출본은 커밋하지 않음)
 ├─ reviews/              필기후기 → 기관별·시기별 출제경향 DB (후기 원문은 커밋하지 않음)
 │  └─ report.py --brief <기관>     최신 시행분 소재 브리프 (NCS/전공/법률 분리)
@@ -181,6 +185,10 @@ python build.py --html
 
 블록에 `"movable": False` 를 달면 **여백 채우기가 그 블록을 앞으로 끌어오지 않는다.**
 짝을 이루는 명제 두 문항이나 같은 기법을 잇달아 묻는 묶음처럼 순서 자체가 설계일 때 쓴다 (`D50`).
+
+도형·그래프·다이어그램은 **인라인 SVG**로 그린다. `<div class="figure">` 로 감싸고
+`material` · `passage` · `explain` 에만 둔다(발문은 순수 텍스트다). 외부 파일은 쓰지 않는다.
+**`width`·`height` 를 픽셀로 명시**해야 조판기의 높이 실측이 맞는다. 규칙은 `docs/PLAYBOOK.md` 8-D 절.
 
 `why` 는 산문이라 태그 대신 `**굵게**` 와 `` `코드` `` 만 쓴다. 렌더할 때 HTML로 바뀐다.
 회차 안에서 `why` 를 가진 문항이 하나라도 있으면 **출제 이유서 PDF가 함께 생성된다.**

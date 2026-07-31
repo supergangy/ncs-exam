@@ -65,6 +65,13 @@ ALLOWED_TAGS = {
     "p", "br", "strong", "em", "u", "sup", "sub", "code", "span",
     "table", "caption", "tr", "th", "td", "div", "ul", "ol", "li",
 }
+# 도형·그래프는 인라인 SVG로 그린다. 렌더가 HTML → Chrome 이라 외부 파일이 필요 없다.
+# 발문 검사(7a)는 그대로 둔다 — **발문에는 SVG도 넣지 않는다**(SPEC 4-1 순수 텍스트).
+SVG_TAGS = {
+    "svg", "g", "path", "line", "polyline", "polygon", "rect", "circle",
+    "ellipse", "text", "tspan", "defs", "pattern", "marker", "clipPath", "use",
+}
+ALLOWED_TAGS |= SVG_TAGS
 
 CONCEPT_STEM = re.compile(r"(무엇인가|의 정의|뜻하는 것은|이란\?|란 무엇)")
 COMBO = re.compile(r"&lt;보기&gt;|<보기>")

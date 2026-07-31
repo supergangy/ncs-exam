@@ -67,6 +67,15 @@ p { margin: 0 0 3.2pt; }
 u.ref { text-underline-offset: 2pt; }
 span.gap { border-bottom: 0.6pt solid #333; padding: 0 1mm; letter-spacing: 1pt; }
 
+/* ── 그림(인라인 SVG) ──────────────────── */
+/* 도형·그래프·다이어그램은 SVG로 직접 그린다. 외부 파일을 두지 않는다.
+   SVG 에 width·height 를 픽셀로 명시해야 layout.py 의 높이 실측이 맞는다 (규칙 8-11).
+   실측 시 본문 폭을 180mm(약 680px)로 강제하므로 width 는 640px 이하로 둔다 (8-11a). */
+.figure { text-align: center; margin: 2.5mm 0 1.5mm; break-inside: avoid; }
+.figure svg { display: block; margin: 0 auto; }
+.figure .cap { font-size: 8.6pt; color: #333; margin-top: 1mm; }
+svg text { font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif; }
+
 .box { border: 0.7pt solid #333; padding: 3mm 4mm; margin: 2.2mm 0; break-inside: avoid; }
 .box-title { text-align: center; font-weight: 700; margin-bottom: 1.8mm; }
 .box p { margin-bottom: 2.4pt; }
