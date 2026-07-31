@@ -232,6 +232,12 @@ def parse_keywords(text: str) -> dict[str, list[str]]:
 
 TITLE_TERM = re.compile(r"(20\d{2})\s*(상반기|하반기)?")
 
+# 「유형이 바뀌었다」는 언급. 구조 지표를 대체하진 못하지만,
+# 코퍼스(시판본 실측)가 낡았다는 경보로는 이만한 게 없다.
+CHANGE_SIGNAL = re.compile(
+    r"(유형이?\s*(많이\s*|완전\s*)?(달라|바뀌)|기존.{0,12}(다르|달라)|처음\s*보는|"
+    r"난생\s*처음|대행사가?\s*(달라|바뀌)|작년.{0,12}(다르|달라))")
+
 
 def form_signature(form: dict) -> str | None:
     """양식 값만으로 만든 글 식별자. 같은 글을 범위 달리 긁었을 때 겹치는지 본다."""
@@ -279,6 +285,8 @@ def parse(text: str, org: str) -> dict:
         # 양식에 적힌 난이도가 자유서술 추론보다 정확하다.
         "difficulty": normalize_difficulty(form.get("diff_raw")) or pick_one(body, DIFFICULTY),
         "time_pressure": pick_one(body, TIME_PRESSURE),
+        # 「기존과 다르다」는 언급 여부. 코퍼스가 낡았는지 판단하는 단서다.
+        "change_signal": bool(CHANGE_SIGNAL.search(body)),
         "chars": len(body),
         # 원문은 담지 않는다. 같은 글을 두 번 넣지 않으려는 지문만 남긴다.
         "fingerprint": hashlib.sha1(body.encode("utf-8")).hexdigest()[:12],
