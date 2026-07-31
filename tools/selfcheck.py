@@ -93,8 +93,11 @@ def sentences(html: str) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", nargs="*", type=int, default=None)
+    ap.add_argument("--round", default=build.DEFAULT_ROUND, metavar="이름",
+                    help=f"검사할 회차 폴더 이름 (기본 {build.DEFAULT_ROUND})")
     args = ap.parse_args()
 
+    cfg = build.select_round(args.round)
     blocks, _, _ = build.load_blocks(preview=True)   # 적재 시점에 번호가 부여된다
 
     items: list[tuple[int, dict, dict]] = []
@@ -191,7 +194,7 @@ def main() -> int:
     combo = sum(1 for _, _, q in items if COMBO.search(q.get("material") or ""))
 
     # ── 출력 ────────────────────────────────────────────────────
-    print(f"검사 대상 {len(items)}문항\n")
+    print(f"[회차] {args.round} — {cfg.EXAM_ROUND} · 검사 대상 {len(items)}문항\n")
     order = {"치명": 0, "경고": 1}
     findings.sort(key=lambda f: (order[f[0]], f[1]))
     if findings:
@@ -203,7 +206,18 @@ def main() -> int:
 
     print(f"\n정답 분포  " + " ".join(f"{'①②③④⑤'[k-1]}{dist.get(k, 0)}" for k in range(1, 6))
           + f"   최대 연속 {mx}")
-    print(f"<보기> 조합형  {combo}문항 (50문항 환산 {combo * 50 / len(items):.1f} / 목표 12~14)")
+    # 목표치는 회차마다 다르다. 규칙이 아니라 회차 프로파일에 속한다 (D48)
+    goal = getattr(cfg, "PROFILE", {}).get("<보기> 조합형", "회차 프로파일 미정")
+    print(f"<보기> 조합형  {combo}문항 (회차 목표 {goal})")
+    # 세트 지문의 각주를 문항 수만큼 겹쳐 세지 않도록 지문은 블록 단위로 센다.
+    footnote = sum((q.get("material") or "").count('class="note"') for _, _, q in items)
+    footnote += sum((b.get("passage") or "").count('class="note"')
+                    for b in {id(b): b for _, b, _ in items}.values())
+    print(f"각주(※)      {footnote}개 (회차 목표 "
+          f"{getattr(cfg, 'PROFILE', {}).get('각주(※) 개수', '미정')})")
+    nset = sum(1 for _, b, q in items if len(b["questions"]) > 1)
+    print(f"세트문항      {nset}/{len(items)}문항 ({nset / len(items) * 100:.0f}%, 회차 목표 "
+          f"{getattr(cfg, 'PROFILE', {}).get('세트문항 비율', '미정')})")
     fatal = sum(1 for f in findings if f[0] == "치명")
     print(f"\n치명 {fatal}건 / 경고 {len(findings) - fatal}건")
     return 1 if fatal else 0

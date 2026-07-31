@@ -4,10 +4,10 @@ __pycache__/
 venv/
 .venv/
 
-# 빌드 중간 산출물 (PDF는 커밋한다)
-out/*.html
+# 빌드 중간 산출물 (PDF는 커밋한다). 산출물은 out/<회차>/ 아래에 쌓인다.
+out/**/*.html
 # layout.py 의 블록 높이 측정용 임시 HTML
-out/.layout/
+out/**/.layout/
 
 # 참고 교재에서 추출한 원문 텍스트 — 상용 저작물이므로 절대 커밋 금지
 scratchpad/

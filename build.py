@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
-"""NCS 봉투모의고사 빌더 — content/*.py → HTML → PDF(문제집·해설집)
+"""NCS 봉투모의고사 빌더 — rounds/<회차>/content/*.py → HTML → PDF(문제집·해설집)
 
 사용법:
-    python build.py            # 전체 빌드 (50문항 완성 시)
-    python build.py --preview  # 현재까지 작성된 문항만으로 미리보기 빌드
+    python build.py                        # 기본 회차(r1_public) 전체 빌드
+    python build.py --round r2_nhis        # 다른 회차 빌드
+    python build.py --preview              # 작성된 문항만으로 미리보기
+    python build.py --html                 # HTML만 — 고쳐 가며 확인할 때
+
+회차마다 문항 수·영역 배분·기관명이 다르므로 그 값들은 `rounds/<회차>/config.py`에 둔다.
+빌드기·조판기·템플릿·스캐너는 회차와 무관하게 한 벌만 유지한다.
 """
 import argparse
 import datetime
@@ -24,11 +29,15 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent
-CONTENT = ROOT / "content"
+ROUNDS = ROOT / "rounds"
 TEMPLATES = ROOT / "templates"
-OUT = ROOT / "out"
-LOGS = ROOT / "logs"
 WORKLOG = ROOT / "WORKLOG.md"
+
+DEFAULT_ROUND = "r1_public"
+
+# 회차를 고르면 아래 값들이 채워진다. select_round() 참고.
+ROUND = CONTENT = OUT = LOGS = None
+CFG = None
 
 _LOG_LINES = []
 
@@ -39,21 +48,6 @@ def log(msg=""):
     _LOG_LINES.append(str(msg))
 
 START_PAGE = 3          # 본문 첫 면의 PDF 쪽 번호 (표지1 + 안내1 다음). 짝수 = 왼쪽 면
-EXAM_TITLE = "공기업 NCS 봉투모의고사"
-EXAM_ROUND = "실전모의고사 제1회"
-TOTAL_Q = 50
-TOTAL_MIN = 60
-
-AREAS = [
-    ("a1_communication", "의사소통능력", 7),
-    ("a2_math", "수리능력", 7),
-    ("a3_problem", "문제해결능력", 7),
-    ("a4_resource", "자원관리능력", 6),
-    ("a5_info", "정보능력", 6),
-    ("a6_tech", "기술능력", 6),
-    ("a7_org", "조직이해능력", 6),
-    ("a8_ethics", "직업윤리", 5),
-]
 
 CIRCLED = ["①", "②", "③", "④", "⑤"]
 
@@ -73,9 +67,25 @@ def load_module(path: Path):
     return mod
 
 
+def select_round(name: str):
+    """회차 설정을 읽어 전역 경로와 사양을 채운다."""
+    global ROUND, CONTENT, OUT, LOGS, CFG
+    d = ROUNDS / name
+    cfg_path = d / "config.py"
+    if not cfg_path.exists():
+        have = sorted(p.name for p in ROUNDS.iterdir() if (p / "config.py").exists()) \
+            if ROUNDS.exists() else []
+        raise SystemExit(f"[중단] 회차 '{name}' 를 찾을 수 없습니다. 사용 가능: {', '.join(have) or '없음'}")
+    ROUND, CFG = name, load_module(cfg_path)
+    CONTENT = d / "content"
+    # 회차별로 나누지 않으면 뒤에 빌드한 회차가 앞 회차 산출물을 덮어쓴다.
+    OUT, LOGS = ROOT / "out" / name, ROOT / "logs" / name
+    return CFG
+
+
 def load_blocks(preview: bool):
     blocks, problems, missing = [], [], []
-    for mod_name, area, expected in AREAS:
+    for mod_name, area, expected in CFG.AREAS:
         path = CONTENT / f"{mod_name}.py"
         if not path.exists():
             missing.append(f"{area}({mod_name}.py 없음)")
@@ -139,9 +149,10 @@ def validate(blocks, preview: bool):
     # 정답 분포
     dist = {i: answers.count(i) for i in range(1, 6)}
     if not preview:
+        lo, hi = CFG.TOTAL_Q // 5 - 2, CFG.TOTAL_Q // 5 + 2
         for i, c in dist.items():
-            if not (TOTAL_Q // 5 - 2 <= c <= TOTAL_Q // 5 + 2):
-                warnings.append(f"정답 {CIRCLED[i-1]} {c}개 (권장 8~12개)")
+            if not (lo <= c <= hi):
+                warnings.append(f"정답 {CIRCLED[i-1]} {c}개 (권장 {lo}~{hi}개)")
     for i in range(len(answers) - 2):
         if answers[i] == answers[i + 1] == answers[i + 2]:
             warnings.append(f"{i+1:02d}~{i+3:02d}번 정답 3연속 동일({CIRCLED[answers[i]-1]})")
@@ -173,9 +184,9 @@ def build_html(blocks, kind: str, dist=None) -> str:
 
     return tpl.render(
         blocks=blocks, questions=flat, circled=CIRCLED,
-        exam_title=EXAM_TITLE, exam_round=EXAM_ROUND,
-        total_q=TOTAL_Q, total_min=TOTAL_MIN,
-        areas=[(a, n) for _, a, n in AREAS],
+        brand=CFG.BRAND, exam_title=CFG.EXAM_TITLE, exam_round=CFG.EXAM_ROUND,
+        total_q=CFG.TOTAL_Q, total_min=CFG.TOTAL_MIN,
+        areas=[(a, n) for _, a, n in CFG.AREAS],
         answers=[(q["no"], q["answer"]) for q in flat],
         dist=dist or {},
     )
@@ -267,11 +278,12 @@ def stamp_page_numbers(pdf_path: Path, skip_first: int = 1):
 # ────────────────────────────────────────────────────────── 로그 기록
 def write_build_log(started: datetime.datetime, elapsed: float, outputs):
     """빌드마다 기계 기록을 남기고, WORKLOG.md에 한 줄 요약을 덧붙인다."""
-    LOGS.mkdir(exist_ok=True)
+    LOGS.mkdir(parents=True, exist_ok=True)
     path = LOGS / f"build_{started:%Y%m%d_%H%M%S}.log"
     header = [
         "=" * 68,
         f"빌드 실행  {started:%Y-%m-%d %H:%M:%S}",
+        f"회차       {ROUND} — {CFG.EXAM_ROUND} ({CFG.TOTAL_Q}문항 / {CFG.TOTAL_MIN}분)",
         f"명령       python build.py {' '.join(sys.argv[1:])}".rstrip(),
         f"소요       {elapsed:.1f}초",
         "=" * 68,
@@ -283,10 +295,11 @@ def write_build_log(started: datetime.datetime, elapsed: float, outputs):
     if WORKLOG.exists() and outputs and "--html" not in sys.argv:
         summary = " / ".join(f"{name} {pages}쪽" for name, pages in outputs)
         entry = (
-            f"\n### {started:%H:%M} · [빌드] {'미리보기' if '--preview' in sys.argv else '전체'} 빌드\n"
+            f"\n### {started:%H:%M} · [빌드] {CFG.EXAM_ROUND} "
+            f"{'미리보기' if '--preview' in sys.argv else '전체'} 빌드\n"
             f"- **행동**: `python build.py {' '.join(sys.argv[1:])}`".rstrip() + "\n"
             f"- **결과**: {summary} · 소요 {elapsed:.1f}초\n"
-            f"- **산출물**: `logs/{path.name}`\n"
+            f"- **산출물**: `{path.relative_to(ROOT).as_posix()}`\n"
         )
         with open(WORKLOG, "a", encoding="utf-8") as f:
             f.write(entry)
@@ -301,12 +314,17 @@ def main():
                     help="펼침면 재배치를 끄고 작성 순서 그대로 출력")
     ap.add_argument("--html", action="store_true",
                     help="HTML만 생성하고 PDF 변환·쪽번호를 건너뛴다 (수정 확인용)")
+    ap.add_argument("--round", default=DEFAULT_ROUND, metavar="이름",
+                    help=f"빌드할 회차 폴더 이름 (기본 {DEFAULT_ROUND})")
     args = ap.parse_args()
 
+    select_round(args.round)
     started, t0 = datetime.datetime.now(), time.time()
-    OUT.mkdir(exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
     outputs = []
 
+    log(f"[회차] {ROUND} — {CFG.EXAM_ROUND} "
+        f"({CFG.TOTAL_Q}문항 / {CFG.TOTAL_MIN}분 · {len(CFG.AREAS)}개 영역)")
     blocks, problems, missing = load_blocks(args.preview)
     if problems:
         log("[중단] 설계와 불일치:")
@@ -350,7 +368,7 @@ def main():
     suffix = "_preview" if args.preview else ""
     for kind, label in [("exam", "문제"), ("solution", "해설")]:
         html_path = OUT / f"{kind}{suffix}.html"
-        pdf_path = OUT / f"NCS_봉투모의고사_1회_{label}{suffix}.pdf"
+        pdf_path = OUT / f"{CFG.FILE_TAG}_{label}{suffix}.pdf"
         html_path.write_text(build_html(blocks, kind, dist), encoding="utf-8")
         if args.html:                                 # 수정 확인용 — PDF는 굽지 않는다
             log(f"[출력] {html_path.relative_to(ROOT)}  (PDF 미생성)")
