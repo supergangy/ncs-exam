@@ -104,7 +104,11 @@ def plan(blocks, H, start_page, header_h=0, gap=8):
         b["_hp"] = H.get(f"{b['blk']}p", 0)
         b["_hq"] = H.get(f"{b['blk']}q", b["_h"])
         b["_set"] = bool(b["passage"]) and len(b["questions"]) > 1
-        b["_movable"] = not b["_set"] and not b["passage"]
+        # 블록이 "movable": False 를 달면 여백 채우기로 끌어올리지 않는다.
+        # 짝을 이루는 명제 두 문항이나 같은 기법을 잇달아 묻는 묶음처럼
+        # **출제 순서 자체가 설계인 구간**을 지키기 위한 장치다 (D50).
+        b["_movable"] = (not b["_set"] and not b["passage"]
+                         and b.get("movable", True))
 
     pool, out = list(blocks), []
     pno, used, seen_area, page_log = start_page, 0, set(), []
