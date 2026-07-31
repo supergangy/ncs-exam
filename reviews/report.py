@@ -17,7 +17,11 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-DB = Path(__file__).resolve().parent / "db.json"
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from lexicon import TOPICS  # noqa: E402
+
+DB = HERE / "db.json"
 
 # 표본이 이보다 적으면 경향으로 읽지 말라고 표시한다.
 MIN_SAMPLE = 5
@@ -260,6 +264,107 @@ def brief(org: str, rows: list[dict]) -> list[str]:
     return out
 
 
+# 신뢰도 등급 — **몇 명이 독립적으로 같은 말을 했는가**로 나눈다.
+TIERS = [(3, "높음", "여러 명이 일치. 설계에 반영해도 된다"),
+         (2, "중간", "두 명이 일치. 반영하되 표시해 둔다"),
+         (1, "낮음", "단일 증언. 참고만 한다")]
+
+
+def tier_of(n: int) -> tuple[str, str]:
+    for k, name, note in TIERS:
+        if n >= k:
+            return name, note
+    return "낮음", ""
+
+
+def _cluster(word: str, org: str) -> str:
+    """원문 키워드를 소재 카테고리로 접는다.
+
+    「제주도 애견 파크」와 「반려견 놀이공원」은 다른 사람이 같은 지문을 적은 것이다.
+    글자만 비교하면 둘을 못 묶으므로 lexicon 의 TOPICS 로 접는다.
+    """
+    table = {**TOPICS.get("_공통", {}), **TOPICS.get(org, {})}
+    for label, words in table.items():
+        if any(w in word for w in words):
+            return label
+    return "".join(word.split())          # 사전에 없으면 공백만 지워 원문 그대로
+
+
+def consensus(org: str, rows: list[dict]) -> list[str]:
+    """후기끼리 겹치는 것을 신뢰도 순으로 정리한다. 문제 만들기 전에 이걸 먼저 본다."""
+    rows = sorted(rows, key=lambda r: r.get("date") or "", reverse=True)
+    n = len(rows)
+    out = ["", "=" * 62, f"{org} — 신뢰도 분석 (후기 {n}건)", "=" * 62, ""]
+    out.append("몇 명이 독립적으로 같은 말을 했는가로 등급을 매긴다.")
+    out.append("  높음 3건 이상 · 중간 2건 · 낮음 1건(단일 증언)")
+    out.append("")
+
+    # ── 소재 — NCS 절만 본다. 전공·법률은 모의고사 대상이 아니다 ──────
+    seen: dict[str, set] = defaultdict(set)      # 카테고리 → 그것을 말한 후기 인덱스
+    raw_of: dict[str, set] = defaultdict(set)    # 카테고리 → 원문 표현들
+    for i, r in enumerate(rows):
+        kinds = r.get("kinds") or {}
+        for area, ws in (r.get("keywords") or {}).items():
+            if kinds.get(area, "기타") != "ncs":
+                continue
+            for w in ws:
+                c = _cluster(w, org)
+                seen[f"{area}|{c}"].add(i)
+                raw_of[f"{area}|{c}"].add(w)
+
+    if seen:
+        out.append("■ 소재 — 겹치는 순")
+        out.append("")
+        for key, who in sorted(seen.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            area, c = key.split("|", 1)
+            tier, _ = tier_of(len(who))
+            mark = {"높음": "★★★", "중간": "★★ ", "낮음": "★  "}[tier]
+            raws = sorted(raw_of[key])
+            detail = f"  ({' / '.join(raws)})" if len(raws) > 1 else ""
+            out.append(f"  {mark} {len(who)}건  [{area}] {c}{detail}")
+        out.append("")
+
+    # ── 체감·구조 — 후기가 서로 어긋나면 그 사실을 드러낸다 ──────────
+    # 여기서는 건수가 아니라 **응답자 중 몇 퍼센트가 같은 답을 했는가**로 본다.
+    # 「60문항 6건」이 3건 이상이라고 신뢰도 높음이 되면 안 된다. 옆에 20·50·35가 붙어 있다.
+    out.append("■ 체감·구조 — 응답자 중 다수 비율")
+    out.append("")
+    for label, key in (("체감 난이도", "difficulty"), ("시간 압박", "time_pressure"),
+                       ("문항 수", "total_q"), ("시험 시간", "total_min")):
+        c = Counter(r[key] for r in rows if r.get(key))
+        if not c:
+            continue
+        answered = sum(c.values())
+        top, cnt = c.most_common(1)[0]
+        share = cnt / answered
+        tier = "높음" if share >= 0.7 and cnt >= 3 else ("중간" if share >= 0.5 else "낮음")
+        line = f"  {label:<10} {str(top):<8} {cnt}/{answered}건 ({share*100:.0f}%) 신뢰도 {tier}"
+        if len(c) > 1:
+            line += "   갈림: " + " · ".join(f"{k} {v}" for k, v in c.most_common()[1:4])
+        out.append(line)
+    out.append("")
+    out.append("  문항 수·시험 시간이 갈리는 것은 직렬마다 시험 구성이 달라서일 수 있다.")
+    out.append("  확정 전에 직렬을 나눠 다시 볼 것.")
+    out.append("")
+
+    sig = sum(1 for r in rows if r.get("change_signal"))
+    if sig:
+        tier, _ = tier_of(sig)
+        out.append(f"■ 유형 변화 신호 {sig}/{n}건 (신뢰도 {tier})")
+        out.append("   구조 지표(코퍼스)가 낡았을 수 있다. 계획서에서 함께 판단한다.")
+        out.append("")
+
+    top3 = [k for k, v in sorted(seen.items(), key=lambda kv: -len(kv[1])) if len(v) >= 3]
+    out.append("─" * 62)
+    if top3:
+        out.append(f"신뢰도 높음 소재 {len(top3)}개. 이것부터 문항에 배치한다.")
+    else:
+        out.append("신뢰도 높음(3건 이상) 소재가 아직 없다. 후기를 더 모으는 편이 낫다.")
+    out.append("다음: 이 결과로 제작 계획서를 쓰고 승인을 받은 뒤 집필한다.")
+    out.append("")
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--org", help="기관 약칭. 생략하면 전 기관")
@@ -267,10 +372,18 @@ def main() -> int:
     ap.add_argument("--matrix", action="store_true", help="기관 × 시행 시기 수집 현황")
     ap.add_argument("--brief", metavar="기관",
                     help="그 기관의 최신 시기 소재 브리프 (구조 지표는 코퍼스를 쓴다)")
+    ap.add_argument("--consensus", metavar="기관",
+                    help="후기끼리 겹치는 것을 신뢰도 순으로. 계획서 쓰기 전에 본다")
     args = ap.parse_args()
 
     if args.matrix:
         print("\n".join(matrix(load())))
+        return 0
+    if args.consensus:
+        rs = [r for r in load() if r["org"] == args.consensus]
+        if not rs:
+            raise SystemExit(f"[중단] '{args.consensus}' 후기가 없습니다.")
+        print("\n".join(consensus(args.consensus, rs)))
         return 0
     if args.brief:
         rs = [r for r in load() if r["org"] == args.brief]
