@@ -53,7 +53,7 @@ p { margin: 0 0 3.2pt; }
 .qbody .question + .question { padding-top: 3.5mm; }
 .lead { font-weight: 700; margin: 4mm 0 2.2mm; break-after: avoid; }
 .question { margin-bottom: 8.5mm; break-inside: avoid; }
-.stem { margin-bottom: 2mm; padding-left: 6.6mm; text-indent: -6.6mm; break-after: avoid; }
+.stem { margin-bottom: 3mm; padding-left: 6.6mm; text-indent: -6.6mm; break-after: avoid; }
 .qno { font-weight: 800; margin-right: 1.6mm; }
 .choices { list-style: none; margin: 1.6mm 0 0; padding: 0; break-inside: avoid; break-before: avoid; }
 /* 2단 선지는 **가로로 먼저** 읽힌다 — ①② / ③④ / ⑤.
@@ -66,7 +66,10 @@ p { margin: 0 0 3.2pt; }
 .choices .m { font-weight: 600; }
 
 /* ── 지문·자료 ─────────────────────────── */
-.passage, .material { margin: 0 0 2.5mm; }
+/* 단독 문항의 자료(지문·표·상자·그림)와 선지 사이도 띄운다.
+   세트는 `.qhead` 가 맡지만 단독 문항은 이 여백이 전부라 2.5mm 로는 붙어 보인다. */
+.material { margin: 0 0 5mm; }
+.passage { margin: 0 0 2.5mm; }
 .passage { font-family: 'Batang', 'Noto Serif KR', serif; font-size: 9.6pt;
            line-height: 1.72; text-align: justify; border: 0.7pt solid #444;
            padding: 4mm 5mm; }
