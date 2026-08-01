@@ -90,6 +90,10 @@ svg text { font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif; }
 
 .box { border: 0.7pt solid #333; padding: 3mm 4mm; margin: 2.2mm 0; break-inside: avoid; }
 .box-title { text-align: center; font-weight: 700; margin-bottom: 1.8mm; }
+/* 상자 안에서 구획을 나누는 제목. 조건과 <보기> 를 한 상자에 담을 때 쓴다 —
+   상자를 둘로 나누면 테두리가 두 겹처럼 보인다. */
+.box .box-title:not(:first-child) { margin-top: 3.4mm; padding-top: 2.8mm;
+                                    border-top: 0.5pt solid #999; }
 .box p { margin-bottom: 2.4pt; }
 
 table.data { border-collapse: collapse; width: 100%; font-size: 8.9pt; margin: 1.5mm 0 1mm; }
