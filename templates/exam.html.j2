@@ -45,7 +45,12 @@ p { margin: 0 0 3.2pt; }
    지문(.qhead) 뒤에 의도적으로 면을 넘겨야 하기 때문이다.
    대신 지문 묶음과 개별 문항을 각각 통째로 유지한다. */
 .qset { margin-bottom: 2mm; }
-.qhead { break-inside: avoid; break-after: avoid; }
+/* 지문 묶음 아래를 띄운다. `.passage` 의 아래 여백(2.5mm)만으로는
+   지문 바로 밑에 첫 문항이 달라붙는다 — 문항 사이가 8.5mm 인 것과 견주면 너무 좁다. */
+.qhead { break-inside: avoid; break-after: avoid; margin-bottom: 6mm; }
+/* 세트 안 문항끼리는 한 번 더 띄운다. 인접 형제의 마진은 상쇄되므로
+   margin-top 이 아니라 **padding-top** 을 써야 실제로 벌어진다. */
+.qbody .question + .question { padding-top: 3.5mm; }
 .lead { font-weight: 700; margin: 4mm 0 2.2mm; break-after: avoid; }
 .question { margin-bottom: 8.5mm; break-inside: avoid; }
 .stem { margin-bottom: 2mm; padding-left: 6.6mm; text-indent: -6.6mm; break-after: avoid; }
