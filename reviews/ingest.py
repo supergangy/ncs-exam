@@ -345,6 +345,21 @@ def form_signature(form: dict) -> str | None:
     return hashlib.sha1("|".join(vals).encode("utf-8")).hexdigest()[:12]
 
 
+def content_signature(title: str, date: str | None, keywords: dict) -> str | None:
+    """제목·날짜·소재로 만든 글 식별자. 양식이 없는 후기의 중복을 잡는다.
+
+    **소재가 하나도 없으면 판정하지 않는다.** 내용이 빈 글끼리 제목과 날짜만 같다고
+    같은 글로 묶으면, 같은 날 같은 제목으로 쓴 서로 다른 사람의 글이 하나로 뭉개진다.
+    소재까지 글자 단위로 같을 확률은 사실상 같은 글일 때뿐이다.
+    """
+    flat = sorted(re.sub(r"\s+", " ", k).strip()
+                  for ks in (keywords or {}).values() for k in ks)
+    if not flat:
+        return None
+    body = "|".join([re.sub(r"\s+", "", title or ""), str(date or ""), *flat])
+    return hashlib.sha1(body.encode("utf-8")).hexdigest()[:12]
+
+
 def parse(text: str, org: str) -> dict:
     text = norm(text)
     # 키워드 절은 원문 그대로 읽어야 한다. BOILERPLATE 로 줄을 지우기 전에 뽑는다.
@@ -404,6 +419,10 @@ def parse(text: str, org: str) -> dict:
         # 같은 글을 범위를 달리 긁으면 본문 해시가 갈린다. 양식 값은 그대로이므로
         # 이걸로 근접 중복을 잡는다. 양식이 없는 후기는 None 이라 판정에서 빠진다.
         "form_sig": form_signature(form),
+        # 양식이 없는 후기는 form_sig 가 None 이라 위 두 가지로 중복을 못 잡는다.
+        # 실제로 같은 글이 여러 번 담겨 코레일 건수가 26% 부풀어 있었다(D52).
+        # 제목·날짜·뽑아낸 소재가 모두 같으면 같은 글로 본다.
+        "content_sig": content_signature(head, find_date(body), keywords),
         "ingested_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
 
@@ -448,7 +467,7 @@ def rebuild() -> int:
     dropped = []
     for item in parsed:
         rec = item[2]
-        key = rec.get("form_sig") or rec["fingerprint"]
+        key = rec.get("form_sig") or rec.get("content_sig") or rec["fingerprint"]
         score = (len(rec.get("keywords") or {}), rec["chars"])
         if key in best:
             prev = best[key][2]
@@ -511,8 +530,15 @@ def main() -> int:
 
     rec = parse(text, args.org)
     db = load_db()
-    if any(r["fingerprint"] == rec["fingerprint"] for r in db):
-        print(f"[건너뜀] 이미 등록된 글입니다 (fingerprint {rec['fingerprint']})")
+    # 같은 글을 범위 달리 긁으면 fingerprint 가 갈린다. 세 가지로 함께 본다.
+    def keys(r):
+        return {("f", r["fingerprint"])} | {
+            (t, r[k]) for t, k in (("s", "form_sig"), ("c", "content_sig"))
+            if r.get(k)}
+    mine = keys(rec)
+    if any(mine & keys(r) for r in db):
+        print("[건너뜀] 이미 등록된 글입니다 "
+              f"(fingerprint {rec['fingerprint']} · content {rec.get('content_sig')})")
         return 0
 
     print(f"[기관] {rec['org']}   [시행일] {rec['date'] or '미상'}   "

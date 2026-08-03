@@ -124,9 +124,9 @@ def main() -> int:
             continue
         # 구간이 겹치면 파일이 깨진다. 적용 전에 반드시 확인한다.
         ordered = sorted(edits, key=lambda x: x[0][0])
-        for (a1, b1), (a2, _) in zip(ordered, ordered[1:]):
-            if b1 > a2:
-                raise SystemExit(f"[중단] 수정 구간이 겹친다: {b1} > {a2}")
+        for (prev, _pt), (nxt, _nt) in zip(ordered, ordered[1:]):
+            if prev[1] > nxt[0]:                 # 앞 구간의 끝이 뒤 구간의 시작을 넘는다
+                raise SystemExit(f"[중단] 수정 구간이 겹친다: {prev} / {nxt}")
         for (a, b), text in reversed(ordered):
             raw = raw[:a] + text.encode("utf-8") + raw[b:]
         path.write_bytes(raw)
