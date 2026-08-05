@@ -21,6 +21,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 REQUIRED = ("id", "org", "kind", "subject", "area", "questions")
 ID_RE = re.compile(r"^(ncs|major)-[a-z]+-[a-z0-9]+-\d{3}$")
 
+# 사실 오류 위험도. **직무 문항은 정답이 지문 밖 사실로 정해지므로** 이 값을 반드시 단다.
+#   low    실행으로 정답이 확정된다 (계산·시뮬레이션·SQL 실행)
+#   mid    표준 문서·규격에서 값이 고정된다 (OSI 계층·포트 번호·격리수준 표)
+#   high   교과서 서술에 의존한다. **사람이 확인해야 한다**
+RISK = ("low", "mid", "high")
+
 
 def _load(path: pathlib.Path) -> list[dict]:
     spec = importlib.util.spec_from_file_location(f"bank_{path.parent.name}_{path.stem}", path)
@@ -46,6 +52,10 @@ def load_all() -> list[dict]:
                                  f"  <ncs|major>-<과목>-<기관>-<3자리>  예) ncs-comm-seoulmetro-001")
             if i in seen:
                 raise SystemExit(f"[중단] id 가 겹친다: {i}\n  {seen[i]} / {p}")
+            r = it.get("risk")
+            if it["kind"] == "major" and r not in RISK:
+                raise SystemExit(f"[중단] 직무 문항에 risk 가 없거나 값이 다르다: {i}\n"
+                                 f"  {RISK} 중 하나여야 한다 (지금 {r!r})")
             seen[i] = str(p)
             it["_file"] = str(p.relative_to(HERE))
             out.append(it)
@@ -128,6 +138,7 @@ def main() -> int:
     ap.add_argument("--kind", choices=("ncs", "major"))
     ap.add_argument("--subject")
     ap.add_argument("--id")
+    ap.add_argument("--risk", choices=RISK, help="사실 오류 위험도로 추린다")
     ap.add_argument("--full", action="store_true",
                     help="추려진 문항을 전문으로 펼친다 (검토용)")
     a = ap.parse_args()
@@ -141,6 +152,8 @@ def main() -> int:
         items = [i for i in items if i["kind"] == a.kind]
     if a.subject:
         items = [i for i in items if a.subject in i["subject"]]
+    if a.risk:
+        items = [i for i in items if i.get("risk") == a.risk]
 
     if not items:
         print("해당하는 문항이 없습니다."); return 0
@@ -155,11 +168,19 @@ def main() -> int:
         return 0
 
     nq = sum(len(i["questions"]) for i in items)
-    print(f"문항묶음 {len(items)}개 · 문항 {nq}개\n")
-    print(f"{'id':<30}{'기관':<14}{'과목':<10}{'난이도':<6}문항")
+    tally = {r: sum(1 for i in items if i.get("risk") == r) for r in RISK}
+    print(f"문항묶음 {len(items)}개 · 문항 {nq}개")
+    print(f"위험도  low {tally['low']} · mid {tally['mid']} · "
+          f"**high {tally['high']}** (사람 확인 필요)\n")
+    print(f"{'id':<30}{'기관':<14}{'과목':<12}{'난이도':<6}{'위험':<6}문항")
     for it in items:
-        print(f"{it['id']:<30}{it['org']:<14}{it['subject']:<10}"
-              f"{it.get('difficulty','?'):<6}{len(it['questions'])}")
+        r = it.get("risk") or "—"
+        mark = "HIGH" if r == "high" else r
+        print(f"{it['id']:<30}{it['org']:<14}{it['subject']:<12}"
+              f"{it.get('difficulty','?'):<6}{mark:<6}{len(it['questions'])}")
+    if tally["high"]:
+        print(f"\n※ high {tally['high']}건은 교과서 서술에 의존한다. "
+              f"`--risk high --full` 로 펼쳐 확인하십시오.")
     return 0
 
 

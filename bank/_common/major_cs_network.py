@@ -13,6 +13,7 @@ ITEMS = [
     # ── 001 서브넷 마스크와 호스트 수 — /26 → 62개 ───────────────────
     {
         "id": "major-csnet-common-001",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 서브네팅은 계산형 최다 출제 항목",
         "snapshot": "S-20260804-c85013",
@@ -60,6 +61,7 @@ ITEMS = [
     # ── 002 주소가 속한 서브넷 — 130/26 → 192.168.1.128 ─────────────
     {
         "id": "major-csnet-common-002",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 주소 범위 판정은 서브네팅의 응용",
         "snapshot": "S-20260804-c85013",
@@ -108,6 +110,7 @@ ITEMS = [
     # ── 003 서브넷 개수 — 6개 필요하면 3비트 차용 ────────────────────
     {
         "id": "major-csnet-common-003",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 요구 서브넷 수에서 비트 수를 역산하는 유형",
         "snapshot": "S-20260804-c85013",
@@ -158,6 +161,7 @@ ITEMS = [
     # ── 004 다익스트라 최단 경로 — A→F 비용 20 ──────────────────────
     {
         "id": "major-csnet-common-004",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. 링크 상태 라우팅은 최단 경로 계산으로 나온다",
         "snapshot": "S-20260804-c85013",
@@ -216,6 +220,7 @@ ITEMS = [
     # ── 005 TCP 혼잡 윈도 — 임계값 16, 6회째 17 ─────────────────────
     {
         "id": "major-csnet-common-005",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. 혼잡 제어는 윈도 추이 계산으로 나온다",
         "snapshot": "S-20260804-c85013",
@@ -267,6 +272,7 @@ ITEMS = [
     # ── 006 OSI 계층 — 라우터는 3계층 ───────────────────────────────
     {
         "id": "major-csnet-common-006",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중하",
         "evidence": "전산 후기 153건 계열. OSI 계층과 장비 대응은 기본 항목",
         "snapshot": "S-20260804-c85013",
@@ -314,6 +320,7 @@ ITEMS = [
     # ── 007 포트 번호 — SMTP 25 ─────────────────────────────────────
     {
         "id": "major-csnet-common-007",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중하",
         "evidence": "전산 후기 153건 계열. 잘 알려진 포트 번호는 표준으로 고정된다",
         "snapshot": "S-20260804-c85013",
@@ -363,6 +370,7 @@ ITEMS = [
     # ── 008 TCP 와 UDP 비교 ─────────────────────────────────────────
     {
         "id": "major-csnet-common-008",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. TCP·UDP 비교는 고정 출제 항목",
         "snapshot": "S-20260804-c85013",
@@ -416,6 +424,7 @@ ITEMS = [
     # ── 009 CSMA/CD 와 CSMA/CA ──────────────────────────────────────
     {
         "id": "major-csnet-common-009",
+        "risk": "high",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 매체 접근 제어 방식 비교",
         "snapshot": "S-20260804-c85013",
@@ -463,6 +472,7 @@ ITEMS = [
     # ── 010 해밍 거리 — 최소 거리 5 → 정정 2비트 ────────────────────
     {
         "id": "major-csnet-common-010",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "네트워크", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 오류 검출·정정 능력은 계산으로 나온다",
         "snapshot": "S-20260804-c85013",

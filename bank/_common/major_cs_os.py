@@ -16,6 +16,7 @@ ITEMS = [
     # ── 001 SJF 비선점 평균 대기 7.75 ────────────────────────────────
     {
         "id": "major-csos-common-001",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 스케줄링 평균 대기시간은 고정 출제 항목",
         "snapshot": "S-20260804-c85013",
@@ -73,6 +74,7 @@ ITEMS = [
     # ── 002 SRTF 선점 평균 대기 6.50 ─────────────────────────────────
     {
         "id": "major-csos-common-002",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 선점·비선점 비교는 계산으로 확인시킨다",
         "snapshot": "S-20260804-c85013",
@@ -130,6 +132,7 @@ ITEMS = [
     # ── 003 RR 평균 반환시간 18.25 ───────────────────────────────────
     {
         "id": "major-csos-common-003",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. RR 은 할당량에 따른 결과 변화로 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -190,6 +193,7 @@ ITEMS = [
     # ── 004 LRU 폴트 9 ───────────────────────────────────────────────
     {
         "id": "major-csos-common-004",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 페이지 교체 폴트 수는 계산형 단골",
         "snapshot": "S-20260804-c85013",
@@ -246,6 +250,7 @@ ITEMS = [
     # ── 005 벨라디 변이 — FIFO 프레임3 9회 · 프레임4 10회 ────────────
     {
         "id": "major-csos-common-005",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. 벨라디 변이는 반례를 주고 판정시킨다",
         "snapshot": "S-20260804-c85013",
@@ -296,6 +301,7 @@ ITEMS = [
     # ── 006 은행원 알고리즘 — 안전 순서 P1 P3 P0 P2 P4 ──────────────
     {
         "id": "major-csos-common-006",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. 은행원 알고리즘은 안전 순서를 구하게 한다",
         "snapshot": "S-20260804-c85013",
@@ -362,6 +368,7 @@ ITEMS = [
     # ── 007 SSTF 총 이동 거리 236 ────────────────────────────────────
     {
         "id": "major-csos-common-007",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 디스크 스케줄링은 이동 거리 계산으로 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -413,6 +420,7 @@ ITEMS = [
     # ── 008 페이징 주소 변환 — 8195 → 페이지 2, 오프셋 3 ─────────────
     {
         "id": "major-csos-common-008",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중하",
         "evidence": "전산 후기 153건 계열. 논리→물리 주소 변환은 기본 계산 항목",
         "snapshot": "S-20260804-c85013",
@@ -464,6 +472,7 @@ ITEMS = [
     # ── 009 배치 전략 — 최적 적합은 300 블록, 잔여 88 ────────────────
     {
         "id": "major-csos-common-009",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 배치 전략 비교는 계산으로 확인시킨다",
         "snapshot": "S-20260804-c85013",
@@ -512,6 +521,7 @@ ITEMS = [
     # ── 010 TLB 유효 접근시간 — 적중률 90% → 130ns ───────────────────
     {
         "id": "major-csos-common-010",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 유효 접근시간은 캐시·TLB 공통 계산 항목",
         "snapshot": "S-20260804-c85013",
@@ -562,6 +572,7 @@ ITEMS = [
     # ── 011 2단 페이지 테이블 — 내부 테이블 4KB ──────────────────────
     {
         "id": "major-csos-common-011",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. 다단계 페이징은 테이블 크기 계산으로 나온다",
         "snapshot": "S-20260804-c85013",
@@ -608,6 +619,7 @@ ITEMS = [
     # ── 012 워킹셋 — t=14, Δ=5 → 크기 5 ─────────────────────────────
     {
         "id": "major-csos-common-012",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 워킹셋은 참조열에서 직접 구하게 한다",
         "snapshot": "S-20260804-c85013",
@@ -654,6 +666,7 @@ ITEMS = [
     # ── 013 프로세스 상태 전이 — 대기→실행 직접 전이는 없다 ──────────
     {
         "id": "major-csos-common-013",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중하",
         "evidence": "전산 후기 153건 계열. 상태 전이도는 기본 개념 항목",
         "snapshot": "S-20260804-c85013",
@@ -700,6 +713,7 @@ ITEMS = [
     # ── 014 스레드가 공유하지 않는 것 — 스택 ─────────────────────────
     {
         "id": "major-csos-common-014",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 스레드와 프로세스 비교는 고정 항목",
         "snapshot": "S-20260804-c85013",
@@ -744,6 +758,7 @@ ITEMS = [
     # ── 015 세마포어 P/V — 최종 S=-1, 대기 1개 ───────────────────────
     {
         "id": "major-csos-common-015",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 세마포어 연산 추적은 계산형으로 나온다",
         "snapshot": "S-20260804-c85013",
@@ -796,6 +811,7 @@ ITEMS = [
     # ── 016 교착 예방 — 상호배제는 깨기 어렵다 ───────────────────────
     {
         "id": "major-csos-common-016",
+        "risk": "high",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 교착 4조건과 예방 기법은 짝으로 나온다",
         "snapshot": "S-20260804-c85013",
@@ -839,6 +855,7 @@ ITEMS = [
     # ── 017 i-node 최대 블록 수 65,804 ───────────────────────────────
     {
         "id": "major-csos-common-017",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. 색인 할당 구조는 최대 크기 계산으로 나온다",
         "snapshot": "S-20260804-c85013",
@@ -891,6 +908,7 @@ ITEMS = [
     # ── 018 RAID 5 — 3,000GB · 장애 1개 ─────────────────────────────
     {
         "id": "major-csos-common-018",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. RAID 수준별 용량·내결함성 비교",
         "snapshot": "S-20260804-c85013",
@@ -941,6 +959,7 @@ ITEMS = [
     # ── 019 스래싱 — 프로세스를 더 늘리면 악화된다 ───────────────────
     {
         "id": "major-csos-common-019",
+        "risk": "high",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 스래싱의 원인과 대책",
         "snapshot": "S-20260804-c85013",
@@ -989,6 +1008,7 @@ ITEMS = [
     # ── 020 문맥 교환 — 프로세스 교환이 더 비싸다 ────────────────────
     {
         "id": "major-csos-common-020",
+        "risk": "high",
         "org": "공통", "kind": "major", "subject": "운영체제", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 문맥 교환 비용 비교",
         "snapshot": "S-20260804-c85013",

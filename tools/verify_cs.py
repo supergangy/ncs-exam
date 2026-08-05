@@ -748,8 +748,12 @@ def main() -> int:
         print("검증할 전산 문항이 없습니다."); return 0
 
     bad = unver = 0
+    high: list[str] = []
     for it in items:
         q = it["questions"][0]
+        risk = it.get("risk", "?")
+        if risk == "high":
+            high.append(it["id"])
         fn = REGISTRY.get(it["id"])
         if not fn:
             unver += 1
@@ -760,10 +764,16 @@ def main() -> int:
         ok = want == q["answer"]
         bad += not ok
         mark = "OK" if ok else f"**불일치** 계산 {want} ≠ 문항 {q['answer']}"
-        print(f"   {'✔' if ok else '✘'} {it['id']:<28}{mark}")
+        tag = "  [HIGH]" if risk == "high" else ""
+        print(f"   {'✔' if ok else '✘'} {it['id']:<28}{mark}{tag}")
         print(f"      {note}")
 
     print(f"\n검증 {len(items) - unver}건 · 불일치 {bad}건 · 미검증 {unver}건")
+    if high:
+        print(f"\n■ 위험도 high {len(high)}건 — **교과서 서술에 의존한다. 사람이 확인해야 한다**")
+        for i in high:
+            print(f"   {i}")
+        print("   `python bank/loader.py --risk high --full` 로 펼쳐 볼 수 있다.")
     return 1 if bad else 0
 
 

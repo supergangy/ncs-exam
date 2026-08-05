@@ -28,6 +28,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-001",
+        "risk": "low",
         "org": "공통",
         "kind": "major",
         "subject": "데이터베이스론",
@@ -92,6 +93,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-002",
+        "risk": "low",
         "org": "공통",
         "kind": "major",
         "subject": "데이터베이스론",
@@ -178,6 +180,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-003",
+        "risk": "low",
         "org": "공통",
         "kind": "major",
         "subject": "데이터베이스론",
@@ -246,6 +249,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-004",
+        "risk": "mid",
         "org": "공통",
         "kind": "major",
         "subject": "데이터베이스론",
@@ -312,6 +316,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-005",
+        "risk": "low",
         "org": "공통",
         "kind": "major",
         "subject": "데이터베이스론",
@@ -378,6 +383,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-006",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. BCNF 는 3NF 와 갈라지는 지점이 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -437,6 +443,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-007",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 분해의 무손실 조건은 정규화와 묶여 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -492,6 +499,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-008",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. WHERE 와 HAVING 의 적용 순서는 단골이다",
         "snapshot": "S-20260804-c85013",
@@ -557,6 +565,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-009",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "상",
         "evidence": "전산 후기 153건 계열. 디비전은 관계대수에서 가장 자주 묻는 연산이다",
         "snapshot": "S-20260804-c85013",
@@ -622,6 +631,7 @@ ITEMS = [
     # ─────────────────────────────────────────────────────────────
     {
         "id": "major-csdb-common-010",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 회복 기법은 로그 판정형으로 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -684,6 +694,7 @@ ITEMS = [
     # ── 011 함수 종속 추론 — A 가 유일 후보키. B+={B,D} · C+={C} ──────────
     {
         "id": "major-csdb-common-011",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 폐포 계산은 후보키 판정의 기초로 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -731,6 +742,7 @@ ITEMS = [
     # ── 012 집계함수와 NULL — COUNT(열)=4 · COUNT(*)=5 · AVG=85.75 ────────
     {
         "id": "major-csdb-common-012",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 집계함수의 NULL 처리는 반복 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -785,6 +797,7 @@ ITEMS = [
     # ── 013 뷰 갱신 가능성 ────────────────────────────────────────────
     {
         "id": "major-csdb-common-013",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 뷰의 성질은 개념 판정형으로 나온다",
         "snapshot": "S-20260804-c85013",
@@ -833,6 +846,7 @@ ITEMS = [
     # ── 014 클러스터드 인덱스 ──────────────────────────────────────────
     {
         "id": "major-csdb-common-014",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 인덱스 종류 비교는 고정 항목이다",
         "snapshot": "S-20260804-c85013",
@@ -880,6 +894,7 @@ ITEMS = [
     # ── 015 선택도 — 고유값 4/20만 = 0.00002 → 풀스캔 유리 ────────────
     {
         "id": "major-csdb-common-015",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 인덱스 효율 판단은 계산형으로 출제된다",
         "snapshot": "S-20260804-c85013",
@@ -938,6 +953,7 @@ ITEMS = [
     # ── 016 ON DELETE CASCADE — D1 삭제 후 사원 1명 ────────────────────
     {
         "id": "major-csdb-common-016",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 참조 무결성 옵션은 DDL 문항의 핵심이다",
         "snapshot": "S-20260804-c85013",
@@ -987,6 +1003,7 @@ ITEMS = [
     # ── 017 갱신 손실 — 잠금 없을 때 T1 의 갱신이 사라진다 ──────────────
     {
         "id": "major-csdb-common-017",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 동시성 이상 현상은 실행 순서를 주고 판정시킨다",
         "snapshot": "S-20260804-c85013",
@@ -1041,6 +1058,7 @@ ITEMS = [
     # ── 018 3NF 분해 대상 — 주문 릴레이션은 1NF ─────────────────────────
     {
         "id": "major-csdb-common-018",
+        "risk": "low",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중",
         "evidence": "전산 후기 153건 계열. 실무형 릴레이션의 정규화 판정",
         "snapshot": "S-20260804-c85013",
@@ -1096,6 +1114,7 @@ ITEMS = [
     # ── 019 ER 매핑 — M:N 은 별도 릴레이션 ────────────────────────────
     {
         "id": "major-csdb-common-019",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중하",
         "evidence": "전산 후기 153건 계열. ER 을 릴레이션으로 옮기는 규칙",
         "snapshot": "S-20260804-c85013",
@@ -1141,6 +1160,7 @@ ITEMS = [
     # ── 020 2단계 잠금과 교착 ─────────────────────────────────────────
     {
         "id": "major-csdb-common-020",
+        "risk": "mid",
         "org": "공통", "kind": "major", "subject": "데이터베이스론", "difficulty": "중상",
         "evidence": "전산 후기 153건 계열. 2PL 의 보장 범위와 한계",
         "snapshot": "S-20260804-c85013",
