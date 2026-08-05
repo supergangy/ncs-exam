@@ -171,4 +171,204 @@ ITEMS = [
             },
         ],
     },
+
+    # ─────────────────────────────────────────────────────────────
+    # 003 서브쿼리와 NULL — NOT IN 에 NULL 이 섞이면 결과가 비는 고전
+    #   실행: NOT IN → 0행 · NULL 제외하면 2행 · NOT EXISTS → 2행
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-003",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "상",
+        "evidence": "전산 후기 153건 계열. NULL 처리는 SQL 문항의 대표 함정",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "SQL",
+                "stem": "다음 질의의 결과로 옳은 것은?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;사원&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>사번</th><th>이름</th><th>관리자</th></tr>"
+                    "<tr><td>1</td><td>김</td><td>NULL</td></tr>"
+                    "<tr><td>2</td><td>이</td><td>1</td></tr>"
+                    "<tr><td>3</td><td>박</td><td>1</td></tr>"
+                    "<tr><td>4</td><td>최</td><td>2</td></tr>"
+                    "</table>"
+                    '<div class="box-title">&lt;질의&gt;</div>'
+                    "<p><code>SELECT COUNT(*) FROM 사원</code></p>"
+                    "<p><code>WHERE 사번 NOT IN (SELECT 관리자 FROM 사원)</code></p>"
+                    "</div>"
+                ),
+                "choices": ["0", "1", "2", "3", "4"],
+                "answer": 1,
+                "explain": (
+                    "<p>서브쿼리가 돌려주는 값은 <code>{NULL, 1, 1, 2}</code>다.</p>"
+                    "<p><code>사번 NOT IN (NULL, 1, 2)</code>는 "
+                    "<code>사번 &lt;&gt; NULL AND 사번 &lt;&gt; 1 AND 사번 &lt;&gt; 2</code>로 풀린다. "
+                    "<strong>NULL과의 비교는 참도 거짓도 아닌 UNKNOWN</strong>이므로, "
+                    "AND로 묶인 조건 전체가 참이 될 수 없다.</p>"
+                    "<p>어떤 행도 WHERE를 통과하지 못해 <strong>0</strong>이 나온다.</p>"
+                    "<p>서브쿼리에 <code>WHERE 관리자 IS NOT NULL</code>을 붙이거나 "
+                    "<code>NOT EXISTS</code>로 바꾸면 3과 4가 남아 <strong>2</strong>가 된다.</p>"
+                ),
+                "each": [
+                    "① (정답) NULL과의 비교가 UNKNOWN이라 어떤 행도 조건을 만족하지 못한다.",
+                    "② 관리자로 지정된 적 없는 사번을 하나만 센 값이다.",
+                    "③ NULL을 걸러 냈을 때의 결과다. 3과 4가 남는다. NOT EXISTS로 바꿔도 같다.",
+                    "④ NULL을 무시하고 1만 제외했을 때 나오는 값이다.",
+                    "⑤ 전체 행 수다. NOT IN 조건이 없을 때의 결과다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열. NULL 처리는 SQL 문항의 대표 함정이다",
+                    "설계": "**관리자 열에 NULL을 딱 하나 넣었다.** 이 한 칸이 결과를 2에서 0으로 "
+                            "바꾼다. 표가 네 행뿐이라 수작업으로 따라갈 수 있고, "
+                            "그래서 오히려 NULL을 건너뛰고 세게 된다",
+                    "함정": "③ 이 대표 오답이다. 관리자로 등록된 적 없는 사번을 눈으로 세면 "
+                            "3과 4가 나와 **2**가 된다. 이것이 `NOT EXISTS` 의 결과이기도 해서 "
+                            "두 구문이 같다고 알고 있으면 더 확신하게 된다",
+                    "검증": "sqlite 로 세 형태를 모두 실행했다 — `NOT IN`(NULL 포함) 0, "
+                            "`NOT IN`(NULL 제외) 2, `NOT EXISTS` 2. "
+                            "`tools/verify_cs.py --subject database` 로 재현된다",
+                },
+            },
+        ],
+    },
+
+    # ─────────────────────────────────────────────────────────────
+    # 004 트랜잭션 격리수준 — 표준 정의로 고정
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-004",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중",
+        "evidence": "전산 후기 153건 계열. 격리수준은 고정 출제 항목",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "트랜잭션",
+                "stem": "REPEATABLE READ 격리수준에서 발생할 수 있는 이상 현상은?",
+                "material": (
+                    '<p class="note">※ ANSI/ISO SQL 표준이 정의한 네 가지 격리수준을 기준으로 한다.</p>'
+                ),
+                "choices": [
+                    "Dirty Read",
+                    "Non-repeatable Read",
+                    "Phantom Read",
+                    "세 가지 모두 발생하지 않는다",
+                    "Dirty Read와 Non-repeatable Read",
+                ],
+                "answer": 3,
+                "explain": (
+                    '<table class="data">'
+                    "<tr><th>격리수준</th><th>Dirty Read</th><th>Non-repeatable Read</th>"
+                    "<th>Phantom Read</th></tr>"
+                    "<tr><td>READ UNCOMMITTED</td><td>O</td><td>O</td><td>O</td></tr>"
+                    "<tr><td>READ COMMITTED</td><td>X</td><td>O</td><td>O</td></tr>"
+                    "<tr><td>REPEATABLE READ</td><td>X</td><td>X</td><td>O</td></tr>"
+                    "<tr><td>SERIALIZABLE</td><td>X</td><td>X</td><td>X</td></tr>"
+                    "</table>"
+                    "<p>REPEATABLE READ는 <strong>읽은 행에 공유 잠금을 유지</strong>해 같은 행을 "
+                    "다시 읽었을 때 값이 달라지는 일을 막는다. 잠금이 걸리는 대상은 "
+                    "<strong>이미 읽은 행</strong>이므로, 조건에 맞는 행이 새로 삽입되는 것은 막지 못한다.</p>"
+                    "<p>같은 조건으로 두 번 조회했을 때 행 수가 달라지는 현상이 Phantom Read다.</p>"
+                ),
+                "each": [
+                    "① READ UNCOMMITTED에서만 발생한다. 커밋되지 않은 값을 읽는 현상이다.",
+                    "② READ COMMITTED까지 발생하고 REPEATABLE READ에서 막힌다.",
+                    "③ (정답) 읽은 행은 잠기지만 새로 삽입되는 행은 막지 못한다.",
+                    "④ SERIALIZABLE에 해당한다.",
+                    "⑤ 둘 다 REPEATABLE READ에서 막힌다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열. 격리수준 표는 고정 출제 항목이다",
+                    "설계": "네 수준 가운데 **한 칸만 O로 남는 REPEATABLE READ**를 물었다. "
+                            "표를 외웠는지가 아니라 **잠금 대상이 행이라는 점**을 아는지가 갈린다",
+                    "함정": "④ 가 대표 오답이다. REPEATABLE READ라는 이름이 「반복해서 읽어도 같다」로 "
+                            "읽혀 모든 이상 현상이 막힌다고 보게 된다. 이름이 보장하는 것은 "
+                            "**이미 읽은 행**에 한정된다",
+                    "검증": "ANSI/ISO SQL 표준의 격리수준 정의표와 대조했다. "
+                            "REPEATABLE READ 행에서 O가 남는 칸은 Phantom Read 하나다",
+                },
+            },
+        ],
+    },
+
+    # ─────────────────────────────────────────────────────────────
+    # 005 B+트리 높이 — 차수 200 · 레코드 100만 → 3
+    #   h=1 199 · h=2 39,800 · h=3 7,960,000 ≥ 1,000,000
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-005",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중상",
+        "evidence": "전산 후기 153건 계열. 인덱스 구조는 저장·탐색 비용과 함께 출제된다",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "인덱스",
+                "stem": "레코드 100만 건을 저장할 때 필요한 B+트리의 최소 높이는?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;조건&gt;</div>'
+                    "<p>1. 트리의 차수는 200이다.</p>"
+                    "<p>2. 한 노드는 최대 199개의 키와 200개의 자식을 가진다.</p>"
+                    "<p>3. 모든 노드가 최대로 채워진 경우를 가정한다.</p>"
+                    '<p class="note">※ 루트 하나만 있는 경우를 높이 1로 센다.</p>'
+                    "</div>"
+                ),
+                "choices": ["2", "3", "4", "5", "6"],
+                "answer": 2,
+                "explain": (
+                    "<p>높이별로 담을 수 있는 키의 최대 개수를 쌓아 올린다.</p>"
+                    '<table class="data">'
+                    "<tr><th>높이</th><th>최대 키 개수</th></tr>"
+                    "<tr><td>1</td><td>199</td></tr>"
+                    "<tr><td>2</td><td>199 × 200 = 39,800</td></tr>"
+                    "<tr><td>3</td><td>39,800 × 200 = 7,960,000</td></tr>"
+                    "</table>"
+                    "<p>높이 2로는 39,800건까지만 담긴다. 100만 건을 담으려면 "
+                    "<strong>높이 3</strong>이 필요하고, 이때 796만 건까지 수용한다.</p>"
+                    "<p>차수가 커질수록 높이가 낮아지는 것이 B+트리를 쓰는 이유다. "
+                    "높이가 곧 디스크 접근 횟수이기 때문이다.</p>"
+                ),
+                "each": [
+                    "① 39,800건까지만 담긴다. 100만에 크게 못 미친다.",
+                    "② (정답) 796만 건까지 수용하므로 100만 건을 담을 수 있는 최소 높이다.",
+                    "③ 높이 3으로 충분하다. 차수를 100 이하로 잡았을 때 나오는 값이다.",
+                    "④ 이진 탐색 트리처럼 차수를 작게 잡았을 때의 값이다.",
+                    "⑤ 같은 이유로 과대 추정한 값이다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열. 인덱스 구조는 탐색 비용과 함께 출제된다",
+                    "설계": "**차수를 200으로 크게 잡았다.** 차수가 작으면 높이 계산이 이진 트리 "
+                            "감각과 비슷해지는데, 크게 잡아야 「높이 3에 796만 건」이라는 "
+                            "B+트리의 성질이 드러난다",
+                    "함정": "③ 4가 대표 오답이다. 차수를 100으로 잘못 잡으면 높이 4가 나온다"
+                            "(99 → 9,900 → 990,000 → 9,900만). **99만은 100만에 못 미쳐** "
+                            "한 단계가 더 필요해지는데, 이 경계를 지나치기 쉽다",
+                    "검증": "높이를 1부터 올리며 수용량을 곱해 100만을 넘는 첫 높이를 찾았다 — "
+                            "199 · 39,800 · 7,960,000. 차수 100·50 으로도 계산해 "
+                            "오답 ③의 경로를 확인했다",
+                },
+            },
+        ],
+    },
 ]

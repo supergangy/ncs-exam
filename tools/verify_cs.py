@@ -104,6 +104,46 @@ def v_csdb_002() -> tuple[int, str]:
     return len(on), f"ON 절 {len(on)}행 {sorted(on)} · WHERE 로 옮기면 {len(where)}행"
 
 
+def v_csdb_003() -> tuple[int, str]:
+    con = sqlite3.connect(":memory:")
+    con.executescript("""
+    CREATE TABLE 사원(사번 INTEGER, 이름 TEXT, 관리자 INTEGER);
+    INSERT INTO 사원 VALUES (1,'김',NULL),(2,'이',1),(3,'박',1),(4,'최',2);
+    """)
+    notin = con.execute("SELECT COUNT(*) FROM 사원 "
+                        "WHERE 사번 NOT IN (SELECT 관리자 FROM 사원)").fetchone()[0]
+    nonull = con.execute("SELECT COUNT(*) FROM 사원 WHERE 사번 NOT IN "
+                         "(SELECT 관리자 FROM 사원 WHERE 관리자 IS NOT NULL)").fetchone()[0]
+    notex = con.execute("SELECT COUNT(*) FROM 사원 e WHERE NOT EXISTS "
+                        "(SELECT 1 FROM 사원 m WHERE m.관리자 = e.사번)").fetchone()[0]
+    return notin, f"NOT IN(NULL 포함) {notin} · NULL 제외 {nonull} · NOT EXISTS {notex}"
+
+
+def v_csdb_004() -> tuple[str, str]:
+    """ANSI/ISO 격리수준 표. REPEATABLE READ 행에서 O 로 남는 칸을 찾는다."""
+    table = {
+        "READ UNCOMMITTED": {"Dirty Read": 1, "Non-repeatable Read": 1, "Phantom Read": 1},
+        "READ COMMITTED":   {"Dirty Read": 0, "Non-repeatable Read": 1, "Phantom Read": 1},
+        "REPEATABLE READ":  {"Dirty Read": 0, "Non-repeatable Read": 0, "Phantom Read": 1},
+        "SERIALIZABLE":     {"Dirty Read": 0, "Non-repeatable Read": 0, "Phantom Read": 0},
+    }
+    left = [k for k, v in table["REPEATABLE READ"].items() if v]
+    return (left[0] if len(left) == 1 else "복수"), f"REPEATABLE READ 에 남는 현상 {left}"
+
+
+def v_csdb_005() -> tuple[int, str]:
+    """차수 m 인 B+트리가 키 n 개를 담는 최소 높이. 루트만 있으면 높이 1."""
+    def height(m: int, n: int) -> tuple[int, int]:
+        h, cap = 1, m - 1
+        while cap < n:
+            h += 1
+            cap *= m
+        return h, cap
+    h, cap = height(200, 1_000_000)
+    h100, _ = height(100, 1_000_000)
+    return h, f"차수 200 → 높이 {h} (수용 {cap:,}) · 차수 100 이면 {h100} (오답 ③의 경로)"
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -111,6 +151,10 @@ def v_csdb_002() -> tuple[int, str]:
 REGISTRY = {
     "major-csdb-common-001": (v_csdb_001, lambda nf: {1: 1, 2: 2, 3: 3}[nf]),
     "major-csdb-common-002": (v_csdb_002, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 7: 5}[n]),
+    "major-csdb-common-003": (v_csdb_003, lambda n: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[n]),
+    "major-csdb-common-004": (v_csdb_004, lambda s: {
+        "Dirty Read": 1, "Non-repeatable Read": 2, "Phantom Read": 3}[s]),
+    "major-csdb-common-005": (v_csdb_005, lambda h: {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}[h]),
 }
 
 
