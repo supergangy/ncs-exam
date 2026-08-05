@@ -576,6 +576,64 @@ def v_csos_018() -> tuple[tuple, str]:
     return levels["RAID5"], " · ".join(f"{k} {v[0]}GB/장애{v[1]}" for k, v in levels.items())
 
 
+# ── 네트워크 ────────────────────────────────────────────────────────────
+
+def v_csnet_001() -> tuple[int, str]:
+    import ipaddress
+    n = ipaddress.ip_network("192.168.10.0/26")
+    others = {p: ipaddress.ip_network(f"192.168.10.0/{p}").num_addresses - 2
+              for p in (24, 25, 26, 27)}
+    return n.num_addresses - 2, f"/26 호스트 {n.num_addresses-2} · 프리픽스별 {others}"
+
+
+def v_csnet_002() -> tuple[str, str]:
+    import ipaddress
+    i = ipaddress.ip_interface("192.168.1.130/26")
+    hosts = list(i.network.hosts())
+    return str(i.network.network_address), (f"네트워크 {i.network} · "
+                                           f"범위 {hosts[0]}~{hosts[-1]}")
+
+
+def v_csnet_003() -> tuple[int, str]:
+    need, host_bits = 6, 8
+    borrow = next(b for b in range(1, 9) if 2 ** b >= need)
+    hosts = 2 ** (host_bits - borrow) - 2
+    table = {b: (2 ** b, 2 ** (host_bits - b) - 2) for b in range(2, 5)}
+    return hosts, f"차용 {borrow}비트 → 서브넷 {2**borrow}개 · 호스트 {hosts}개 · {table}"
+
+
+def v_csnet_004() -> tuple[int, str]:
+    import heapq
+    g = {"A": {"B": 4, "C": 2}, "B": {"C": 5, "D": 10}, "C": {"E": 3},
+         "D": {"F": 11}, "E": {"D": 4}, "F": {}}
+    dist, pq = {"A": 0}, [(0, "A")]
+    while pq:
+        c, u = heapq.heappop(pq)
+        if c > dist.get(u, 1 << 30):
+            continue
+        for v, w in g[u].items():
+            if c + w < dist.get(v, 1 << 30):
+                dist[v] = c + w
+                heapq.heappush(pq, (c + w, v))
+    via_b = 4 + 10 + 11
+    return dist["F"], f"최소 {dist['F']} (A→C→E→D→F) · B 경유는 {via_b}(오답④) · {dist}"
+
+
+def v_csnet_005() -> tuple[int, str]:
+    cwnd, thr, hist = 1, 16, []
+    for _ in range(7):
+        hist.append(cwnd)
+        cwnd = cwnd * 2 if cwnd < thr else cwnd + 1
+    return hist[5], f"왕복별 {hist} · 6번째 {hist[5]} · 지수 연장이면 {2**5}(오답④)"
+
+
+def v_csnet_010() -> tuple[int, str]:
+    d = 5
+    detect, correct = d - 1, (d - 1) // 2
+    table = {x: (x - 1, (x - 1) // 2) for x in (3, 4, 5)}
+    return correct, f"거리 {d} → 검출 {detect}(오답④) · 정정 {correct} · {table}"
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -647,6 +705,31 @@ REGISTRY = {
     # 020 문맥 교환 — 프로세스 교환이 더 비싸다 (선지 ②)
     "major-csos-common-020": (lambda: (2, "프로세스 교환은 주소공간 전환·TLB 무효화를 포함"),
                               lambda i: i),
+
+    "major-csnet-common-001": (v_csnet_001, lambda h: {
+        30: 1, 62: 2, 64: 3, 126: 4, 254: 5}[h]),
+    "major-csnet-common-002": (v_csnet_002, lambda a: {
+        "192.168.1.0": 1, "192.168.1.64": 2, "192.168.1.128": 3,
+        "192.168.1.129": 4, "192.168.1.192": 5}[a]),
+    "major-csnet-common-003": (v_csnet_003, lambda h: {
+        14: 1, 30: 2, 32: 3, 62: 4, 126: 5}[h]),
+    "major-csnet-common-004": (v_csnet_004, lambda c: {
+        17: 1, 20: 2, 21: 3, 25: 4}[c]),
+    "major-csnet-common-005": (v_csnet_005, lambda w: {
+        16: 1, 17: 2, 18: 3, 32: 4, 64: 5}[w]),
+    # 006 L2 스위치는 데이터링크 계층 (선지 ④가 틀린 짝)
+    "major-csnet-common-006": (lambda: (4, "L2 스위치는 MAC 기반 2계층. 네트워크 계층이 아니다"),
+                               lambda i: i),
+    # 007 SMTP 는 25, 110 은 POP3 (선지 ③이 틀린 짝)
+    "major-csnet-common-007": (lambda: (3, "SMTP 25 · POP3 110 · IMAP 143"), lambda i: i),
+    # 008 UDP 는 체크섬으로 검출만 하고 재전송은 안 한다 (선지 ④)
+    "major-csnet-common-008": (lambda: (4, "UDP 헤더 8바이트에 체크섬 포함. 재전송 없음"),
+                               lambda i: i),
+    # 009 무선은 송신 신호가 수신을 덮어 충돌 감지가 어렵다 (선지 ②)
+    "major-csnet-common-009": (lambda: (2, "CSMA/CD 는 송신 중 충돌 감지를 전제. 무선은 불가"),
+                               lambda i: i),
+    "major-csnet-common-010": (v_csnet_010, lambda c: {
+        1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[c]),
 }
 
 
