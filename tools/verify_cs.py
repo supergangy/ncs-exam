@@ -329,6 +329,198 @@ def v_csdb_020() -> tuple[int, str]:
                       f"옳은 진술 {right}")
 
 
+# ── 운영체제 ────────────────────────────────────────────────────────────
+
+_OS_JOBS = [("P1", 0, 8), ("P2", 1, 4), ("P3", 2, 9), ("P4", 3, 5)]
+
+
+def _sjf_np(js):
+    t, rem, res = 0, list(js), {}
+    while rem:
+        ready = [j for j in rem if j[1] <= t] or [min(rem, key=lambda x: x[1])]
+        n, a, b = min(ready, key=lambda x: x[2])
+        t = max(t, a)
+        res[n] = (t - a, t - a + b)
+        t += b
+        rem.remove((n, a, b))
+    return res
+
+
+def _srtf(js):
+    rem = {n: b for n, a, b in js}
+    arr = {n: a for n, a, b in js}
+    t, fin = 0, {}
+    while rem:
+        ready = [n for n in rem if arr[n] <= t]
+        if not ready:
+            t += 1
+            continue
+        n = min(ready, key=lambda x: rem[x])
+        rem[n] -= 1
+        t += 1
+        if rem[n] == 0:
+            fin[n] = t
+            del rem[n]
+    return {n: (fin[n] - arr[n] - b, fin[n] - arr[n]) for n, a, b in js}
+
+
+def _rr(js, q=4):
+    from collections import deque
+    rem = {n: b for n, a, b in js}
+    arr = {n: a for n, a, b in js}
+    order = sorted(js, key=lambda x: x[1])
+    t, dq, seen, fin = 0, deque(), set(), {}
+    while rem:
+        for n, a, b in order:
+            if a <= t and n not in seen and n in rem:
+                dq.append(n); seen.add(n)
+        if not dq:
+            t += 1
+            continue
+        n = dq.popleft()
+        run = min(q, rem[n]); t += run; rem[n] -= run
+        for m, a, b in order:
+            if a <= t and m not in seen and m in rem:
+                dq.append(m); seen.add(m)
+        if rem[n] == 0:
+            fin[n] = t; del rem[n]
+        else:
+            dq.append(n)
+    return {n: (fin[n] - arr[n] - b, fin[n] - arr[n]) for n, a, b in js}
+
+
+def _avg(res, idx):
+    return round(sum(v[idx] for v in res.values()) / len(res), 2)
+
+
+def v_csos_001() -> tuple[float, str]:
+    r = _sjf_np(_OS_JOBS)
+    return _avg(r, 0), (f"SJF 평균대기 {_avg(r,0)} · FCFS 8.75 · "
+                        f"SRTF {_avg(_srtf(_OS_JOBS),0)} · RR {_avg(_rr(_OS_JOBS),0)}")
+
+
+def v_csos_002() -> tuple[float, str]:
+    r = _srtf(_OS_JOBS)
+    return _avg(r, 0), f"SRTF 평균대기 {_avg(r,0)} · 비선점 SJF {_avg(_sjf_np(_OS_JOBS),0)}(오답②)"
+
+
+def v_csos_003() -> tuple[float, str]:
+    r = _rr(_OS_JOBS, 4)
+    return _avg(r, 1), f"RR(q=4) 평균반환 {_avg(r,1)} · 완료 {r}"
+
+
+def _fifo(ref, k):
+    f, miss = [], 0
+    for p in ref:
+        if p not in f:
+            miss += 1
+            if len(f) == k:
+                f.pop(0)
+            f.append(p)
+    return miss
+
+
+def _lru(ref, k):
+    f, miss = [], 0
+    for p in ref:
+        if p in f:
+            f.remove(p)
+        else:
+            miss += 1
+            if len(f) == k:
+                f.pop(0)
+        f.append(p)
+    return miss
+
+
+def _opt(ref, k):
+    f, miss = [], 0
+    for i, p in enumerate(ref):
+        if p in f:
+            continue
+        miss += 1
+        if len(f) < k:
+            f.append(p)
+            continue
+        future = ref[i + 1:]
+        nxt = [future.index(q) if q in future else 10 ** 9 for q in f]
+        f[nxt.index(max(nxt))] = p
+    return miss
+
+
+_REF = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2]
+
+
+def v_csos_004() -> tuple[int, str]:
+    return _lru(_REF, 3), (f"프레임3 — FIFO {_fifo(_REF,3)} · LRU {_lru(_REF,3)} · "
+                           f"OPT {_opt(_REF,3)}")
+
+
+def v_csos_005() -> tuple[bool, str]:
+    """벨라디 변이 — 프레임을 늘렸는데 부재가 늘어나는지."""
+    ref = [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5]
+    f3, f4 = _fifo(ref, 3), _fifo(ref, 4)
+    l3, l4 = _lru(ref, 3), _lru(ref, 4)
+    return f4 > f3, (f"FIFO 프레임3 {f3} → 프레임4 {f4} (변이 {f4>f3}) · "
+                     f"LRU {l3} → {l4} (변이 {l4>l3})")
+
+
+def v_csos_006() -> tuple[tuple, str]:
+    alloc = {"P0": (0, 1, 0), "P1": (2, 0, 0), "P2": (3, 0, 2),
+             "P3": (2, 1, 1), "P4": (0, 0, 2)}
+    mx = {"P0": (7, 5, 3), "P1": (3, 2, 2), "P2": (9, 0, 2),
+          "P3": (2, 2, 2), "P4": (4, 3, 3)}
+    need = {p: tuple(mx[p][i] - alloc[p][i] for i in range(3)) for p in alloc}
+    work, fin, seq = [3, 3, 2], set(), []
+    while len(fin) < len(alloc):
+        for p in alloc:
+            if p in fin:
+                continue
+            if all(need[p][i] <= work[i] for i in range(3)):
+                for i in range(3):
+                    work[i] += alloc[p][i]
+                fin.add(p); seq.append(p)
+                break
+        else:
+            break
+    return tuple(seq), f"필요량 {need} · 안전순서 {seq} · {'안전' if len(fin)==5 else '불안전'}"
+
+
+def v_csos_007() -> tuple[int, str]:
+    head, req = 53, [98, 183, 37, 122, 14, 124, 65, 67]
+    dist = lambda order, h: sum(abs(b - a) for a, b in zip([h] + order, order))
+    cur, rem, sstf = head, req[:], []
+    while rem:
+        n = min(rem, key=lambda x: abs(x - cur))
+        sstf.append(n); cur = n; rem.remove(n)
+    scan = sorted(x for x in req if x >= head) + sorted((x for x in req if x < head),
+                                                       reverse=True)
+    return dist(sstf, head), (f"FCFS {dist(req,head)} · SSTF {dist(sstf,head)} {sstf} · "
+                              f"SCAN {dist(scan,head)}")
+
+
+def v_csos_008() -> tuple[tuple, str]:
+    la, ps = 8195, 4096
+    return (la // ps, la % ps), f"{la} // {ps} = {la//ps} · 나머지 {la%ps}"
+
+
+def v_csos_009() -> tuple[int, str]:
+    blocks, want = [100, 500, 200, 300, 600], 212
+    fit = [(b, i) for i, b in enumerate(blocks) if b >= want]
+    best = min(fit)[0]
+    first = next(b for b in blocks if b >= want)
+    worst = max(fit)[0]
+    return best - want, (f"최초 {first}(잔여 {first-want}) · 최적 {best}(잔여 {best-want}) · "
+                         f"최악 {worst}(잔여 {worst-want})")
+
+
+def v_csos_010() -> tuple[int, str]:
+    tlb, mem, hit = 20, 100, 0.9
+    eat = hit * (tlb + mem) + (1 - hit) * (tlb + 2 * mem)
+    eat80 = 0.8 * (tlb + mem) + 0.2 * (tlb + 2 * mem)
+    return round(eat), f"적중 90% → {eat:.0f}ns · 80% 면 {eat80:.0f}ns(오답④)"
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -361,6 +553,26 @@ REGISTRY = {
     "major-csdb-common-013": (v_csdb_013, lambda i: i),
     "major-csdb-common-014": (v_csdb_014, lambda i: i),
     "major-csdb-common-020": (v_csdb_020, lambda i: i),
+
+    "major-csos-common-001": (v_csos_001, lambda v: {
+        6.5: 1, 7.75: 2, 8.75: 3, 11.75: 4, 14.25: 5}[v]),
+    "major-csos-common-002": (v_csos_002, lambda v: {
+        6.5: 1, 7.75: 2, 8.75: 3, 9.25: 4, 11.75: 5}[v]),
+    "major-csos-common-003": (v_csos_003, lambda v: {
+        13.0: 1, 14.25: 2, 15.25: 3, 18.25: 4, 23.0: 5}[v]),
+    "major-csos-common-004": (v_csos_004, lambda n: {7: 1, 8: 2, 9: 3, 10: 4, 11: 5}[n]),
+    "major-csos-common-005": (v_csos_005, lambda anomaly: 2 if anomaly else 0),
+    "major-csos-common-006": (v_csos_006, lambda s: {
+        ("P1", "P3", "P0", "P2", "P4"): 3,
+        ("P0", "P1", "P2", "P3", "P4"): 4}[s]),
+    "major-csos-common-007": (v_csos_007, lambda d: {
+        208: 1, 236: 2, 299: 3, 331: 4, 640: 5}[d]),
+    "major-csos-common-008": (v_csos_008, lambda pr: {
+        (1, 4099): 1, (2, 3): 2, (2, 8195): 3, (3, 3): 4, (8, 195): 5}[pr]),
+    "major-csos-common-009": (v_csos_009, lambda r: {
+        88: 1, 288: 2, 388: 3, 12: 4}[r]),
+    "major-csos-common-010": (v_csos_010, lambda e: {
+        110: 1, 120: 2, 130: 3, 140: 4, 220: 5}[e]),
 }
 
 
