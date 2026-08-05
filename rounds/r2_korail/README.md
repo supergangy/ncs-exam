@@ -35,6 +35,10 @@ python build.py --round r2_korail            # 확정 후 PDF
 
 ## 1. 근거 — 후기 643건(고유) / 소재 742개
 
+> **이 회차의 모든 건수는 `S-20260803-e69ff1` 스냅샷 기준이다** (`D55`).
+> `db.json` 은 계속 자라므로 지금 세면 값이 다르다.
+> `python reviews/snapshot.py verify S-20260803-e69ff1` 로 변화량을 본다.
+
 `python reviews/report.py --consensus 한국철도공사`
 
 | 등급 | 건수 | 소재 |

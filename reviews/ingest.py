@@ -364,6 +364,19 @@ def parse(text: str, org: str) -> dict:
     text = norm(text)
     # 키워드 절은 원문 그대로 읽어야 한다. BOILERPLATE 로 줄을 지우기 전에 뽑는다.
     keywords = parse_keywords(text)
+
+    # [D57] 양식 머리글이 없으면 소재가 하나도 안 잡힌다. 회수율이 15%였다 —
+    # 대부분은 「수리영역에서는 나머지 구하기, 도형의 넓이…」처럼 **산문으로** 쓴다.
+    # 정밀도를 지키려고 **아는 소재 어휘에 걸리는 것만** 담는다.
+    # 걸러진 나머지는 `python reviews/prose.py --sample` 로 보고 어휘를 키운다.
+    kw_source = "form" if any(section_kind(a) == "ncs" for a in keywords) else "none"
+    if kw_source == "none":
+        import prose                                  # 순환 참조를 피해 여기서 읽는다
+        got = [v for v in prose.extract(text) if prose.KNOWN.search(v)]
+        if got:
+            keywords = {**keywords, "NCS 전반": got}
+            kw_source = "prose"
+
     body = "\n".join(ln for ln in text.split("\n") if not BOILERPLATE.search(ln))
     form = parse_form(body)
 
@@ -405,6 +418,9 @@ def parse(text: str, org: str) -> dict:
         "keywords": keywords,
         # 절마다 NCS·전공·법률 중 무엇인지. 한 후기에 NCS와 전공이 함께 담기는 일이 잦다.
         "kinds": {a: section_kind(a) for a in keywords},
+        # NCS 소재를 어디서 얻었는지 — "form"(양식 머리글) · "prose"(산문 본문) · "none".
+        # 둘을 섞어 세면 안 된다. 양식은 응시자가 골라 적은 것이고 산문은 추론이다 (D57).
+        "kw_source": kw_source,
         # 전공 계열. 직렬명에서 먼저 보고, 없으면 키워드 절 제목에서 찾는다.
         "major": (major_of(form.get("track") or "")
                   or next((major_of(a) for a in keywords if major_of(a)), None)),
