@@ -61,6 +61,66 @@ def pick(*ids: str) -> list[dict]:
     return [dict(have[i]) for i in ids]
 
 
+CIRCLE = "①②③④⑤"
+
+
+def _plain(html: str) -> str:
+    """HTML 을 터미널에서 읽을 수 있게 편다. 표는 `|` 로 세운다."""
+    s = html or ""
+    s = re.sub(r'<div class="box-title">(.*?)</div>', r"\n[\1]", s)
+    s = re.sub(r"<caption>(.*?)</caption>", r"\n[\1]", s)
+    s = re.sub(r"<tr[^>]*>", "\n", s)   # 여는 태그도 줄을 바꾼다. 안 하면 첫 행이 제목에 붙는다
+    s = re.sub(r"</tr>", "\n", s)
+    # `\s*` 를 쓰면 위에서 넣은 줄바꿈까지 먹어 표가 한 줄로 도로 붙는다
+    s = re.sub(r"</t[hd]>[ \t]*<t[hd][^>]*>", " | ", s)
+    s = re.sub(r"<p[^>]*>", "\n", s)
+    s = re.sub(r"<br\s*/?>", "\n", s)
+    s = re.sub(r"<svg.*?</svg>", "[그림]", s, flags=re.S)
+    s = re.sub(r"<[^>]+>", "", s)
+    for a, b in (("&nbsp;", " "), ("&lt;", "<"), ("&gt;", ">"), ("&amp;", "&")):
+        s = s.replace(a, b)
+    lines = [re.sub(r"[ \t]+", " ", l).strip() for l in s.splitlines()]
+    return "\n".join("   " + l for l in lines if l)
+
+
+def show(it: dict) -> None:
+    """문항 하나를 통째로 — 자료·해설·단평·출제이유까지. 검토는 이걸로 한다."""
+    bar = "═" * 74
+    print(f"\n{bar}\n{it['id']}   {it['org']} · {it['kind']} · {it['subject']}"
+          f" · 난이도 {it.get('difficulty','?')}\n{bar}")
+    print(f"근거  {it.get('evidence','—')}")
+    print(f"기준  {it.get('snapshot','?')}        파일  {it.get('_file','?')}")
+    if it.get("lead"):
+        print(f"\n▶ 리드\n   {re.sub('<[^>]+>', '', it['lead'])}")
+    if it.get("passage"):
+        print(f"\n▶ 지문\n{_plain(it['passage'])}")
+
+    for n, q in enumerate(it["questions"], 1):
+        head = f"\n──── 문항 {n}" if len(it["questions"]) > 1 else ""
+        if head:
+            print(head)
+        print(f"\n▶ 발문  [{q.get('type','?')}]\n   {re.sub('<[^>]+>', '', q['stem'])}")
+        if q.get("material"):
+            print(f"\n▶ 자료\n{_plain(q['material'])}")
+        print("\n▶ 선지")
+        for j, c in enumerate(q["choices"], 1):
+            mark = "   ◀ 정답" if j == q["answer"] else ""
+            print(f"   {CIRCLE[j-1]} {re.sub('<[^>]+>', '', str(c))}{mark}")
+        if q.get("explain"):
+            print(f"\n▶ 해설\n{_plain(q['explain'])}")
+        if q.get("each"):
+            print("\n▶ 선지 단평")
+            for e in q["each"]:
+                print(f"   {re.sub('<[^>]+>', '', str(e))}")
+        why = q.get("why") or {}
+        if why:
+            print("\n▶ 출제 이유")
+            for k in ("근거", "설계", "함정", "검증"):
+                if why.get(k):
+                    body = re.sub(r"<[^>]+>", "", str(why[k])).replace("**", "")
+                    print(f"   [{k}] {body}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="문항은행")
     ap.add_argument("--list", action="store_true")
@@ -68,6 +128,8 @@ def main() -> int:
     ap.add_argument("--kind", choices=("ncs", "major"))
     ap.add_argument("--subject")
     ap.add_argument("--id")
+    ap.add_argument("--full", action="store_true",
+                    help="추려진 문항을 전문으로 펼친다 (검토용)")
     a = ap.parse_args()
 
     items = load_all()
@@ -84,14 +146,12 @@ def main() -> int:
         print("해당하는 문항이 없습니다."); return 0
 
     if a.id:
-        it = items[0]
-        print(f"[{it['id']}] {it['org']} · {it['kind']} · {it['subject']} · {it.get('difficulty','?')}")
-        print(f"근거: {it.get('evidence','—')}   [{it.get('snapshot','?')}]")
-        for q in it["questions"]:
-            print(f"\n  발문  {re.sub('<[^>]+>', '', q['stem'])}")
-            for j, c in enumerate(q["choices"], 1):
-                mark = " ◀정답" if j == q["answer"] else ""
-                print(f"    {'①②③④⑤'[j-1]} {re.sub('<[^>]+>', '', str(c))[:70]}{mark}")
+        show(items[0])
+        return 0
+
+    if a.full:
+        for it in items:
+            show(it)
         return 0
 
     nq = sum(len(i["questions"]) for i in items)
