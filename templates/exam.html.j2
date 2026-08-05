@@ -73,7 +73,12 @@ p { margin: 0 0 3.2pt; }
 .passage { font-family: 'Batang', 'Noto Serif KR', serif; font-size: 9.6pt;
            line-height: 1.72; text-align: justify; border: 0.7pt solid #444;
            padding: 4mm 5mm; }
-.passage p { margin-bottom: 4pt; text-indent: 0; }
+/* 지문은 **들여쓰기로 문단을 표시하고 빈 줄을 넣지 않는다** — 한국 시험지 관례다.
+   빈 줄로만 나누면 두세 줄짜리 덩어리가 흩어져 「한 줄마다 끊긴」 것처럼 읽힌다.
+   문단 경계는 살려야 한다 — 해설이 「셋째 문단의 결론」처럼 가리키는 곳이 있다.
+   실무문서(`.material`)는 예외다. 그쪽은 항목이 끊겨 보이는 것이 맞다. */
+.passage p { margin-bottom: 0; text-indent: 1em; }
+.passage p:first-child { text-indent: 0; }
 .material { font-size: 9.5pt; }
 .material > p { text-align: justify; }
 u.ref { text-underline-offset: 2pt; }

@@ -119,8 +119,8 @@ BLOCKS = [
                     "<td>6 &nbsp; 3</td></tr>"
                     "<tr><td>왼쪽 아래 · 오른쪽 아래</td><td>2 &nbsp; 5</td><td>4 &nbsp; 7</td>"
                     "<td>4 &nbsp; 6</td></tr>"
-                    "<tr><td><strong>가운데 수</strong></td><td><strong>23</strong></td>"
-                    "<td><strong>43</strong></td><td><strong>?</strong></td></tr>"
+                    "<tr><td><strong>가운데 수</strong></td><td>23</td>"
+                    "<td>43</td><td><strong>?</strong></td></tr>"
                     "</table>"
                 ),
                 "choices": ["12", "19", "36", "42", "48"],
