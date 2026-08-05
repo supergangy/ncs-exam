@@ -204,6 +204,131 @@ def v_csdb_010() -> tuple[tuple, str]:
     return plan, f"{dict(zip(txs, plan))}"
 
 
+def v_csdb_011() -> tuple[tuple, str]:
+    attrs = {"A", "B", "C", "D", "E"}
+    fds = [({"A"}, {"B", "C"}), ({"B"}, {"D"}), ({"C", "D"}, {"E"})]
+    keys = candidate_keys(attrs, fds)
+    note = " · ".join(f"{s}+={sorted(closure(attrs, fds, set(s)))}"
+                      for s in ("A", "B", "AC"))
+    return tuple(sorted("".join(sorted(k)) for k in keys)), f"후보키 {[sorted(k) for k in keys]} · {note}"
+
+
+def v_csdb_012() -> tuple[tuple, str]:
+    con = sqlite3.connect(":memory:")
+    con.executescript("""CREATE TABLE 성적(이름 TEXT, 점수 INTEGER);
+    INSERT INTO 성적 VALUES ('김',88),('이',NULL),('박',92),('최',88),('정',75);""")
+    r = con.execute("SELECT COUNT(점수), COUNT(*), AVG(점수) FROM 성적").fetchone()
+    wrong = round(sum([88, 92, 88, 75]) / 5, 1)
+    return (r[0], r[1], round(r[2], 2)), f"{r} · NULL 을 0 으로 보면 AVG {wrong}(오답⑤)"
+
+
+def v_csdb_015() -> tuple[float, str]:
+    n, d_sex, d_id = 200_000, 4, 200_000
+    return d_sex / n, (f"성별 선택도 {d_sex/n:.5f}(값당 {n//d_sex:,}건) · "
+                       f"회원번호 {d_id/n:.1f}(값당 {n//d_id}건)")
+
+
+def v_csdb_016() -> tuple[int, str]:
+    con = sqlite3.connect(":memory:")
+    con.execute("PRAGMA foreign_keys=ON")
+    con.executescript("""CREATE TABLE 부서(코드 TEXT PRIMARY KEY);
+    CREATE TABLE 사원(사번 INTEGER PRIMARY KEY,
+                      부서 TEXT REFERENCES 부서(코드) ON DELETE CASCADE);
+    INSERT INTO 부서 VALUES ('D1'),('D2');
+    INSERT INTO 사원 VALUES (1,'D1'),(2,'D1'),(3,'D2');""")
+    con.execute("DELETE FROM 부서 WHERE 코드='D1'")
+    left = con.execute("SELECT 사번 FROM 사원").fetchall()
+    return len(left), f"D1 삭제 후 남은 사원 {[r[0] for r in left]} → {len(left)}개"
+
+
+def v_csdb_017() -> tuple[int, str]:
+    """두 트랜잭션이 같은 값을 읽고 각자 저장한다. 나중 쓰기가 앞 갱신을 덮는다."""
+    stored, r1, r2 = 100, 100, 100
+    stored = r1 + 50          # T1 write
+    stored = r2 + 20          # T2 write — T1 의 갱신을 덮는다
+    serial = 100 + 50 + 20
+    return stored, f"최종 {stored} · 직렬 실행이면 {serial}(오답②)"
+
+
+def v_csdb_018() -> tuple[int, str]:
+    attrs = {"주문번호", "상품코드", "수량", "상품명", "단가"}
+    fds = [({"주문번호", "상품코드"}, {"수량"}), ({"상품코드"}, {"상품명", "단가"})]
+    nf = highest_normal_form(attrs, fds)
+    # 분해 후 무손실인지 — 공통 속성 상품코드가 상품 릴레이션의 후보키인가
+    r1, r2 = {"주문번호", "상품코드", "수량"}, {"상품코드", "상품명", "단가"}
+    common = r1 & r2
+    lossless = closure(attrs, fds, common) >= r2
+    return nf, (f"최고 정규형 제{nf}정규형 · 분해 공통 {sorted(common)} → "
+                f"{'무손실' if lossless else '손실'}")
+
+
+def v_csdb_019() -> tuple[int, str]:
+    """개체는 각각 릴레이션. M:N 은 별도 릴레이션. N:1 은 외래키로 흡수."""
+    entities = ["학생", "과목", "강의실"]
+    rels = [("학생", "과목", "M:N"), ("과목", "강의실", "N:1")]
+    extra = [r for r in rels if r[2] == "M:N"]
+    total = len(entities) + len(extra)
+    return total, f"개체 {len(entities)} + M:N 관계 {len(extra)} + N:1 관계 0 = {total}"
+
+
+# ── 개념형 검증 ─────────────────────────────────────────────────────────
+# 실행으로 떨어지지 않는 문항이다. 계산 대신 **표준 정의를 표로 적어 두고**
+# 그 표에서 답을 뽑는다. 값을 문항과 같은 파일에 두면 서로를 베끼게 되므로
+# 정의는 여기에만 두고, 문항은 여기서 나온 값과 대조만 한다.
+
+def v_csdb_013() -> tuple[int, str]:
+    """표준 SQL 의 갱신 가능 뷰 조건 — 단일 테이블·집계 없음·DISTINCT 없음·GROUP BY 없음."""
+    views = [
+        ("GROUP BY 집계",      {"single": True,  "agg": True,  "distinct": False, "join": False}),
+        ("DISTINCT",           {"single": True,  "agg": False, "distinct": True,  "join": False}),
+        ("단일 테이블 부분집합", {"single": True,  "agg": False, "distinct": False, "join": False}),
+        ("두 테이블 조인",      {"single": False, "agg": False, "distinct": False, "join": True}),
+        ("집계 + 산술식",       {"single": True,  "agg": True,  "distinct": False, "join": False}),
+    ]
+    ok = [i for i, (_, v) in enumerate(views, 1)
+          if v["single"] and not v["agg"] and not v["distinct"] and not v["join"]]
+    return (ok[0] if len(ok) == 1 else 0), f"갱신 가능한 선지 {ok} ({views[ok[0]-1][0]})"
+
+
+def v_csdb_014() -> tuple[int, str]:
+    """클러스터드 대 비클러스터드. 문항은 「옳지 않은 것」을 묻는다."""
+    facts = [
+        ("데이터 행이 키 순서로 저장", True),
+        ("테이블당 여러 개 가능", False),          # 비클러스터드의 성질이다
+        ("범위 검색에 유리", True),
+        ("키 변경 시 행 이동 비용", True),
+        ("리프가 데이터 페이지", True),
+    ]
+    wrong = [i for i, (_, t) in enumerate(facts, 1) if not t]
+    return (wrong[0] if len(wrong) == 1 else 0), f"틀린 진술 {wrong} ({facts[wrong[0]-1][0]})"
+
+
+def v_csdb_020() -> tuple[int, str]:
+    """2PL 이 보장하는 것과 보장하지 않는 것.
+
+    교착이 성립하는 순서를 실제로 구성해 확인한다 —
+    두 트랜잭션이 모두 확장 단계에 있으면서 서로의 잠금을 기다리면 멈춘다.
+    """
+    held: dict[str, str] = {}
+    steps = [("T1", "lock", "A"), ("T2", "lock", "B"),
+             ("T1", "lock", "B"), ("T2", "lock", "A")]
+    waiting = []
+    for tx, _, res in steps:
+        if res in held and held[res] != tx:
+            waiting.append((tx, res))
+        else:
+            held[res] = tx
+    deadlock = len(waiting) >= 2 and {w[0] for w in waiting} == {"T1", "T2"}
+    claims = [("직렬가능·교착회피 둘 다", False),
+              ("직렬가능 보장·교착 발생 가능", True),
+              ("교착 방지·직렬가능 미보장", False),
+              ("잠금 미사용", False),
+              ("확장 단계에서 해제 가능", False)]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    return right[0], (f"교착 성립 {deadlock} (대기 {waiting}) · "
+                      f"옳은 진술 {right}")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -223,6 +348,19 @@ REGISTRY = {
     "major-csdb-common-010": (v_csdb_010, lambda p: {
         ("UNDO", "REDO", "REDO"): 1, ("REDO", "UNDO", "UNDO"): 2,
         ("REDO", "REDO", "UNDO"): 3}[p]),
+    "major-csdb-common-011": (v_csdb_011, lambda k: {
+        ("A",): 1, ("B",): 2, ("AC",): 3, ("BC",): 4, ("ABC",): 5}[k]),
+    "major-csdb-common-012": (v_csdb_012, lambda r: {
+        (4, 5, 85.75): 1, (5, 5, 68.6): 2, (4, 4, 85.75): 3,
+        (5, 5, 85.75): 4, (4, 5, 68.6): 5}[r]),
+    "major-csdb-common-015": (v_csdb_015, lambda s: 2 if s < 0.01 else 1),
+    "major-csdb-common-016": (v_csdb_016, lambda n: {0: 1, 1: 2, 2: 3, 3: 4}[n]),
+    "major-csdb-common-017": (v_csdb_017, lambda v: {120: 1, 170: 2, 150: 3, 100: 4}[v]),
+    "major-csdb-common-018": (v_csdb_018, lambda nf: 2 if nf == 1 else 5),
+    "major-csdb-common-019": (v_csdb_019, lambda n: {3: 1, 4: 2, 5: 3, 6: 4, 2: 5}[n]),
+    "major-csdb-common-013": (v_csdb_013, lambda i: i),
+    "major-csdb-common-014": (v_csdb_014, lambda i: i),
+    "major-csdb-common-020": (v_csdb_020, lambda i: i),
 }
 
 
