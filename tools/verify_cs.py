@@ -144,6 +144,66 @@ def v_csdb_005() -> tuple[int, str]:
     return h, f"차수 200 → 높이 {h} (수용 {cap:,}) · 차수 100 이면 {h100} (오답 ③의 경로)"
 
 
+def v_csdb_006() -> tuple[str, str]:
+    """후보키가 둘이라 비주요 속성이 없다 → 3NF 통과. 결정자 하나가 후보키가 아니라 BCNF 위반."""
+    attrs = {"학생", "동아리", "지도교수"}
+    fds = [({"학생", "동아리"}, {"지도교수"}), ({"지도교수"}, {"동아리"})]
+    keys = candidate_keys(attrs, fds)
+    nf = highest_normal_form(attrs, fds)
+    viol = [sorted(l) for l, r in fds if not any(l == k for k in keys) and not r <= l]
+    verdict = "3NF만족_BCNF위반" if nf == 3 and viol else f"3NF={nf}_위반{viol}"
+    return verdict, f"후보키 {[sorted(k) for k in keys]} · 3NF={nf} · BCNF 위반 결정자 {viol}"
+
+
+def v_csdb_007() -> tuple[int, str]:
+    """무손실 = 공통 속성의 폐포가 어느 한쪽을 덮는다. 선지 순서대로 판정."""
+    attrs = {"A", "B", "C", "D"}
+    fds = [({"A"}, {"B"}), ({"B"}, {"C"}), ({"C"}, {"D"})]
+    cands = [({"A", "B"}, {"C", "D"}), ({"A", "C"}, {"B", "D"}),
+             ({"A", "B"}, {"B", "C", "D"}), ({"A", "D"}, {"B", "C"}),
+             ({"B", "D"}, {"A", "C"})]
+    ok = []
+    for i, (r1, r2) in enumerate(cands, 1):
+        common = r1 & r2
+        if common and (closure(attrs, fds, common) >= r1 or closure(attrs, fds, common) >= r2):
+            ok.append(i)
+    return (ok[0] if len(ok) == 1 else 0), f"무손실인 선지 {ok}"
+
+
+def v_csdb_008() -> tuple[int, str]:
+    con = sqlite3.connect(":memory:")
+    con.executescript("""
+    CREATE TABLE 주문(주문번호 INTEGER, 고객번호 INTEGER, 금액 INTEGER, 상태 TEXT);
+    INSERT INTO 주문 VALUES (101,1,52000,'완료'),(102,1,18000,'취소'),(103,2,74000,'완료'),
+    (104,2,33000,'완료'),(105,3,91000,'배송중'),(106,3,27000,'취소'),(107,4,45000,'완료');
+    """)
+    n = len(con.execute("SELECT 고객번호, SUM(금액) FROM 주문 WHERE 상태='완료' "
+                        "GROUP BY 고객번호 HAVING SUM(금액)>=100000").fetchall())
+    n_all = len(con.execute("SELECT 고객번호, SUM(금액) FROM 주문 "
+                            "GROUP BY 고객번호 HAVING SUM(금액)>=100000").fetchall())
+    n_grp = len(con.execute("SELECT 고객번호 FROM 주문 WHERE 상태='완료' "
+                            "GROUP BY 고객번호").fetchall())
+    return n, f"완료만 {n}행 · 상태 조건 없이 {n_all}행(오답③) · 완료 그룹 수 {n_grp}(오답④)"
+
+
+def v_csdb_009() -> tuple[tuple, str]:
+    """디비전 — S 의 모든 값과 짝을 이루는 학번."""
+    R = {(1, "a"), (1, "b"), (2, "a"), (3, "a"), (3, "b"), (4, "b")}
+    S = {"a", "b"}
+    res = tuple(sorted(x for x in {x for x, _ in R} if all((x, s) in R for s in S)))
+    return res, f"R ÷ S = {res}"
+
+
+def v_csdb_010() -> tuple[tuple, str]:
+    """commit 기록이 있으면 REDO, 없으면 UNDO."""
+    log = [("T1", "start"), ("T1", "write"), ("T2", "start"), ("T2", "write"),
+           ("T1", "commit"), ("T3", "start"), ("T3", "write")]
+    txs = sorted({t for t, _ in log})
+    done = {t for t, op in log if op == "commit"}
+    plan = tuple("REDO" if t in done else "UNDO" for t in txs)
+    return plan, f"{dict(zip(txs, plan))}"
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -155,6 +215,14 @@ REGISTRY = {
     "major-csdb-common-004": (v_csdb_004, lambda s: {
         "Dirty Read": 1, "Non-repeatable Read": 2, "Phantom Read": 3}[s]),
     "major-csdb-common-005": (v_csdb_005, lambda h: {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}[h]),
+    "major-csdb-common-006": (v_csdb_006, lambda v: {"3NF만족_BCNF위반": 3}[v]),
+    "major-csdb-common-007": (v_csdb_007, lambda i: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[i]),
+    "major-csdb-common-008": (v_csdb_008, lambda n: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[n]),
+    "major-csdb-common-009": (v_csdb_009, lambda r: {
+        (1,): 1, (1, 2): 2, (1, 3): 3, (1, 2, 3, 4): 4, (2, 4): 5}[r]),
+    "major-csdb-common-010": (v_csdb_010, lambda p: {
+        ("UNDO", "REDO", "REDO"): 1, ("REDO", "UNDO", "UNDO"): 2,
+        ("REDO", "REDO", "UNDO"): 3}[p]),
 }
 
 
