@@ -521,6 +521,61 @@ def v_csos_010() -> tuple[int, str]:
     return round(eat), f"적중 90% → {eat:.0f}ns · 80% 면 {eat80:.0f}ns(오답④)"
 
 
+def v_csos_011() -> tuple[int, str]:
+    va, ps, pte, outer = 32, 4096, 4, 1024
+    pages = 2 ** va // ps
+    one_level = pages * pte
+    inner = pages // outer * pte
+    return inner, (f"페이지 {pages:,} · 1단 {one_level//1024//1024}MB(오답④) · "
+                   f"내부 {pages//outer:,}항 × {pte}B = {inner//1024}KB")
+
+
+def v_csos_012() -> tuple[int, str]:
+    ref = [2, 6, 1, 5, 7, 7, 7, 7, 5, 1, 6, 2, 3, 4, 1, 2, 3, 4, 4, 4, 3, 4, 4, 4]
+    ws = lambda t, d: sorted(set(ref[max(0, t - d):t]))
+    return len(ws(14, 5)), f"t=14 Δ=5 → {ws(14,5)} ({len(ws(14,5))}개) · t=10 이면 {ws(10,5)}"
+
+
+def v_csos_013() -> tuple[int, str]:
+    """5상태 모형에 정의된 전이. 없는 것의 선지 번호를 돌려준다."""
+    cand = [("준비", "실행"), ("실행", "준비"), ("실행", "대기"),
+            ("대기", "준비"), ("대기", "실행")]
+    defined = {("준비", "실행"), ("실행", "준비"), ("실행", "대기"), ("대기", "준비")}
+    missing = [i for i, c in enumerate(cand, 1) if c not in defined]
+    return (missing[0] if len(missing) == 1 else 0), f"정의되지 않은 전이 {missing} {cand[missing[0]-1]}"
+
+
+def v_csos_014() -> tuple[int, str]:
+    """스레드 공유 여부. 공유하지 않는 항목의 선지 번호."""
+    items = [("코드", True), ("데이터", True), ("힙", True),
+             ("스택", False), ("열린 파일 목록", True)]
+    priv = [i for i, (_, shared) in enumerate(items, 1) if not shared]
+    return (priv[0] if len(priv) == 1 else 0), f"공유하지 않는 것 {priv} ({items[priv[0]-1][0]})"
+
+
+def v_csos_015() -> tuple[int, str]:
+    s, log = 2, []
+    for op in ("P", "P", "P", "V", "P"):
+        s += -1 if op == "P" else 1
+        log.append(f"{op}→{s}")
+    return max(0, -s), f"{' '.join(log)} · 최종 S={s} · 대기 {max(0,-s)}개"
+
+
+def v_csos_017() -> tuple[int, str]:
+    direct, ptr = 12, 256
+    total = direct + ptr + ptr ** 2
+    wrong2 = direct + ptr + ptr * 2
+    return total, (f"{direct} + {ptr} + {ptr}² = {total:,} · "
+                   f"이중을 두 배로 보면 {wrong2}(오답②) · 직접 누락 {total-direct:,}(오답④)")
+
+
+def v_csos_018() -> tuple[tuple, str]:
+    n, cap = 4, 1000
+    levels = {"RAID0": (n * cap, 0), "RAID1": (n * cap // 2, 1),
+              "RAID5": ((n - 1) * cap, 1), "RAID6": ((n - 2) * cap, 2)}
+    return levels["RAID5"], " · ".join(f"{k} {v[0]}GB/장애{v[1]}" for k, v in levels.items())
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -573,6 +628,25 @@ REGISTRY = {
         88: 1, 288: 2, 388: 3, 12: 4}[r]),
     "major-csos-common-010": (v_csos_010, lambda e: {
         110: 1, 120: 2, 130: 3, 140: 4, 220: 5}[e]),
+    "major-csos-common-011": (v_csos_011, lambda b: {
+        1024: 1, 4096: 2, 1024**2: 3, 4*1024**2: 4, 16*1024**2: 5}[b]),
+    "major-csos-common-012": (v_csos_012, lambda n: {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}[n]),
+    "major-csos-common-013": (v_csos_013, lambda i: i),
+    "major-csos-common-014": (v_csos_014, lambda i: i),
+    "major-csos-common-015": (v_csos_015, lambda n: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[n]),
+    # 016 교착 예방 — 상호 배제만 자원 성질에 달렸다 (선지 ①)
+    "major-csos-common-016": (lambda: (1, "상호배제만 자원 성질 · 나머지 셋은 요청 규칙으로 깨진다"),
+                              lambda i: i),
+    "major-csos-common-017": (v_csos_017, lambda n: {
+        268: 1, 780: 2, 65804: 3, 65792: 4, 16777216: 5}[n]),
+    "major-csos-common-018": (v_csos_018, lambda t: {
+        (2000, 1): 1, (3000, 1): 2, (3000, 2): 3, (4000, 0): 4, (2000, 2): 5}[t]),
+    # 019 스래싱 — 프로세스를 더 늘리면 악화된다 (선지 ④가 틀린 진술)
+    "major-csos-common-019": (lambda: (4, "다중 프로그래밍 정도를 높이면 악화 · 대책은 낮추기"),
+                              lambda i: i),
+    # 020 문맥 교환 — 프로세스 교환이 더 비싸다 (선지 ②)
+    "major-csos-common-020": (lambda: (2, "프로세스 교환은 주소공간 전환·TLB 무효화를 포함"),
+                              lambda i: i),
 }
 
 
