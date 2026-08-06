@@ -1043,6 +1043,105 @@ def v_csca_017() -> tuple[str, str]:
     return ("NOT" if is_not else "?"), f"NAND(A,A) 진리표 {tt} · NOT A 와 일치 {is_not}"
 
 
+# ── 데이터통신 ──────────────────────────────────────────────────────────
+
+def v_csdc_001() -> tuple[int, str]:
+    import math
+    b = 3000
+    got = {l: int(2 * b * math.log2(l)) for l in (2, 4, 8, 16)}
+    snr = 10 ** (30 / 10)
+    return got[4], (f"나이퀴스트 {got} · 섀넌 상한 "
+                    f"{int(b * math.log2(1 + snr)):,}bps(SNR 30dB)")
+
+
+def _mod2div(msg: str, gen: str) -> str:
+    """모듈로-2 나눗셈 나머지. 네트워크 016 과 **같은 함수**를 쓰지 않도록 여기 둔다."""
+    m = list(msg) + ["0"] * (len(gen) - 1)
+    for i in range(len(msg)):
+        if m[i] == "1":
+            for j, g in enumerate(gen):
+                m[i + j] = str(int(m[i + j]) ^ int(g))
+    return "".join(m[len(msg):])
+
+
+def v_csdc_002() -> tuple[str, str]:
+    msg, gen = "101110", "1001"
+    fcs = _mod2div(msg, gen)
+    chk = _mod2div(msg + fcs, gen)
+    return fcs, (f"{msg} ÷ {gen} → FCS {fcs} · 전송 {msg + fcs} · "
+                 f"수신측 나머지 {chk}(0 이어야 한다)")
+
+
+def v_csdc_003() -> tuple[int, str]:
+    got = {}
+    for m in (4, 8, 11):
+        got[m] = next(r for r in range(1, 12) if 2 ** r >= m + r + 1)
+    m = 8
+    return got[m], (f"데이터 {m} → 패리티 {got[m]} (2^{got[m]}={2**got[m]} ≥ "
+                    f"{m+got[m]+1}) · r=3 이면 8 < 12 미달 · 전체 {m+got[m]}비트 · "
+                    f"다른 경우 {got}")
+
+
+def v_csdc_004() -> tuple[int, str]:
+    got = {d: (d - 1, (d - 1) // 2) for d in (2, 3, 4, 5)}
+    return got[5][1], (" · ".join(f"d={d} 검출 {a} 정정 {b}" for d, (a, b) in got.items())
+                       + " → d=5 의 검출 4 가 오답④")
+
+
+def v_csdc_005() -> tuple[str, str]:
+    data = "1011010"
+    odd = str(1 - data.count("1") % 2)      # 홀수 패리티
+    even = str(data.count("1") % 2)         # 짝수 패리티
+    return data + odd, (f"1 이 {data.count('1')}개 → 홀수패리티 {data+odd} · "
+                        f"짝수패리티 {data+even}(오답①)")
+
+
+def v_csdc_007() -> tuple[int, str]:
+    ch, bits, fr = 24, 8, 8000
+    t1 = (ch * bits + 1) * fr
+    e1 = 32 * 8 * fr
+    return t1, (f"T1 (24×8+1)×8000 = {t1:,} · 동기비트 제외 {ch*bits*fr:,}(오답①) · "
+                f"E1 {e1:,}(오답④)")
+
+
+def v_csdc_009() -> tuple[int, str]:
+    fmax, q = 4000, 8
+    rate = 2 * fmax * q
+    return rate, (f"표본화 {2*fmax:,}Hz × {q}비트 = {rate:,}bps · "
+                  f"2배 안 하면 {fmax*q:,}(오답①) · T1 24채널 검산 "
+                  f"{rate*24 + 8000:,}")
+
+
+def v_csdc_010() -> tuple[int, str]:
+    got = {}
+    for rate, slot in ((10e6, 51.2e-6), (100e6, 5.12e-6)):
+        got[int(rate / 1e6)] = (int(rate * slot), int(rate * slot / 8))
+    bits, byt = got[10]
+    return byt, (f"10Mbps×51.2μs = {bits}비트 = {byt}바이트 · "
+                 f"100Mbps 도 {got[100][1]}바이트 · 비트값 {bits} 가 오답⑤")
+
+
+def v_csdc_012() -> tuple[int, str]:
+    got = {k: (2 ** k - 1, 2 ** (k - 1)) for k in (3, 4)}
+    return got[3][1], (" · ".join(f"{k}비트 GBN {g} SR {s}" for k, (g, s) in got.items())
+                       + " → 3비트 GBN 7 이 오답③")
+
+
+def v_csdc_014() -> tuple[float, str]:
+    size, bw = 1500 * 8, 10e6
+    dist, v = 100e3, 2e8
+    tx, pd = size / bw * 1e3, dist / v * 1e3
+    return round(tx + pd, 1), (f"전송 {tx:.1f}ms(오답②) + 전파 {pd:.1f}ms(오답①) = "
+                               f"{tx+pd:.1f}ms")
+
+
+def v_csdc_016() -> tuple[int, str]:
+    import math
+    got = {r: int(10 * math.log10(r)) for r in (0.1, 0.01, 0.001)}
+    return got[0.01], (" · ".join(f"1/{int(1/r)} → {v}dB" for r, v in got.items())
+                       + f" · 2배 +{10*math.log10(2):.0f}dB")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -1344,6 +1443,50 @@ REGISTRY = {
                                                      "XOR": 4}[g]),
     # 018 결과를 누산기에 저장하는 것은 실행 주기 (선지 ⑤)
     "major-csca-common-018": (lambda: (5, "인출은 PC→MAR · 메모리→MBR · MBR→IR · PC 증가"),
+                              lambda i: i),
+
+    "major-csdc-common-001": (v_csdc_001, lambda r: {3000: 1, 6000: 2, 12000: 3,
+                                                     18000: 4, 24000: 5}[r]),
+    "major-csdc-common-002": (v_csdc_002, lambda f: {"000": 1, "001": 2, "011": 3,
+                                                     "101": 4, "110": 5}[f]),
+    "major-csdc-common-003": (v_csdc_003, lambda r: {2: 1, 3: 2, 4: 3, 5: 4, 8: 5}[r]),
+    "major-csdc-common-004": (v_csdc_004, lambda c: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[c]),
+    "major-csdc-common-005": (v_csdc_005, lambda s: {
+        "10110100": 1, "10110101": 2, "01011010": 3,
+        "11011010": 4, "10110110": 5}[s]),
+    # 006 주파수 대역을 나누는 것은 FDM (선지 ③이 틀린 진술)
+    "major-csdc-common-006": (lambda: (3, "TDM 은 시간, FDM 은 주파수로 나눈다"),
+                              lambda i: i),
+    "major-csdc-common-007": (v_csdc_007, lambda r: {1_536_000: 1, 1_544_000: 2,
+                                                     1_920_000: 3, 2_048_000: 4,
+                                                     3_088_000: 5}[r]),
+    # 008 진폭과 위상을 함께 바꾸는 것은 QAM (선지 ④)
+    "major-csdc-common-008": (lambda: (4, "ASK 진폭 · FSK 주파수 · PSK 위상 · "
+                                          "PCM 은 변조가 아니라 부호화"), lambda i: i),
+    "major-csdc-common-009": (v_csdc_009, lambda r: {32000: 1, 48000: 2, 64000: 3,
+                                                     96000: 4, 128000: 5}[r]),
+    "major-csdc-common-010": (v_csdc_010, lambda b: {16: 1, 32: 2, 64: 3,
+                                                     128: 4, 512: 5}[b]),
+    # 011 송신 중 자기 신호에 가려 충돌 감지가 어렵다 (선지 ②)
+    "major-csdc-common-011": (lambda: (2, "CD 는 보내면서 듣는 것을 전제. 무선은 불가"),
+                              lambda i: i),
+    "major-csdc-common-012": (v_csdc_012, lambda w: {3: 1, 4: 2, 7: 3, 8: 4, 15: 5}[w]),
+    # 013 회선을 독점하므로 이용률이 낮다 (선지 ④가 틀린 진술)
+    "major-csdc-common-013": (lambda: (4, "②(독점)를 인정하면 ④(높은 이용률)는 성립 못 한다"),
+                              lambda i: i),
+    "major-csdc-common-014": (v_csdc_014, lambda t: {0.5: 1, 1.2: 2, 1.7: 3,
+                                                     2.4: 4, 12.0: 5}[t]),
+    # 015 코드로 구분하는 것은 CDMA (선지 ③)
+    "major-csdc-common-015": (lambda: (3, "FDMA 주파수 · TDMA 시간 · CDMA 코드 · "
+                                          "OFDMA 부반송파 · ALOHA 는 임의 접근"),
+                              lambda i: i),
+    "major-csdc-common-016": (v_csdc_016, lambda d: {-10: 1, -20: 2, -30: 3,
+                                                     -100: 4, -200: 5}[d]),
+    # 017 수신 측 처리 능력에 맞추는 것이 흐름 제어 (선지 ②)
+    "major-csdc-common-017": (lambda: (2, "흐름 제어는 수신 측, 혼잡 제어는 네트워크를 본다"),
+                              lambda i: i),
+    # 018 문자마다 부가 비트가 붙어 효율이 낮다 (선지 ④가 틀린 진술)
+    "major-csdc-common-018": (lambda: (4, "8비트에 시작·정지 2비트 → 20%가 부가 정보"),
                               lambda i: i),
 }
 
