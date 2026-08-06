@@ -810,6 +810,162 @@ def v_csse_017() -> tuple[int, str]:
     return (len(ce), f"조건⊅결정 반례 {len(ce)}개 · 최소 예 {show} · 강도 {m}")
 
 
+# ── 프로그래밍언어 ──────────────────────────────────────────────────────
+
+def _swap_sim(mode: str) -> tuple[int, int]:
+    """swap(a, b) 를 전달 방식별로 모사한다. 값 호출만 원본이 남는다."""
+    a, b = 10, 20
+    if mode == "값":                      # 복사본만 교환된다
+        x, y = a, b
+        x, y = y, x
+        return a, b
+    if mode in ("참조", "값-결과", "이름"):  # 원본에 되돌아간다
+        return b, a
+    raise ValueError(mode)
+
+
+def v_cspl_001() -> tuple[str, str]:
+    out = {m: _swap_sim(m) for m in ("값", "참조", "값-결과", "이름")}
+    a, b = out["값"]
+    return f"{a} {b}", f"{out}"
+
+
+def v_cspl_002() -> tuple[int, str]:
+    """호출 횟수 C(n) = C(n-1) + C(n-2) + 1. 실제로 세어 확인한다."""
+    n_calls = {"n": 0}
+
+    def f(n):
+        n_calls["n"] += 1
+        return n if n < 2 else f(n - 1) + f(n - 2)
+
+    got = {}
+    for n in (5, 6, 10):
+        n_calls["n"] = 0
+        v = f(n)
+        got[n] = (v, n_calls["n"])
+    return got[6][1], (f"f(6)={got[6][0]}(오답①) 호출 {got[6][1]} · "
+                       f"f(5) 호출 {got[5][1]}(오답③) · f(10) 호출 {got[10][1]}")
+
+
+def v_cspl_003() -> tuple[tuple, str]:
+    ops = ["p1", "p2", "o", "p3", "p4", "o", "p5", "o", "o"]
+    st, so = [], []
+    q, qo = [], []
+    for op in ops:
+        if op[0] == "p":
+            st.append(int(op[1])); q.append(int(op[1]))
+        else:
+            so.append(st.pop()); qo.append(q.pop(0))
+    return tuple(so), f"스택 {so} 잔여 {st} · 큐 {qo} 잔여 {q}(오답①)"
+
+
+def _to_postfix(s: str) -> str:
+    pr = {"+": 1, "-": 1, "*": 2, "/": 2, "^": 3}
+    out, stk = [], []
+    for t in s.split():
+        if t.isalnum():
+            out.append(t)
+        elif t == "(":
+            stk.append(t)
+        elif t == ")":
+            while stk[-1] != "(":
+                out.append(stk.pop())
+            stk.pop()
+        else:
+            while stk and stk[-1] != "(" and pr.get(stk[-1], 0) >= pr[t]:
+                out.append(stk.pop())
+            stk.append(t)
+    return " ".join(out + stk[::-1])
+
+
+def v_cspl_004() -> tuple[str, str]:
+    got = _to_postfix("( A + B ) * C - D")
+    return got, f"괄호 있음 {got} · 없으면 {_to_postfix('A + B * C - D')}"
+
+
+def _bst(vals):
+    class N:
+        __slots__ = ("v", "l", "r")
+
+        def __init__(self, v):
+            self.v, self.l, self.r = v, None, None
+
+    def ins(r, v):
+        if r is None:
+            return N(v)
+        if v < r.v:
+            r.l = ins(r.l, v)
+        else:
+            r.r = ins(r.r, v)
+        return r
+
+    root = None
+    for v in vals:
+        root = ins(root, v)
+
+    def walk(r, k, acc):
+        if r is None:
+            return acc
+        if k == "pre":
+            acc.append(r.v)
+        walk(r.l, k, acc)
+        if k == "in":
+            acc.append(r.v)
+        walk(r.r, k, acc)
+        if k == "post":
+            acc.append(r.v)
+        return acc
+
+    return {k: walk(root, k, []) for k in ("pre", "in", "post")}
+
+
+def v_cspl_005() -> tuple[tuple, str]:
+    w = _bst([50, 30, 70, 20, 40, 60, 80])
+    return tuple(w["post"]), f"전위 {w['pre']}(오답②) · 중위 {w['in']}(오답①) · 후위 {w['post']}"
+
+
+def v_cspl_008() -> tuple[int, str]:
+    """정적 유효 범위 — f 가 **적힌 자리**의 바깥을 본다. 호출한 g 를 보지 않는다."""
+    scopes = {"정적": {"f": "전역"}, "동적": {"f": "g"}}
+    val = {"전역": 10, "g": 20}
+    got = {k: val[v["f"]] for k, v in scopes.items()}
+    return got["정적"], f"정적 {got['정적']} · 동적 {got['동적']}(오답②)"
+
+
+def v_cspl_011() -> tuple[str, str]:
+    bits = 8
+    two = (-(2 ** (bits - 1)), 2 ** (bits - 1) - 1)
+    sm = (-(2 ** (bits - 1) - 1), 2 ** (bits - 1) - 1)
+    un = (0, 2 ** bits - 1)
+    return (f"{two[0]} ~ {two[1]}",
+            f"2의보수 {two} 가짓수 {two[1]-two[0]+1} · "
+            f"부호절댓값 {sm}(오답①) · 부호없음 {un}(오답④)")
+
+
+def v_cspl_012() -> tuple[int, str]:
+    base, size, rows, cols, i, j = 1000, 4, 5, 4, 2, 3
+    row_major = base + (i * cols + j) * size
+    col_major = base + (j * rows + i) * size
+    return row_major, f"행 우선 {row_major} · 열 우선 {col_major}(오답④)"
+
+
+def v_cspl_015() -> tuple[tuple, str]:
+    import math
+    n = 1000
+    cand = {"O(1)": 1, "O(log n)": math.log2(n), "O(n)": n,
+            "O(n log n)": n * math.log2(n), "O(n²)": n ** 2}
+    order = tuple(sorted(cand, key=cand.get))
+    return order, f"n={n} 대입 " + " < ".join(f"{k}({cand[k]:.0f})" for k in order)
+
+
+def v_cspl_017() -> tuple[int, str]:
+    """포인터 역참조 대입 — 주소를 값으로 넘겨도 가리키는 대상은 바뀐다."""
+    mem = {"a": 10}
+    p = "a"                       # &a 를 받은 것과 같다
+    mem[p] = mem[p] + 5           # *p = *p + 5
+    return mem["a"], f"a: 10 → {mem['a']} · 정수를 값으로 넘겼다면 10(오답①)"
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -1018,6 +1174,54 @@ REGISTRY = {
     "major-csse-common-017": (v_csse_017, lambda n: 2 if n else 0),
     # 018 요구가 불분명할 때 → 프로토타입 (선지 ②)
     "major-csse-common-018": (lambda: (2, "시제품은 버려지는 비용 — 일정이 빠듯하면 불리"),
+                              lambda i: i),
+
+    "major-cspl-common-001": (v_cspl_001, lambda s: {
+        "10 20": 1, "20 10": 2, "10 10": 3, "20 20": 4}[s]),
+    "major-cspl-common-002": (v_cspl_002, lambda c: {8: 1, 13: 2, 15: 3,
+                                                     25: 4, 64: 5}[c]),
+    "major-cspl-common-003": (v_cspl_003, lambda t: {
+        (1, 2, 3, 4): 1, (2, 4, 5, 3): 2, (2, 3, 4, 5): 3,
+        (5, 4, 3, 2): 4, (1, 3, 5, 4): 5}[t]),
+    "major-cspl-common-004": (v_cspl_004, lambda s: {
+        "A B + C * D -": 1, "A B C + * D -": 2, "A + B C * D -": 3,
+        "- * + A B C D": 4, "A B + C D * -": 5}[s]),
+    "major-cspl-common-005": (v_cspl_005, lambda t: {
+        (20, 30, 40, 50, 60, 70, 80): 1, (50, 30, 20, 40, 70, 60, 80): 2,
+        (20, 40, 30, 60, 80, 70, 50): 3, (20, 40, 60, 80, 30, 70, 50): 4,
+        (80, 70, 60, 50, 40, 30, 20): 5}[t]),
+    # 006 최악에도 n log n 인 것은 병합 정렬뿐 (선지 ⑤)
+    "major-cspl-common-006": (lambda: (5, "퀵은 평균 n log n 이지만 최악 n²"),
+                              lambda i: i),
+    # 007 한 줄씩 번역·즉시 실행은 인터프리터 (선지 ④)
+    "major-cspl-common-007": (lambda: (4, "컴파일러는 전체 번역·목적코드 생성·빠른 실행"),
+                              lambda i: i),
+    "major-cspl-common-008": (v_cspl_008, lambda v: {10: 1, 20: 2, 30: 3, 0: 4}[v]),
+    # 009 같은 호출·다른 동작 → 다형성 (선지 ③)
+    "major-cspl-common-009": (lambda: (3, "상속은 다형성을 구현하는 수단이지 그 자체가 아니다"),
+                              lambda i: i),
+    # 010 상속 관계에서 같은 형태로 재정의 (선지 ②)
+    "major-cspl-common-010": (lambda: (2, "오버로딩 매개변수 다름·컴파일시 / 오버라이딩 같음·실행시"),
+                              lambda i: i),
+    "major-cspl-common-011": (v_cspl_011, lambda s: {
+        "-127 ~ 127": 1, "-128 ~ 127": 2, "-128 ~ 128": 3,
+        "0 ~ 255": 4, "-255 ~ 255": 5}[s]),
+    "major-cspl-common-012": (v_cspl_012, lambda a: {1044: 1, 1056: 2, 1064: 3,
+                                                     1068: 4, 1092: 5}[a]),
+    # 013 n번째 상수 시간 접근은 배열의 성질 (선지 ④)
+    "major-cspl-common-013": (lambda: (4, "연결 리스트는 앞에서부터 따라가 O(n)"),
+                              lambda i: i),
+    # 014 개방 주소법은 테이블 **안**에서 해결 (선지 ④가 틀린 진술)
+    "major-cspl-common-014": (lambda: (4, "밖에 다는 쪽이 체이닝. 이름의 어감이 함정"),
+                              lambda i: i),
+    "major-cspl-common-015": (v_cspl_015, lambda t: {
+        ("O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)"): 2}[t]),
+    # 016 반복문으로 상태를 갱신하는 것은 명령형 (선지 ④)
+    "major-cspl-common-016": (lambda: (4, "함수형은 상태 갱신을 피하고 재귀를 쓴다"),
+                              lambda i: i),
+    "major-cspl-common-017": (v_cspl_017, lambda v: {10: 1, 15: 2, 5: 3}[v]),
+    # 018 finally 는 예외 여부와 무관하게 항상 (선지 ③)
+    "major-cspl-common-018": (lambda: (3, "정리 코드는 항상 돌아야 쓸모가 있다"),
                               lambda i: i),
 }
 
