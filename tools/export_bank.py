@@ -236,34 +236,49 @@ def load_bank() -> list[dict]:
     return out
 
 
-def load_rounds() -> list[dict]:
-    out = []
+def load_rounds() -> tuple[list[dict], list[dict]]:
+    """회차 문항과 회차 메타.
+
+    **`CFG.AREAS` 에 선언된 순서로 읽는다.** `build.py` 의 `load_blocks` 가 그렇게
+    읽으므로 알파벳순으로 훑으면 앱의 문항 번호가 **인쇄본과 조용히 어긋난다.**
+    회차 모드는 번호가 곧 정답 위치라 이 어긋남이 치명적이다.
+    """
+    items: list[dict] = []
+    rounds: list[dict] = []
+
     for rd in sorted(p.name for p in (ROOT / "rounds").iterdir() if p.is_dir()):
         cdir = ROOT / "rounds" / rd / "content"
         if not cdir.is_dir():
             continue
-        try:
-            cfg = importlib.import_module(f"rounds.{rd}.config")
-            org = getattr(cfg, "ORG", None) or getattr(cfg, "COVER", {}).get("org")
-        except Exception:
-            org = None
+        cfg = importlib.import_module(f"rounds.{rd}.config")
+        areas = getattr(cfg, "AREAS", None)
+        if not areas:
+            raise SystemExit(f"[중단] {rd}/config.py 에 AREAS 가 없다")
+        org = (getattr(cfg, "BRAND", "") or "").replace(" 채용대비", "").strip() or "공통"
+
         no = 0
-        for f in sorted(cdir.glob("*.py")):
-            if f.stem.startswith("_"):
+        area_n: list[list] = []
+        for mod_name, area, expected in areas:
+            path = cdir / f"{mod_name}.py"
+            if not path.exists():
+                # 아직 안 쓴 영역. 회차를 통째로 빼지 않고 있는 것만 싣는다
                 continue
-            m = importlib.import_module(f"rounds.{rd}.content.{f.stem}")
+            m = importlib.import_module(f"rounds.{rd}.content.{mod_name}")
+            got = 0
             for b in getattr(m, "BLOCKS", []):
                 for q in b.get("questions", []):
                     no += 1
-                    out.append({
+                    got += 1
+                    items.append({
                         "id": f"{rd}-{no:02d}",
                         "src": "round",
                         "round": rd,
                         "no": no,
                         "track": "ncs",
-                        "subject": b.get("area") or "기타",
+                        # 영역은 **설정이 진실이다.** 본문의 area 키를 믿지 않는다
+                        "subject": area,
                         "type": q.get("type") or "기타",
-                        "org": org or "공통",
+                        "org": org,
                         "difficulty": None,
                         "risk": None,
                         "evidence": None,
@@ -278,7 +293,30 @@ def load_rounds() -> list[dict]:
                         "explain": q.get("explain"),
                         "why": q.get("why") or {},
                     })
-    return out
+            if got != expected:
+                raise SystemExit(
+                    f"[중단] {rd} · {area} 문항 수가 설계와 다르다 — "
+                    f"{got}개 (AREAS 는 {expected}개)\n"
+                    f"  build.py 와 같은 규율이다. 설계를 고치거나 문항을 맞춘다.")
+            area_n.append([area, got])
+
+        if not items or not area_n:
+            continue                     # 설정만 있고 문항이 없는 회차 (r5_nhis)
+        rounds.append({
+            "tag": rd,
+            "title": getattr(cfg, "EXAM_ROUND", rd),
+            "brand": getattr(cfg, "BRAND", ""),
+            "org": org,
+            "n": no,
+            "min": getattr(cfg, "TOTAL_MIN", 0),
+            "areas": area_n,
+        })
+        # 설계 총량과도 대조한다
+        want = getattr(cfg, "TOTAL_Q", no)
+        if no != want:
+            raise SystemExit(f"[중단] {rd} 총 문항 {no}개인데 TOTAL_Q 는 {want}다")
+
+    return items, rounds
 
 
 # ── 점검 ────────────────────────────────────────────────────────────────
@@ -306,7 +344,7 @@ def check(items: list[dict]) -> list[str]:
 
 # ── 내보내기 ────────────────────────────────────────────────────────────
 
-def build(items: list[dict]) -> dict:
+def build(items: list[dict], rounds: list[dict]) -> tuple[dict, dict]:
     # 지문은 **한 벌만** 담고 문항이 가리킨다. 세트문항이 같은 지문을 공유한다.
     passages: list[dict] = []
     pindex: dict[str, int] = {}
@@ -349,6 +387,10 @@ def build(items: list[dict]) -> dict:
                 o[dst] = it[src]
         if it.get("each"):
             o["ea"] = it["each"]
+        # 회차 꼬리표는 **학습자 payload 에 둔다** — 회차 모드가 이걸로 문항을 모은다
+        if it.get("round"):
+            o["rd"] = it["round"]
+            o["no"] = it["no"]
         out_items.append(o)
 
         # ── 관리자 전용 ── **본체에 넣지 않는다.**
@@ -360,8 +402,6 @@ def build(items: list[dict]) -> dict:
                 adm[dst] = it[src]
         if it.get("why"):
             adm["wy"] = it["why"]
-        if it.get("round"):
-            adm["rd"] = it["round"]
         if adm:
             admin_items[it["id"]] = adm
 
@@ -380,6 +420,7 @@ def build(items: list[dict]) -> dict:
     return {
         "v": 1,
         "n": len(out_items),
+        "rounds": rounds,
         "tracks": [dict(t, c=sum(1 for i in out_items if i["tr"] == t["id"]))
                    for t in TRACKS],
         "subjects": subjects,
@@ -395,7 +436,8 @@ def main() -> int:
     ap.add_argument("--check", action="store_true", help="쓰지 않고 점검만")
     a = ap.parse_args()
 
-    items = load_rounds() + load_bank()
+    r_items, rounds = load_rounds()
+    items = r_items + load_bank()
     bad = check(items)
     if bad:
         print(f"[중단] 문항에 문제가 {len(bad)}건 있다")
@@ -403,7 +445,7 @@ def main() -> int:
             print(f"   {b}")
         return 1
 
-    data, admin = build(items)
+    data, admin = build(items, rounds)
     if a.check:
         print(f"점검 통과 — 문항 {data['n']}건 · 문제 없음")
         return 0
@@ -428,6 +470,11 @@ def main() -> int:
                 continue
             tys = [x for x in data["types"] if x["tr"] == t["id"] and x["sj"] == s["n"]]
             print(f"      {s['n']:<12} {s['c']:>3}문항  유형 {len(tys)}종")
+    print(f"\n   회차 {len(data['rounds'])}개")
+    for r in data["rounds"]:
+        cons = " · ".join(f"{a}{n}" for a, n in r["areas"])
+        print(f"      {r['tag']:<12} {r['title']:<14} {r['n']:>2}문항/{r['min']}분   {cons}")
+
     top = ", ".join(f"{k['t']}({k['n']})" for k in data["keywords"][:12])
     print(f"\n   키워드 상위: {top}")
     no_kw = sum(1 for i in data["items"] if not i["kw"] and i["tr"] == "cs")

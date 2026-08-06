@@ -10,7 +10,12 @@
 const KEY = 'ncsbank.v1';
 
 const Store = {
-  d: { att: {}, srs: {}, admin: false, seen: 0 },
+  //  att   낱개 진도 (회차 제출도 여기 들어간다 — 오답노트·복습이 이걸 본다)
+  //  srs   복습 일정
+  //  exams 회차 성적 이력
+  //  sit   응시 중인 회차 (하나만. 중단하고 나가도 이어진다)
+  //  mark  북마크(b)·확인 필요(f)·메모
+  d: { att: {}, srs: {}, exams: {}, sit: null, mark: {}, admin: false, seen: 0 },
 
   load() {
     try {
@@ -56,7 +61,41 @@ const Store = {
               .map(i => i.id);
   },
 
-  reset() { this.d = { att: {}, srs: {}, admin: false, seen: 0 }; this.save(); },
+  reset() {
+    this.d = { att: {}, srs: {}, exams: {}, sit: null, mark: {},
+               admin: false, seen: 0 };
+    this.save();
+  },
+
+  // ── 표시 ──────────────────────────────────────────────────────────
+  markOf(id) { return this.d.mark[id] || null; },
+  toggleMark(id, key) {
+    const m = this.d.mark[id] || {};
+    m[key] = m[key] ? 0 : 1;
+    m.at = Date.now();
+    if (!m.b && !m.f && !m.memo) delete this.d.mark[id];
+    else this.d.mark[id] = m;
+    this.save();
+  },
+  setMemo(id, memo) {
+    const m = this.d.mark[id] || {};
+    m.memo = memo; m.at = Date.now();
+    if (memo) m.f = 1;                       // 메모를 남기면 확인 대상이다
+    if (!m.b && !m.f && !m.memo) delete this.d.mark[id];
+    else this.d.mark[id] = m;
+    this.save();
+  },
+  marked(key) {
+    return Object.entries(this.d.mark).filter(([, m]) => m[key])
+      .sort((a, b) => b[1].at - a[1].at).map(([id]) => id);
+  },
+
+  // ── 회차 ──────────────────────────────────────────────────────────
+  best(tag) {
+    const h = this.d.exams[tag] || [];
+    return h.length ? Math.max(...h.map(r => r.score / r.n)) : null;
+  },
+  history(tag) { return this.d.exams[tag] || []; },
 };
 
 // ─────────────────────────────────────────────────────── 데이터
@@ -81,6 +120,11 @@ const DB = {
   },
 
   track(id) { return this.raw.tracks.find(t => t.id === id); },
+  round(tag) { return (this.raw.rounds || []).find(r => r.tag === tag); },
+  /** 회차 문항을 **번호 순으로**. 인쇄본과 같은 차례여야 한다 */
+  roundItems(tag) {
+    return this.items.filter(i => i.rd === tag).sort((a, b) => a.no - b.no);
+  },
   subjects(tr) { return this.raw.subjects.filter(s => s.tr === tr); },
   types(tr, sj) { return this.raw.types.filter(t => t.tr === tr && t.sj === sj); },
   passage(n) { return this.raw.passages[n]; },
@@ -143,8 +187,10 @@ function render() {
       window.scrollTo(0, 0);
       $('#view').className = 'view';
       $('#topRight').innerHTML = '';
+      stopTick();               // 응시 화면을 떠나면 타이머를 멈춘다
+      const base = '/' + path.split(/[?/]/).filter(Boolean)[0];
       document.querySelectorAll('.tabs a').forEach(a =>
-        a.classList.toggle('on', a.dataset.tab === path.split('?')[0]));
+        a.classList.toggle('on', a.dataset.tab === (path === '/' ? '/' : base)));
       $('#back').hidden = path === '/';
       fn(...m.slice(1).map(x => x && decodeURIComponent(x)));
       updateBadges();
@@ -163,6 +209,7 @@ function updateBadges() {
   for (const [sel, n] of [['#wrongBadge', w], ['#dueBadge', d]]) {
     const b = $(sel); b.textContent = n > 99 ? '99+' : n; b.hidden = !n;
   }
+  $('#sitBadge').hidden = !Store.d.sit;      // 응시 중이면 점 하나
 }
 
 // ─────────────────────────────────────────────────────── 화면: 홈
@@ -170,11 +217,27 @@ route(/^\/$/, () => {
   setTitle('기출은행');
   const f = document.createDocumentFragment();
 
+  // 상단 우측 — 돋보기
+  const s = el('button', null, '🔍');
+  s.setAttribute('aria-label', '검색');
+  s.onclick = () => go('/search');
+  $('#topRight').append(s);
+
   const due = Store.dueIds(DB.items).length;
   const wrong = DB.items.filter(i => Store.isWrong(i.id)).length;
   const all = progress(DB.items);
+  const sit = Store.d.sit;
 
-  if (due || wrong) {
+  if (sit) {
+    const r = DB.round(sit.tag);
+    const left = sitLeft(sit);
+    const a = el('a', 'resume');
+    a.href = `#/exam/${sit.tag}`;
+    a.innerHTML = `<div class="rt">「${esc(r.title)}」 푸는 중</div>
+      <div class="rs">${Object.keys(sit.ans).length}/${r.n}문항 ·
+        ${left ? `남은 시간 ${mmss(left)}` : '시간이 다 됐습니다'}</div>`;
+    f.append(a);
+  } else if (due || wrong) {
     const a = el('a', 'resume');
     a.href = due ? '#/review' : '#/wrong';
     a.innerHTML = due
@@ -182,6 +245,20 @@ route(/^\/$/, () => {
          <div class="rs">간격을 두고 다시 풀면 오래 남습니다</div>`
       : `<div class="rt">오답 ${wrong}개가 남아 있습니다</div>
          <div class="rs">틀린 것부터 다시 풀어 보세요</div>`;
+    f.append(a);
+  }
+
+  const rounds = DB.raw.rounds || [];
+  if (rounds.length) {
+    f.append(el('h2', 'sec', '모의고사'));
+    const a = el('a', 'row');
+    a.href = '#/exams';
+    const taken = rounds.filter(r => Store.history(r.tag).length).length;
+    a.innerHTML =
+      `<div class="row-main"><div class="row-t">회차 ${rounds.length}개</div>
+        <div class="row-s">시간을 재고 실제 시험처럼 · ${
+          taken ? `${taken}회차 응시함` : '아직 응시하지 않았습니다'}</div>
+       </div><div class="row-go">›</div>`;
     f.append(a);
   }
 
@@ -215,15 +292,6 @@ route(/^\/$/, () => {
               '#/q?mode=new'));
   q.append(mk('전체에서 무작위', `${all.n}문항 가운데 섞어서`, '#/q?mode=all'));
   f.append(q);
-
-  const st = el('h2', 'sec', '');
-  st.style.marginBottom = '.4rem';
-  f.append(st);
-  const set = el('a', 'row');
-  set.href = '#/settings';
-  set.innerHTML = `<div class="row-main"><div class="row-t">설정</div>
-    <div class="row-s">기록 관리 · 관리자 모드</div></div><div class="row-go">›</div>`;
-  f.append(set);
 
   paint(f);
 });
@@ -291,6 +359,429 @@ route(/^\/s\/([^/]+)\/([^/]+)$/, (tr, sj) => {
   paint(f);
 });
 
+// ═══════════════════════════════════════════════════════ 회차 모드
+//
+// 낱개 풀이와 규칙이 다르다.
+//   · 푸는 동안 **채점하지 않는다.** 고른 것만 담아 둔다
+//   · 타이머는 **마감 시각**으로 잡는다. 남은 초를 깎으면 앱을 내렸다 켤 때
+//     시간이 되살아난다 — 벽시계 기준이어야 백그라운드로 가도 맞다
+//   · 중단하고 나가도 이어진다 (`Store.d.sit`)
+//   · **제출할 때** 비로소 채점하고 `att` 에 기록한다. 중간 이탈이 오답이 되면 안 된다
+
+const MIN = 60000;
+
+function sitLeft(s) { return Math.max(0, s.endsAt - Date.now()); }
+function mmss(ms) {
+  const t = Math.ceil(ms / 1000);
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+
+/** 응시 시작. 이미 진행 중인 다른 회차가 있으면 확인받는다. */
+function sitStart(tag) {
+  const r = DB.round(tag);
+  const cur = Store.d.sit;
+  if (cur && cur.tag !== tag) {
+    if (!confirm(`「${DB.round(cur.tag).title}」를 푸는 중입니다.\n`
+                 + '그 답안은 사라집니다. 새로 시작할까요?')) return false;
+  }
+  Store.d.sit = {
+    tag, at: Date.now(), endsAt: Date.now() + r.min * MIN,
+    ans: {}, flag: {}, at_no: 1,
+  };
+  Store.save();
+  return true;
+}
+
+/** 제출 — 여기서만 채점하고 기록한다. */
+function sitSubmit(auto) {
+  const s = Store.d.sit;
+  if (!s) return;
+  const items = DB.roundItems(s.tag);
+  let score = 0;
+  for (const it of items) {
+    const chosen = s.ans[it.no] || null;
+    const ok = chosen === it.an;
+    if (ok) score++;
+    // 회차에서 푼 것도 푼 것이다. 안 그러면 회차 오답이 복습에 안 뜬다.
+    // 안 고른 문항도 **틀린 것으로** 기록한다 — 시험은 빈칸이 오답이다
+    Store.record(it.id, chosen, ok, 0);
+  }
+  const rec = {
+    at: Date.now(), score, n: items.length,
+    sec: Math.round((Date.now() - s.at) / 1000),
+    auto: auto ? 1 : 0,
+    ans: { ...s.ans },
+  };
+  (Store.d.exams[s.tag] ||= []).push(rec);
+  Store.d.sit = null;
+  Store.save();
+  LAST_EXAM = { tag: rec.at && s.tag, rec };
+  location.hash = `#/result/${s.tag}`;
+}
+
+let LAST_EXAM = null;
+let SIT_TICK = null;
+
+function stopTick() { if (SIT_TICK) { clearInterval(SIT_TICK); SIT_TICK = null; } }
+
+// ── 회차 목록 ────────────────────────────────────────────────────────
+route(/^\/exams$/, () => {
+  setTitle('모의고사');
+  stopTick();
+  const f = document.createDocumentFragment();
+  const rounds = DB.raw.rounds || [];
+
+  if (!rounds.length) {
+    f.append(el('div', 'empty', '<b>회차가 없습니다</b>'));
+    return paint(f);
+  }
+
+  const cur = Store.d.sit;
+  if (cur) {
+    const r = DB.round(cur.tag);
+    const left = sitLeft(cur);
+    const a = el('a', 'resume');
+    a.href = `#/exam/${cur.tag}`;
+    a.innerHTML = `<div class="rt">「${esc(r.title)}」 푸는 중</div>
+      <div class="rs">${Object.keys(cur.ans).length}/${r.n}문항 · 남은 시간 ${mmss(left)}
+      ${left ? '' : ' — 시간이 다 됐습니다'}</div>`;
+    f.append(a);
+  }
+
+  f.append(el('h2', 'sec', `회차 ${rounds.length}개`));
+  const list = el('div', 'list');
+  for (const r of rounds) {
+    const best = Store.best(r.tag);
+    const hist = Store.history(r.tag);
+    const a = el('a', 'row');
+    a.href = `#/exam/${r.tag}`;
+    const sub = hist.length
+      ? `${hist.length}회 응시 · 최고 ${Math.round(best * 100)}점`
+      : '아직 응시하지 않았습니다';
+    a.innerHTML =
+      `<div class="row-main">
+         <div class="row-s">${esc(r.brand)}</div>
+         <div class="row-t">${esc(r.title)}</div>
+         <div class="row-s">${r.n}문항 · ${r.min}분 · ${sub}</div>
+       </div><div class="row-go">›</div>`;
+    if (hist.length) {
+      const b = el('div', 'bar');
+      const i = el('i'); i.style.width = Math.round(best * 100) + '%';
+      if (best >= 0.8) i.classList.add('good');
+      b.append(i); a.querySelector('.row-main').append(b);
+    }
+    list.append(a);
+  }
+  f.append(list);
+
+  f.append(el('p', 'hint',
+    '실제 시험처럼 시간을 재고, 푸는 동안 정답을 보여 주지 않습니다. '
+    + '제출해야 채점하고 그때 오답노트와 복습에 들어갑니다.'));
+  paint(f);
+});
+
+// ── 회차 시작 화면 ───────────────────────────────────────────────────
+route(/^\/exam\/([^/]+)$/, (tag) => {
+  const r = DB.round(tag);
+  if (!r) return go('/exams');
+  stopTick();
+  setTitle(r.title);
+
+  const f = document.createDocumentFragment();
+  const cur = Store.d.sit && Store.d.sit.tag === tag ? Store.d.sit : null;
+
+  const card = el('div', 'field');
+  card.innerHTML =
+    `<div class="row-s">${esc(r.brand)}</div>
+     <div class="hero-t" style="margin:.15rem 0 .5rem">${esc(r.title)}</div>
+     <div class="kpis">
+       <div class="kpi"><div class="v">${r.n}</div><div class="k">문항</div></div>
+       <div class="kpi"><div class="v">${r.min}</div><div class="k">분</div></div>
+       <div class="kpi"><div class="v">${Math.round(r.min * 60 / r.n)}</div>
+         <div class="k">문항당 초</div></div>
+     </div>`;
+  f.append(card);
+
+  f.append(el('h2', 'sec', '영역 구성'));
+  const comp = el('div', 'list');
+  let from = 1;
+  for (const [area, n] of r.areas) {
+    const row = el('div', 'row');
+    row.style.cursor = 'default';
+    row.innerHTML = `<div class="row-main"><div class="row-t">${esc(area)}</div>
+      <div class="row-s">${from}~${from + n - 1}번</div></div>
+      <div class="row-n">${n}문항</div>`;
+    from += n;
+    comp.append(row);
+  }
+  f.append(comp);
+
+  const hist = Store.history(tag);
+  if (hist.length) {
+    f.append(el('h2', 'sec', `지난 성적 ${hist.length}회`));
+    const list = el('div', 'list');
+    for (const h of hist.slice().reverse().slice(0, 5)) {
+      const d = new Date(h.at);
+      const row = el('div', 'row');
+      row.style.cursor = 'default';
+      row.innerHTML =
+        `<div class="row-main">
+           <div class="row-t">${h.score} / ${h.n}점</div>
+           <div class="row-s">${d.getMonth() + 1}월 ${d.getDate()}일 ·
+             ${Math.floor(h.sec / 60)}분 ${h.sec % 60}초 소요${h.auto ? ' · 시간 초과' : ''}</div>
+         </div><div class="row-n">${Math.round(h.score / h.n * 100)}%</div>`;
+      list.append(row);
+    }
+    f.append(list);
+  }
+
+  paint(f);
+
+  const foot = el('div', 'foot');
+  const inner = el('div', 'foot-in');
+  if (cur) {
+    const left = sitLeft(cur);
+    const b = el('button', 'btn', left ? `이어하기 · ${mmss(left)} 남음` : '시간 초과 — 제출');
+    b.onclick = () => left ? go(`#/sit/${tag}`) : sitSubmit(true);
+    const c = el('button', 'btn ghost', '버리기');
+    c.onclick = () => {
+      if (!confirm('푼 답안이 사라집니다. 계속할까요?')) return;
+      Store.d.sit = null; Store.save(); render();
+    };
+    inner.append(c, b);
+  } else {
+    const b = el('button', 'btn', `${r.min}분 시작`);
+    b.onclick = () => { if (sitStart(tag)) go(`#/sit/${tag}`); };
+    inner.append(b);
+  }
+  foot.append(inner);
+  document.body.append(foot);
+  $('#view').className = 'view solo';
+});
+
+// ── 응시 ─────────────────────────────────────────────────────────────
+route(/^\/sit\/([^/]+)$/, (tag) => {
+  const s = Store.d.sit;
+  if (!s || s.tag !== tag) return go(`#/exam/${tag}`);
+  if (sitLeft(s) <= 0) return sitSubmit(true);
+  drawSit();
+});
+
+function drawSit() {
+  const s = Store.d.sit;
+  const r = DB.round(s.tag);
+  const items = DB.roundItems(s.tag);
+  const idx = Math.min(Math.max(s.at_no, 1), items.length) - 1;
+  const it = items[idx];
+  s.at_no = idx + 1;
+
+  setTitle(`${it.no} / ${items.length}`);
+  $('#view').className = 'view solo';
+
+  // 상단 우측 — 타이머와 답안지
+  const tr = $('#topRight');
+  tr.innerHTML = '';
+  const clock = el('button', 'clock', mmss(sitLeft(s)));
+  clock.onclick = () => openOmr();
+  const omr = el('button', null, '답안지');
+  omr.onclick = () => openOmr();
+  tr.append(clock, omr);
+
+  stopTick();
+  SIT_TICK = setInterval(() => {
+    if (!Store.d.sit) return stopTick();
+    const left = sitLeft(Store.d.sit);
+    clock.textContent = mmss(left);
+    clock.classList.toggle('warn', left <= 5 * MIN);
+    if (left <= 0) { stopTick(); alert('시간이 다 됐습니다. 제출합니다.'); sitSubmit(true); }
+  }, 500);
+
+  const f = document.createDocumentFragment();
+
+  const pr = el('div', 'qprog');
+  pr.append(el('i'));
+  pr.querySelector('i').style.width = (idx / items.length * 100) + '%';
+  f.append(pr);
+
+  const meta = el('div', 'qmeta');
+  meta.innerHTML = `<span>${esc(it.sj)}</span>`;
+  const flag = el('button', 'flagbtn' + (s.flag[it.no] ? ' on' : ''),
+                  s.flag[it.no] ? '★ 표시함' : '☆ 나중에');
+  flag.onclick = () => {
+    s.flag[it.no] = s.flag[it.no] ? 0 : 1; Store.save(); drawSit();
+  };
+  meta.append(flag);
+  f.append(meta);
+
+  if (it.pg != null) {
+    const pg = DB.passage(it.pg);
+    if (pg.lead) f.append(el('div', 'lead', pg.lead));
+    f.append(el('div', 'passage', pg.body));
+  } else if (it.ld) {
+    f.append(el('div', 'lead', it.ld));
+  }
+  if (it.mt) f.append(el('div', 'material', it.mt));
+
+  f.append(el('h1', 'stem', esc(it.st)));
+
+  const cs = el('div', 'choices');
+  it.ch.forEach((c, n) => {
+    const b = el('button', 'ch' + (s.ans[it.no] === n + 1 ? ' sel' : ''));
+    b.innerHTML = `<span class="no">${CIRC[n]}</span><span class="tx">${c}</span>`;
+    b.onclick = () => {
+      // 같은 것을 다시 누르면 지운다 — 시험지에서 지우개를 쓰는 것과 같다
+      s.ans[it.no] = s.ans[it.no] === n + 1 ? undefined : n + 1;
+      if (s.ans[it.no] === undefined) delete s.ans[it.no];
+      Store.save();
+      cs.querySelectorAll('.ch').forEach((x, k) =>
+        x.classList.toggle('sel', s.ans[it.no] === k + 1));
+    };
+    cs.append(b);
+  });
+  f.append(cs);
+  paint(f);
+
+  // 하단 — 이전 / 다음 / 제출
+  document.querySelectorAll('.foot').forEach(x => x.remove());
+  const foot = el('div', 'foot');
+  const inner = el('div', 'foot-in');
+  const prev = el('button', 'btn ghost', '‹ 이전');
+  prev.disabled = idx === 0;
+  prev.onclick = () => { s.at_no = idx; Store.save(); drawSit(); };
+  inner.append(prev);
+  if (idx < items.length - 1) {
+    const nx = el('button', 'btn', '다음 ›');
+    nx.onclick = () => { s.at_no = idx + 2; Store.save(); drawSit(); };
+    inner.append(nx);
+  } else {
+    const sb = el('button', 'btn', '제출하기');
+    sb.onclick = () => askSubmit();
+    inner.append(sb);
+  }
+  foot.append(inner);
+  document.body.append(foot);
+}
+
+function askSubmit() {
+  const s = Store.d.sit;
+  const items = DB.roundItems(s.tag);
+  const blank = items.filter(i => !s.ans[i.no]).map(i => i.no);
+  let msg = '제출하면 채점되고 답을 고칠 수 없습니다.';
+  if (blank.length) {
+    msg = `아직 답하지 않은 문항이 ${blank.length}개 있습니다.\n`
+        + `(${blank.slice(0, 12).join(', ')}${blank.length > 12 ? ' …' : ''})\n\n`
+        + '빈칸은 오답으로 처리됩니다. 그래도 제출할까요?';
+  }
+  if (confirm(msg)) { stopTick(); sitSubmit(false); }
+}
+
+/** OMR 답안지 — 번호 격자. 푼 것·표시한 것을 한눈에 보고 점프한다. */
+function openOmr() {
+  const s = Store.d.sit;
+  if (!s) return;
+  const items = DB.roundItems(s.tag);
+  const wrap = el('div', 'sheet');
+  const box = el('div', 'sheet-in');
+
+  const head = el('div', 'sheet-head');
+  head.innerHTML = `<b>답안지</b><span>${Object.keys(s.ans).length} / ${items.length} 표기</span>`;
+  const x = el('button', 'sheet-x', '✕');
+  x.onclick = () => wrap.remove();
+  head.append(x);
+  box.append(head);
+
+  const grid = el('div', 'omr');
+  for (const it of items) {
+    const b = el('button', 'omr-c');
+    if (s.ans[it.no]) b.classList.add('done');
+    if (s.flag[it.no]) b.classList.add('flag');
+    if (it.no === s.at_no) b.classList.add('here');
+    b.innerHTML = `<i>${it.no}</i><em>${s.ans[it.no] ? CIRC[s.ans[it.no] - 1] : '·'}</em>`;
+    b.onclick = () => { s.at_no = it.no; Store.save(); wrap.remove(); drawSit(); };
+    grid.append(b);
+  }
+  box.append(grid);
+
+  const sb = el('button', 'btn', '제출하기');
+  sb.style.marginTop = '.8rem';
+  sb.onclick = () => { wrap.remove(); askSubmit(); };
+  box.append(sb);
+
+  wrap.append(box);
+  wrap.onclick = e => { if (e.target === wrap) wrap.remove(); };
+  document.body.append(wrap);
+}
+
+// ── 결과 ─────────────────────────────────────────────────────────────
+route(/^\/result\/([^/]+)$/, (tag) => {
+  stopTick();
+  const r = DB.round(tag);
+  const hist = Store.history(tag);
+  const rec = (LAST_EXAM && LAST_EXAM.rec) || hist[hist.length - 1];
+  if (!r || !rec) return go('/exams');
+  setTitle(`${r.title} 결과`);
+
+  const items = DB.roundItems(tag);
+  const f = document.createDocumentFragment();
+  const rate = pct(rec.score, rec.n);
+
+  const k = el('div', 'kpis');
+  k.innerHTML =
+    `<div class="kpi"><div class="v">${rec.score}</div><div class="k">/ ${rec.n}점</div></div>
+     <div class="kpi"><div class="v">${rate}%</div><div class="k">정답률</div></div>
+     <div class="kpi"><div class="v">${Math.floor(rec.sec / 60)}분</div>
+       <div class="k">소요${rec.auto ? ' (시간 초과)' : ''}</div></div>`;
+  f.append(k);
+
+  if (hist.length > 1) {
+    const prev = hist[hist.length - 2];
+    const diff = rate - pct(prev.score, prev.n);
+    f.append(el('p', 'hint', diff === 0 ? '지난번과 같은 점수입니다.'
+      : `지난번보다 ${Math.abs(diff)}%p ${diff > 0 ? '올랐습니다.' : '내렸습니다.'}`));
+  }
+
+  f.append(el('h2', 'sec', '영역별'));
+  const list = el('div', 'list');
+  for (const [area] of r.areas) {
+    const sub = items.filter(i => i.sj === area);
+    const ok = sub.filter(i => rec.ans[i.no] === i.an).length;
+    const row = el('div', 'row');
+    row.style.cursor = 'default';
+    row.innerHTML = `<div class="row-main"><div class="row-t">${esc(area)}</div>
+      <div class="row-s">${ok} / ${sub.length}문항</div></div>
+      <div class="row-n">${pct(ok, sub.length)}%</div>`;
+    const b = el('div', 'bar');
+    const i = el('i'); i.style.width = pct(ok, sub.length) + '%';
+    if (ok === sub.length) i.classList.add('good');
+    b.append(i); row.querySelector('.row-main').append(b);
+    list.append(row);
+  }
+  f.append(list);
+
+  f.append(el('h2', 'sec', '문항별 — 누르면 해설'));
+  const grid = el('div', 'omr');
+  for (const it of items) {
+    const chosen = rec.ans[it.no];
+    const ok = chosen === it.an;
+    const b = el('button', 'omr-c ' + (ok ? 'ok' : chosen ? 'no' : 'skip'));
+    b.innerHTML = `<i>${it.no}</i><em>${ok ? '○' : chosen ? '✕' : '·'}</em>`;
+    b.onclick = () => go(`#/q?one=${encodeURIComponent(it.id)}`);
+    grid.append(b);
+  }
+  f.append(grid);
+
+  const miss = items.filter(i => rec.ans[i.no] !== i.an);
+  if (miss.length) {
+    const a = el('a', 'resume');
+    a.style.marginTop = '1rem';
+    a.href = `#/q?ids=${miss.map(i => i.id).join(',')}`;
+    a.innerHTML = `<div class="rt">틀린 ${miss.length}문항 다시 풀기</div>
+      <div class="rs">해설을 보며 하나씩</div>`;
+    f.append(a);
+  }
+  paint(f);
+});
+
 // ─────────────────────────────────────────────────────── 화면: 키워드
 route(/^\/kw$/, () => {
   setTitle('키워드');
@@ -336,6 +827,15 @@ route(/^\/wrong$/, () => {
   a.innerHTML = `<div class="rt">오답 ${wrong.length}개 다시 풀기</div>
     <div class="rs">맞히면 목록에서 사라집니다</div>`;
   f.append(a);
+
+  const pdf = el('button', 'btn ghost');
+  pdf.style.cssText = 'width:100%;margin-top:.5rem';
+  pdf.textContent = '오답노트 PDF 용으로 내보내기';
+  pdf.onclick = () => exportWrong();
+  f.append(pdf);
+  f.append(el('p', 'hint',
+    '내려받은 파일로 <code>python tools/wrongnote_pdf.py</code> 를 돌리면 '
+    + '문제와 해설이 함께 실린 인쇄본이 나옵니다.'));
 
   f.append(el('h2', 'sec', '틀린 문제'));
   const list = el('div', 'list');
@@ -438,6 +938,236 @@ route(/^\/stats$/, () => {
   paint(f);
 });
 
+// ─────────────────────────────────────────────────────── 화면: 더보기
+route(/^\/more$/, () => {
+  setTitle('더보기');
+  stopTick();
+  const f = document.createDocumentFragment();
+  const mk = (t, s, href, n) => {
+    const a = el('a', 'row');
+    a.href = href;
+    a.innerHTML = `<div class="row-main"><div class="row-t">${t}</div>
+      <div class="row-s">${s}</div></div>` +
+      (n != null ? `<div class="row-n">${n}</div>` : '') + `<div class="row-go">›</div>`;
+    return a;
+  };
+  const list = el('div', 'list');
+  list.append(mk('검색', '발문·선지·해설을 가로질러 찾습니다', '#/search'));
+  list.append(mk('키워드', '과목을 가로지르는 용어', '#/kw',
+                 DB.raw.keywords.length));
+  list.append(mk('북마크 · 확인 필요', '표시해 둔 문항', '#/marks',
+                 Object.keys(Store.d.mark).length || null));
+  list.append(mk('통계', '과목별 정답률', '#/stats'));
+  list.append(mk('설정', '기록 관리 · 관리자 모드', '#/settings'));
+  f.append(list);
+  paint(f);
+});
+
+// ─────────────────────────────────────────────────────── 화면: 검색
+let SEARCH_Q = '';
+
+route(/^\/search$/, () => {
+  setTitle('검색');
+  stopTick();
+  const f = document.createDocumentFragment();
+
+  const box = el('div', 'searchbar');
+  const inp = el('input');
+  inp.type = 'search'; inp.placeholder = '발문 · 선지 · 해설 · 키워드';
+  inp.value = SEARCH_Q; inp.autocomplete = 'off';
+  box.append(inp);
+  f.append(box);
+  const out = el('div', 'list');
+  f.append(out);
+  paint(f);
+
+  const run = () => {
+    const q = inp.value.trim();
+    SEARCH_Q = q;
+    out.innerHTML = '';
+    if (q.length < 1) {
+      out.append(el('div', 'empty',
+        '<b>무엇을 찾을까요</b>「교착」「B+트리」「사자성어」처럼 적어 보세요.'));
+      return;
+    }
+    const hits = searchItems(q);
+    if (!hits.length) {
+      out.append(el('div', 'empty', `<b>「${esc(q)}」 결과가 없습니다</b>`));
+      return;
+    }
+    out.append(el('h2', 'sec', `${hits.length}문항`));
+    for (const { it, where, snip } of hits.slice(0, 60)) {
+      const a = el('a', 'row');
+      a.href = `#/q?one=${encodeURIComponent(it.id)}`;
+      a.innerHTML =
+        `<div class="row-main">
+           <div class="row-s">${esc(it.sj)} · ${esc(it.ty)}
+             ${it.rd ? `· ${esc(DB.round(it.rd).title)} ${it.no}번` : ''}</div>
+           <div class="row-t" style="font-weight:550;font-size:.95rem">${hl(it.st, q)}</div>
+           ${where === 'stem' ? '' :
+             `<div class="row-s">${where} — ${hl(snip, q)}</div>`}
+         </div><div class="row-go">›</div>`;
+      out.append(a);
+    }
+    if (hits.length > 60) {
+      out.append(el('p', 'hint', `앞의 60개만 보입니다. 검색어를 좁혀 보세요.`));
+    }
+  };
+
+  inp.oninput = run;
+  run();
+  inp.focus();
+});
+
+const stripTags = s => String(s || '').replace(/<[^>]+>/g, ' ');
+
+/** 문항의 **모든 글**을 본다 — 발문·선지·유형·키워드·자료·지문·해설·단평.
+ *
+ * 좁게 잡으면 조용히 빠진다. 「정규화」가 유형 이름에만 있는 문항이 그랬다.
+ * 먼저 걸린 곳을 함께 돌려주어 어디서 잡혔는지 보이게 한다.
+ */
+function searchItems(q) {
+  const n = q.toLowerCase();
+  const has = s => stripTags(s).toLowerCase().includes(n);
+  /** 걸린 자리 앞뒤를 잘라 보여 준다 */
+  const around = (s, pad = 24, len = 70) => {
+    const t = stripTags(s).replace(/\s+/g, ' ').trim();
+    const at = t.toLowerCase().indexOf(n);
+    if (at < 0) return t.slice(0, len);
+    return (at > pad ? '…' : '') + t.slice(Math.max(0, at - pad), at + len - pad).trim();
+  };
+
+  const hits = [];
+  for (const it of DB.items) {
+    if (has(it.st)) { hits.push({ it, where: 'stem' }); continue; }
+
+    const ci = it.ch.findIndex(has);
+    if (ci >= 0) { hits.push({ it, where: `선지 ${CIRC[ci]}`, snip: around(it.ch[ci]) }); continue; }
+
+    if (has(it.ty) || has(it.sj)) {
+      hits.push({ it, where: '분류', snip: `${it.sj} · ${it.ty}` }); continue;
+    }
+    const kw = it.kw.find(k => DB.kwName(k).toLowerCase().includes(n));
+    if (kw != null) { hits.push({ it, where: '키워드', snip: DB.kwName(kw) }); continue; }
+
+    if (it.mt && has(it.mt)) { hits.push({ it, where: '자료', snip: around(it.mt) }); continue; }
+    if (it.pg != null && has(DB.passage(it.pg).body)) {
+      hits.push({ it, where: '지문', snip: around(DB.passage(it.pg).body) }); continue;
+    }
+    if (it.ex && has(it.ex)) { hits.push({ it, where: '해설', snip: around(it.ex) }); continue; }
+
+    const ei = (it.ea || []).findIndex(has);
+    if (ei >= 0) { hits.push({ it, where: '선지 단평', snip: around(it.ea[ei]) }); }
+  }
+  return hits;
+}
+
+/** 찾은 말에 표시를 씌운다. **원문을 이스케이프한 뒤** 씌워야 안전하다. */
+function hl(text, q) {
+  const s = esc(stripTags(text));
+  const t = esc(q);
+  if (!t) return s;
+  const i = s.toLowerCase().indexOf(t.toLowerCase());
+  if (i < 0) return s;
+  return s.slice(0, i) + '<mark>' + s.slice(i, i + t.length) + '</mark>'
+       + s.slice(i + t.length);
+}
+
+// ─────────────────────────────────────────────────────── 화면: 표시
+route(/^\/marks$/, () => {
+  setTitle('북마크 · 확인 필요');
+  stopTick();
+  const f = document.createDocumentFragment();
+  const flags = Store.marked('f');
+  const books = Store.marked('b');
+
+  if (!flags.length && !books.length) {
+    f.append(el('div', 'empty',
+      '<b>표시한 문항이 없습니다</b>문제를 풀다가 ☆ 로 담아 두거나,<br>'
+      + '이상한 점이 보이면 ⚑ 로 표시해 두세요.'));
+    return paint(f);
+  }
+
+  const group = (title, ids, note) => {
+    if (!ids.length) return;
+    f.append(el('h2', 'sec', `${title} ${ids.length}개`));
+    if (note) f.append(el('p', 'hint', note));
+    const list = el('div', 'list');
+    for (const id of ids) {
+      const it = DB.byId.get(id);
+      if (!it) continue;
+      const m = Store.markOf(id) || {};
+      const a = el('a', 'row');
+      a.href = `#/q?one=${encodeURIComponent(id)}`;
+      const rk = Store.d.admin && DB.admin && DB.admin[id] && DB.admin[id].rk;
+      a.innerHTML =
+        `<div class="row-main">
+           <div class="row-s">${esc(it.sj)} · ${esc(it.ty)}
+             ${rk ? `<span class="badge ${rk}">${rk.toUpperCase()}</span>` : ''}</div>
+           <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(it.st.slice(0, 56))}</div>
+           ${m.memo ? `<div class="memo">${esc(m.memo)}</div>` : ''}
+         </div><div class="row-go">›</div>`;
+      list.append(a);
+    }
+    f.append(list);
+  };
+
+  group('확인 필요', flags,
+        '이상하다고 표시한 문항입니다. 아래에서 내보내 주시면 문항을 고칠 수 있습니다.');
+  group('북마크', books, null);
+
+  if (flags.length || books.length) {
+    const b = el('button', 'btn');
+    b.style.marginTop = '1.2rem';
+    b.textContent = '표시 목록 내보내기 (.json)';
+    b.onclick = () => exportMarks();
+    f.append(b);
+    f.append(el('p', 'hint',
+      '내려받은 파일을 전달하시면 어느 문항의 무엇이 문제인지 그대로 읽힙니다. '
+      + '문항 번호·과목·메모가 들어갑니다.'));
+  }
+  paint(f);
+});
+
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`
+       + `${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function download(name, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function exportMarks() {
+  const items = Object.entries(Store.d.mark).map(([id, m]) => {
+    const it = DB.byId.get(id);
+    const o = { id, sj: it ? it.sj : '?', ty: it ? it.ty : '?',
+                stem: it ? it.st.slice(0, 80) : '' };
+    if (it && it.rd) { o.round = it.rd; o.no = it.no; }
+    if (m.f) o.flag = true;
+    if (m.b) o.bookmark = true;
+    if (m.memo) o.memo = m.memo;
+    const rk = DB.admin && DB.admin[id] && DB.admin[id].rk;
+    if (rk) o.risk = rk;
+    return o;
+  });
+  download(`marks-${today()}.json`,
+           JSON.stringify({ v: 1, at: new Date().toISOString(), n: items.length, items },
+                          null, 2));
+}
+
+function exportWrong() {
+  const ids = DB.items.filter(i => Store.isWrong(i.id)).map(i => i.id);
+  download(`wrongnote-${today()}.json`,
+           JSON.stringify({ v: 1, at: new Date().toISOString(), n: ids.length, ids },
+                          null, 2));
+}
+
 // ─────────────────────────────────────────────────────── 화면: 설정
 route(/^\/settings$/, () => {
   setTitle('설정');
@@ -516,6 +1246,8 @@ route(/^\/q\?(.*)$/, (qs) => {
     let pool;
     if (p.get('one')) {
       pool = [DB.byId.get(p.get('one'))].filter(Boolean);
+    } else if (p.get('ids')) {
+      pool = p.get('ids').split(',').map(i => DB.byId.get(i)).filter(Boolean);
     } else if (p.get('mode') === 'wrong') {
       pool = DB.items.filter(i => Store.isWrong(i.id));
     } else if (p.get('mode') === 'due') {
@@ -545,6 +1277,41 @@ route(/^\/q\?(.*)$/, (qs) => {
   drawQuestion();
 });
 
+/** ☆ 북마크 · ⚑ 확인 필요. 문제를 풀다 바로 눌러 두는 자리다. */
+function markBar(id) {
+  const wrap = el('span', 'markbar');
+  const m = () => Store.markOf(id) || {};
+
+  const star = el('button', 'mk');
+  const flag = el('button', 'mk');
+  const paintBtns = () => {
+    const c = m();
+    star.className = 'mk' + (c.b ? ' on' : '');
+    star.textContent = c.b ? '★ 북마크' : '☆ 북마크';
+    flag.className = 'mk' + (c.f ? ' warn' : '');
+    flag.textContent = c.f ? '⚑ 확인 필요' : '⚐ 확인 필요';
+  };
+  star.onclick = () => { Store.toggleMark(id, 'b'); paintBtns(); };
+  flag.onclick = () => {
+    const cur = m();
+    if (cur.f) {
+      Store.toggleMark(id, 'f');
+      if (cur.memo && !confirm('메모도 함께 지울까요?')) Store.setMemo(id, cur.memo);
+      else if (cur.memo) Store.setMemo(id, '');
+    } else {
+      const memo = prompt('무엇이 이상한가요? (그냥 확인만 눌러도 됩니다)',
+                          cur.memo || '');
+      if (memo === null) return;               // 취소
+      Store.toggleMark(id, 'f');
+      if (memo.trim()) Store.setMemo(id, memo.trim());
+    }
+    paintBtns();
+  };
+  paintBtns();
+  wrap.append(star, flag);
+  return wrap;
+}
+
 function shuffle(a) {
   a = a.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -570,11 +1337,14 @@ function drawQuestion() {
   const meta = el('div', 'qmeta');
   meta.innerHTML = `<span>${esc(it.sj)}</span><span class="sep">›</span>
     <span>${esc(it.ty)}</span>` +
+    (it.rd ? `<span class="sep">·</span><span>${esc(DB.round(it.rd).title)}
+      ${it.no}번</span>` : '') +
     (it.df ? `<span class="sep">·</span><span>난이도 ${esc(it.df)}</span>` : '');
   if (Store.d.admin && DB.admin && DB.admin[it.id] && DB.admin[it.id].rk) {
     const rk = DB.admin[it.id].rk;
     meta.append(el('span', `badge ${rk}`, rk.toUpperCase()));
   }
+  meta.append(markBar(it.id));
   f.append(meta);
 
   if (it.pg != null) {
