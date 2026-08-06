@@ -263,6 +263,129 @@ def v_cause():
                           f"함께 뛴 항목 {moved} · 나머지는 주마다 거의 같다")
 
 
+# ── 자원관리 ────────────────────────────────────────────────────────────
+
+def v_weighted():
+    C = {"갑": (85, 70, 90), "을": (78, 88, 80), "병": (90, 75, 72),
+         "정": (72, 92, 85), "무": (88, 80, 78)}
+    W = (0.5, 0.3, 0.2)
+    s_ = {k: round(sum(a * b for a, b in zip(v, W)), 1) for k, v in C.items()}
+    eq = {k: round(sum(v) / 3, 1) for k, v in C.items()}
+    return max(s_, key=s_.get), f"가중 {s_} 1위 {max(s_,key=s_.get)} · 단순평균 1위 {max(eq,key=eq.get)}"
+
+
+def v_quote():
+    Q = {"A": (120000, 0.10, 15000), "B": (135000, 0.15, 0), "C": (128000, 0.05, 10000)}
+    t = {k: unit * 5 * (1 - d) + ship for k, (unit, d, ship) in Q.items()}
+    return min(t, key=t.get), " · ".join(f"{k} {int(v):,}" for k, v in t.items())
+
+
+def v_bus():
+    best = min(((120000 * a + 80000 * b, a, b)
+                for a in range(10) for b in range(12) if 45 * a + 25 * b >= 160))
+    return best[0], f"45인승 {best[1]}대 + 25인승 {best[2]}대 = {best[0]:,}원"
+
+
+def v_sched():
+    T = {"A": (None, 2), "B": ("A", 3), "C": ("A", 1), "D": ("B", 2), "E": ("C", 4)}
+
+    def fin(n):
+        p, d = T[n]
+        return d + (0 if p is None else fin(p))
+
+    ends = {n: fin(n) for n in T}
+    return max(ends.values()), f"종료 {ends} → {max(ends.values())}시간 · 단순 합 {sum(d for _, d in T.values())}"
+
+
+def v_meeting():
+    busy = {"A": {9, 10, 14}, "B": {10, 11, 15}, "C": {9, 11, 16}, "D": {14, 15}}
+    free = [h for h in range(9, 18) if all(h not in v for v in busy.values())]
+    two = [h for h in range(9, 17)
+           if all(h not in v and h + 1 not in v for v in busy.values())]
+    if len(two) != 1:
+        raise AssertionError(f"2시간 연속 가능한 시작이 {two} 다")
+    return two[0], f"모두 비는 시각 {free} · 2시간 연속 시작 {two}"
+
+
+def v_pack():
+    from itertools import combinations
+    it = {"가": (3, 4), "나": (2, 6), "다": (5, 2), "라": (4, 3)}
+    best = max(((sum(it[x][1] for x in c), tuple(sorted(c)))
+                for r in range(1, 5) for c in combinations(it, r)
+                if sum(it[x][0] for x in c) <= 10))
+    return best[1], f"최대 이익 {best[0]} 조합 {best[1]} · 부피당 이익 " +         str({k: round(v[1] / v[0], 2) for k, v in it.items()})
+
+
+def v_overtime():
+    base = 12000
+    night, holi = 3, 4
+    total = base * 1.5 * night + base * 1.5 * holi
+    over = base * 1.5 * 8 + base * 2 * 2          # 휴일 10시간이었다면
+    return int(total), f"평일 {int(base*1.5*night):,} + 휴일 {int(base*1.5*holi):,} = {int(total):,}원 · 휴일 10시간이면 {int(over):,}"
+
+
+def v_trip():
+    d, per, lodge, rail = 3, 25000, 70000, 47500
+    tot = per * d + lodge * (d - 1) + rail * 2
+    return tot, f"일비 {per*d:,} + 숙박 {lodge*(d-1):,}(2박) + 교통 {rail*2:,} = {tot:,}원 · 3박이면 {tot+lodge:,}"
+
+
+def v_reorder():
+    daily, lead, safety = 40, 5, 60
+    return daily * lead + safety, f"{daily}×{lead} + {safety} = {daily*lead+safety}개 · 안전재고 없으면 {daily*lead}"
+
+
+def v_import():
+    usd, rate, qty, tariff = 250, 1340, 40, 0.08
+    krw = usd * rate * qty
+    return int(krw * (1 + tariff)), f"환산 {krw:,} · 관세 포함 {int(krw*(1+tariff)):,}원"
+
+
+def v_exec():
+    b, q = 4800, (980, 1240, 1140)
+    used = sum(q)
+    return (round(used / b * 100), b - used), f"집행 {used}/{b} = {used/b*100:.0f}% · 잔액 {b-used}만 원"
+
+
+def v_deprec():
+    cost, life, salvage, years = 3200, 5, 400, 3
+    per = (cost - salvage) / life
+    return int(cost - per * years), f"연 {per:.0f}만 × {years}년 = {per*years:.0f}만 상각 · 장부가 {cost-per*years:.0f}만"
+
+
+def v_buyrent():
+    buy, keep, rent = 240, 5, 25
+    n = next(m for m in range(1, 60) if buy + keep * m < rent * m)
+    even = buy / (rent - keep)
+    return n, f"손익분기 {even:.0f}개월(같아짐) · 유리해지는 것은 {n}개월째부터"
+
+
+def v_staff():
+    import math
+    shifts, per, days, work = 3, 4, 7, 5
+    need = shifts * per * days / work
+    return math.ceil(need), f"{shifts}×{per}×{days}÷{work} = {need} → {math.ceil(need)}명 · 교대만 세면 {shifts*per}명"
+
+
+def v_order():
+    D = ["월", "화", "수", "목", "금"]
+    T = {"A": ("금", 2), "B": ("수", 1), "C": ("목", 3), "D": ("수", 2)}
+    order = sorted(T, key=lambda k: (D.index(T[k][0]), -T[k][1]))
+    return order[0], f"마감 임박순(동률은 오래 걸리는 것 먼저) → {order}"
+
+
+def v_room():
+    R = {"가": (20, True, True, False), "나": (12, True, True, True),
+         "다": (18, True, True, True), "라": (25, False, True, True)}
+    ok = [k for k, (cap, beam, vid, free) in R.items()
+          if cap >= 15 and beam and vid and free]
+    if len(ok) != 1:
+        raise AssertionError(f"조건을 만족하는 회의실이 {ok} 다")
+    return ok[0], f"충족 {ok[0]} · 탈락 " + str(
+        {k: ("예약" if not v[3] else "수용" if v[0] < 15 else "빔프로젝터")
+         for k, v in R.items() if k not in ok})
+
+
 # ── 명제 — 작은 세계를 전부 만들어 필연인지 본다 ─────────────────────────
 
 def _entails(names, premises, conclusion, n=4):
@@ -360,7 +483,46 @@ REGISTRY = {
     "ncs-prob-common-008": (v_contrapositive, lambda _: 3),
     "ncs-prob-common-015": (v_qualify, lambda w: "갑을병정무".index(w) + 1),
     "ncs-prob-common-020": (v_cause, lambda _: 3),
-    # 나머지(논리오류·모듈·SWOT)는 개념 판정형이다. 계산으로 확정되지 않으므로 등록하지 않는다 —
+    # ── 자원관리 ────────────────────────────────────────────────────
+    "ncs-res-common-001": (v_weighted, lambda w: "갑을병정무".index(w) + 1),
+    "ncs-res-common-002": (v_quote, lambda w: "ABC".index(w) + 1),
+    "ncs-res-common-003": (v_bus, lambda c: {400000: 1, 440000: 2, 480000: 3,
+                                             520000: 4, 560000: 5}[c]),
+    "ncs-res-common-004": (v_sched, lambda h: {7: 1, 8: 2, 10: 3, 12: 4, 14: 5}[h]),
+    "ncs-res-common-005": (v_meeting, lambda h: {10: 1, 11: 2, 12: 3, 14: 4, 17: 5}[h]),
+    "ncs-res-common-006": (v_pack, lambda c: {("가", "나"): 1, ("가", "나", "다"): 2,
+                                              ("가", "나", "라"): 3}[c]),
+    "ncs-res-common-007": (v_overtime, lambda p: {108000: 1, 126000: 2, 144000: 3,
+                                                  162000: 4, 180000: 5}[p]),
+    "ncs-res-common-008": (v_trip, lambda p: {255000: 1, 285000: 2, 310000: 3,
+                                              355000: 4, 380000: 5}[p]),
+    "ncs-res-common-009": (v_reorder, lambda n: {200: 1, 230: 2, 260: 3,
+                                                 290: 4, 320: 5}[n]),
+    "ncs-res-common-010": (v_import, lambda p: {12328000: 1, 13400000: 2,
+                                                14472000: 3, 14740000: 4,
+                                                16080000: 5}[p]),
+    "ncs-res-common-011": (v_exec, lambda t: {(65, 1680): 1, (70, 1440): 2,
+                                              (70, 1680): 3, (75, 1200): 4,
+                                              (75, 1440): 5}[t]),
+    # 012 출장비는 직접비 (선지 ④) — 표준 분류표
+    "ncs-res-common-012": (lambda: (4, "직접비 재료·인건·시설·출장 / 간접비 보험·광고·비품·관리"),
+                           lambda i: i),
+    "ncs-res-common-013": (v_deprec, lambda v: {1320: 1, 1520: 2, 1680: 3,
+                                                1920: 4, 2240: 5}[v]),
+    "ncs-res-common-014": (v_buyrent, lambda m: {10: 1, 12: 2, 13: 3, 15: 4, 20: 5}[m]),
+    "ncs-res-common-015": (v_staff, lambda n: {12: 1, 14: 2, 15: 3, 17: 4, 21: 5}[n]),
+    # 016 소수의 원인이 다수의 결과 → 파레토 (선지 ①)
+    "ncs-res-common-016": (lambda: (1, "롱테일은 정반대로 다수의 합에 주목한다"), lambda i: i),
+    # 017 사람에게 맞는 자리 → 적재적소주의 (선지 ②)
+    "ncs-res-common-017": (lambda: (2, "균형주의는 팀 전체를, 적재적소는 그 사람을 본다"),
+                           lambda i: i),
+    # 018 입고 순서대로 출고 → 선입선출 (선지 ③)
+    "ncs-res-common-018": (lambda: (3, "회전대응은 사용 빈도, 선입선출은 입고 시점"),
+                           lambda i: i),
+    "ncs-res-common-019": (v_order, lambda w: "ABCD".index(w) + 1),
+    "ncs-res-common-020": (v_room, lambda w: "가나다라".index(w) + 1),
+
+    # 나머지(논리오류·모듈·SWOT·어문규범)는 개념 판정형이다. 계산으로 확정되지 않으므로 등록하지 않는다 —
     # 미검증으로 남는 것이 정상이다 (아래 main 의 안내 참조).
 }
 
