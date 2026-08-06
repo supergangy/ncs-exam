@@ -966,6 +966,83 @@ def v_cspl_017() -> tuple[int, str]:
     return mem["a"], f"a: 10 → {mem['a']} · 정수를 값으로 넘겼다면 10(오답①)"
 
 
+# ── 전자계산기구조 ──────────────────────────────────────────────────────
+
+def _twos(v: int, bits: int = 8) -> str:
+    return format(v & (2 ** bits - 1), f"0{bits}b")
+
+
+def v_csca_001() -> tuple[str, str]:
+    v, bits = -5, 8
+    two = _twos(v, bits)
+    ones = format((2 ** bits - 1) ^ abs(v), f"0{bits}b")      # 1의 보수
+    sm = format((1 << (bits - 1)) | abs(v), f"0{bits}b")      # 부호-절댓값
+    back = int(two, 2) - 2 ** bits
+    return two, (f"-5 → 2의보수 {two} (역산 {back}) · "
+                 f"1의보수 {ones}(오답②) · 부호절댓값 {sm}(오답①)")
+
+
+def v_csca_002() -> tuple[str, str]:
+    b = "10110101"
+    n = int(b, 2)
+    return format(n, "X"), (f"{b} = {n} → 16진 {n:X} · 8진 {n:o} · "
+                            f"네 자리씩 {b[:4]}({int(b[:4],2):X}) {b[4:]}({int(b[4:],2):X})")
+
+
+def v_csca_003() -> tuple[str, str]:
+    """IEEE 754 단정도의 지수부를 실제 비트열에서 뽑아 확인한다."""
+    import struct
+    got = {}
+    for v in (1.0, -0.75, 12.5):
+        bits = "".join(f"{x:08b}" for x in struct.pack(">f", v))
+        got[v] = (bits[0], bits[1:9], int(bits[1:9], 2) - 127)
+    exp = got[12.5][1]
+    return exp, (f"12.5 = 1.1001×2^{got[12.5][2]} → 지수부 {exp}({int(exp,2)}) · "
+                 f"1.0 {got[1.0][1]} · -0.75 {got[-0.75][1]} · "
+                 f"바이어스 미적용이면 {format(3,'08b')}(오답⑤)")
+
+
+def v_csca_005() -> tuple[int, str]:
+    k, n, t = 5, 100, 1
+    pipe, seq = (k + n - 1) * t, k * n * t
+    return pipe, (f"{k}단계 {n}명령 — 파이프 {pipe} · 비파이프 {seq}(오답④) · "
+                  f"속도향상 {seq/pipe:.2f}배(이론 {k}) · k+n 이면 {k+n}(오답③)")
+
+
+def v_csca_007() -> tuple[int, str]:
+    import math
+    addr, size, block, way = 32, 32 * 1024, 32, 4
+    lines = size // block
+    sets = lines // way
+    off = int(math.log2(block))
+    idx = int(math.log2(sets))
+    direct = addr - off - int(math.log2(lines))
+    return addr - off - idx, (f"라인 {lines} · 집합 {sets} · offset {off} · index {idx} → "
+                              f"tag {addr - off - idx} · 직접사상이면 {direct}(오답②)")
+
+
+def v_csca_008() -> tuple[int, str]:
+    tc_, tm = 10, 100
+    got = {h: h * tc_ + (1 - h) * tm for h in (0.90, 0.95, 0.99)}
+    return round(got[0.90]), (
+        " · ".join(f"적중률 {int(h*100)}% → {v:.0f}ns" for h, v in got.items())
+        + f" · 단순평균 {(tc_+tm)/2:.0f}(오답④)")
+
+
+def v_csca_012() -> tuple[int, str]:
+    f_, cpi = 2e9, 2.5
+    mips = f_ / (cpi * 1e6)
+    return int(mips), (f"{f_/1e9}GHz ÷ CPI {cpi} → {int(mips)} MIPS · "
+                       f"10억 명령 {1e9*cpi/f_:.2f}초 · 곱하면 {int(f_*cpi/1e6)}(오답⑤)")
+
+
+def v_csca_017() -> tuple[str, str]:
+    """A 를 NAND 두 단자에 넣으면 NOT A. 진리표로 확인한다."""
+    tt = {a: int(not (a and a)) for a in (0, 1)}
+    is_not = all(tt[a] == int(not a) for a in (0, 1))
+    return ("NOT" if is_not else "?"), f"NAND(A,A) 진리표 {tt} · NOT A 와 일치 {is_not}"
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -1222,6 +1299,51 @@ REGISTRY = {
     "major-cspl-common-017": (v_cspl_017, lambda v: {10: 1, 15: 2, 5: 3}[v]),
     # 018 finally 는 예외 여부와 무관하게 항상 (선지 ③)
     "major-cspl-common-018": (lambda: (3, "정리 코드는 항상 돌아야 쓸모가 있다"),
+                              lambda i: i),
+
+    "major-csca-common-001": (v_csca_001, lambda b: {
+        "10000101": 1, "11111010": 2, "11111011": 3,
+        "01111011": 4, "10000110": 5}[b]),
+    "major-csca-common-002": (v_csca_002, lambda h: {"A5": 1, "B5": 2, "D5": 3,
+                                                     "5B": 4}[h]),
+    "major-csca-common-003": (v_csca_003, lambda e: {
+        "10000001": 1, "10000010": 2, "10000011": 3,
+        "01111101": 4, "00000011": 5}[e]),
+    # 004 자리올림 **입력**을 받는 것은 전가산기 (선지 ③이 틀린 진술)
+    "major-csca-common-004": (lambda: (3, "반가산기는 입력이 둘뿐. S=A⊕B, C=A·B"),
+                              lambda i: i),
+    "major-csca-common-005": (v_csca_005, lambda c: {100: 1, 104: 2, 105: 3,
+                                                     500: 4, 505: 5}[c]),
+    # 006 앞 명령의 결과를 기다린다 → 데이터 해저드 (선지 ②)
+    "major-csca-common-006": (lambda: (2, "R1 이 1번의 출력이자 2번의 입력. 포워딩으로 완화"),
+                              lambda i: i),
+    "major-csca-common-007": (v_csca_007, lambda t: {14: 1, 17: 2, 19: 3,
+                                                     22: 4, 27: 5}[t]),
+    "major-csca-common-008": (v_csca_008, lambda t: {10: 1, 15: 2, 19: 3,
+                                                     55: 4, 100: 5}[t]),
+    # 009 직접 사상은 자리가 하나라 교체 알고리즘이 필요 없다 (선지 ④)
+    "major-csca-common-009": (lambda: (4, "고를 것이 없으면 알고리즘도 없다"), lambda i: i),
+    # 010 피연산자 위치가 정해진 스택 구조가 0-주소 (선지 ②)
+    "major-csca-common-010": (lambda: (2, "3-주소 레지스터 · 2-주소 레지스터메모리 · "
+                                          "1-주소 누산기 · 0-주소 스택"), lambda i: i),
+    # 011 기억장치를 두 번 거친다 → 간접 주소 (선지 ③)
+    "major-csca-common-011": (lambda: (3, "즉시 0회 · 직접 1회 · 간접 2회"), lambda i: i),
+    "major-csca-common-012": (v_csca_012, lambda m: {500: 1, 800: 2, 2000: 3,
+                                                     5000: 5}[m]),
+    # 013 요청 → 현재 명령 완료 → 상태 저장 → 루틴 → 복귀 (선지 ①)
+    "major-csca-common-013": (lambda: (1, "명령 중간의 상태는 저장할 수 없다"), lambda i: i),
+    # 014 바이트마다 CPU 개입은 인터럽트 방식 (선지 ③이 틀린 진술)
+    "major-csca-common-014": (lambda: (3, "DMA 는 시작과 끝에만 개입한다"), lambda i: i),
+    # 015 고정 길이라 파이프라인에 유리 — 나머지 넷은 CISC (선지 ②)
+    "major-csca-common-015": (lambda: (2, "RISC 적은 명령·고정 길이·많은 레지스터·하드와이어드"),
+                              lambda i: i),
+    # 016 레지스터 → 캐시 → 주기억 → 보조기억 (선지 ①)
+    "major-csca-common-016": (lambda: (1, "속도·용량·단가가 같은 방향으로 움직인다"),
+                              lambda i: i),
+    "major-csca-common-017": (v_csca_017, lambda g: {"AND": 1, "OR": 2, "NOT": 3,
+                                                     "XOR": 4}[g]),
+    # 018 결과를 누산기에 저장하는 것은 실행 주기 (선지 ⑤)
+    "major-csca-common-018": (lambda: (5, "인출은 PC→MAR · 메모리→MBR · MBR→IR · PC 증가"),
                               lambda i: i),
 }
 
