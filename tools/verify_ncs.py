@@ -177,12 +177,143 @@ def v_clock() -> tuple[float, str]:
 
 
 # ── 조건추리 — 전수 탐색으로 **답이 하나뿐인지** 확인한다 ────────────────
+#
+# 해가 둘 이상이면 문항이 성립하지 않는다. 검증기가 그것부터 본다.
 
-def solve_unique(people, positions, rules) -> tuple[list, str]:
-    """규칙을 만족하는 배치를 모두 찾는다. **하나가 아니면 문항이 성립하지 않는다.**"""
-    ok = [dict(zip(people, p)) for p in permutations(positions, len(people))
+def _unique(people, slots, rules, ask):
+    """규칙을 만족하는 배치를 모두 찾고, **하나뿐일 때만** 물어본 값을 돌려준다."""
+    ok = [dict(zip(people, p)) for p in permutations(slots, len(people))
           if all(r(dict(zip(people, p))) for r in rules)]
-    return ok, f"가능한 배치 {len(ok)}가지"
+    if len(ok) != 1:
+        raise AssertionError(f"해가 {len(ok)}가지다 — 문항이 성립하지 않는다: {ok[:4]}")
+    return ask(ok[0]), ok[0]
+
+
+def v_floor():
+    people, slots = list("ABCDE"), [1, 2, 3, 4, 5]
+    rules = [lambda m: m["A"] > m["B"], lambda m: m["C"] == 5,
+             lambda m: m["D"] == 1, lambda m: m["E"] == 3]
+    who, sol = _unique(people, slots, rules,
+                       lambda m: next(k for k, v in m.items() if v == 4))
+    return who, f"해 1가지 {sol} → 4층은 {who}"
+
+
+def v_duty():
+    days = ["월", "화", "수", "목", "금"]
+    i = days.index
+    rules = [lambda m: m["A"] == "수", lambda m: m["C"] == "월",
+             lambda m: i(m["E"]) == i(m["B"]) - 1]
+    who, sol = _unique(list("ABCDE"), days, rules,
+                       lambda m: next(k for k, v in m.items() if v == "화"))
+    return who, f"해 1가지 {sol} → 화요일은 {who}"
+
+
+def v_dept():
+    depts = ["기획", "운영", "안전", "기술"]
+    rules = [lambda m: m["을"] == "기획",
+             lambda m: m["병"] not in ("운영", "안전"),
+             lambda m: m["정"] == "운영"]
+    who, sol = _unique(list("갑을병정"), depts, rules,
+                       lambda m: next(k for k, v in m.items() if v == "기술"))
+    return who, f"해 1가지 {sol} → 기술팀은 {who}"
+
+
+def v_race():
+    rules = [lambda m: m["C"] == 5, lambda m: m["E"] == m["A"] + 1,
+             lambda m: m["D"] == 2]
+    who, sol = _unique(list("ABCDE"), [1, 2, 3, 4, 5], rules,
+                       lambda m: next(k for k, v in m.items() if v == 3))
+    return who, f"해 1가지 {sol} → 3등은 {who}"
+
+
+def v_liar():
+    """한 명만 참을 말한다. 후보를 넣어 참인 진술 수를 센다."""
+    cnt = {}
+    for c in "갑을병정":
+        s = {"갑": c != "갑", "을": c == "병", "병": c == "정", "정": c != "정"}
+        cnt[c] = sum(s.values())
+    ones = [c for c, n in cnt.items() if n == 1]
+    if len(ones) != 1:
+        raise AssertionError(f"참이 하나인 경우가 {len(ones)}가지다: {ones}")
+    return ones[0], f"참인 진술 수 {cnt} → 한 명만 참인 경우는 {ones[0]}"
+
+
+def v_qualify():
+    """지원 자격 — 세 조건을 모두 넘긴 사람이 하나뿐인지 표로 대조한다."""
+    C = {"갑": (2, True, True), "을": (5, False, True), "병": (4, True, False),
+         "정": (3, True, True), "무": (6, True, False)}
+    ok = [k for k, (y, lic, edu) in C.items() if y >= 3 and lic and edu]
+    if len(ok) != 1:
+        raise AssertionError(f"자격을 갖춘 사람이 {len(ok)}명이다: {ok}")
+    fail = {k: ("경력" if y < 3 else "자격증" if not lic else "교육")
+            for k, (y, lic, edu) in C.items() if k not in ok}
+    return ok[0], f"충족 {ok[0]} · 탈락 사유 {fail}"
+
+
+def v_cause():
+    """지연이 뛴 주에 **함께 뛴 항목**이 하나뿐인지 본다."""
+    W = {"지연": [4, 5, 18, 4], "이용객": [82, 84, 83, 85],
+         "정비지연": [1, 2, 1, 2], "안전문고장": [0, 1, 11, 0]}
+    spike = W["지연"].index(max(W["지연"]))
+    moved = [k for k, v in W.items() if k != "지연"
+             and v[spike] >= 3 * (sum(v) - v[spike]) / 3]
+    if moved != ["안전문고장"]:
+        raise AssertionError(f"함께 뛴 항목이 {moved} 다")
+    return "안전문고장", (f"{spike+1}주차 지연 {W['지연'][spike]}건 · "
+                          f"함께 뛴 항목 {moved} · 나머지는 주마다 거의 같다")
+
+
+# ── 명제 — 작은 세계를 전부 만들어 필연인지 본다 ─────────────────────────
+
+def _entails(names, premises, conclusion, n=4):
+    import itertools
+    for a in itertools.product([0, 1], repeat=len(names) * n):
+        W = {p: {j for j in range(n) if a[i * n + j]}
+             for i, p in enumerate(names)}
+        if all(pr(W) for pr in premises) and not conclusion(W):
+            return False, {k: sorted(v) for k, v in W.items()}
+    return True, None
+
+
+def v_syllogism():
+    """신입 → 교육 → 배지. 이어 붙인 결론만 참이고 역·이는 아니다."""
+    N = ["신입", "교육", "배지"]
+    pre = [lambda W: W["신입"] <= W["교육"], lambda W: W["교육"] <= W["배지"]]
+    good, _ = _entails(N, pre, lambda W: W["신입"] <= W["배지"])
+    bad1, c1 = _entails(N, pre, lambda W: W["교육"] <= W["신입"])
+    bad2, c2 = _entails(N, pre, lambda W: W["배지"] <= W["신입"])
+    if not good or bad1 or bad2:
+        raise AssertionError("함의 관계가 예상과 다르다")
+    return "신입→배지", f"이어 붙인 결론 참 · 역 둘 다 반례 있음 {c1} / {c2}"
+
+
+def v_existential():
+    """∃(정비∩야간), 야간→자격 ⊨ ∃(정비∩야간) 은 전제 그대로. 전칭은 안 나온다."""
+    N = ["정비", "야간", "자격"]
+    pre = [lambda W: bool(W["정비"] & W["야간"]), lambda W: W["야간"] <= W["자격"]]
+    good, _ = _entails(N, pre, lambda W: bool(W["정비"] & W["야간"]))
+    bad, c = _entails(N, pre, lambda W: W["정비"] <= W["자격"])
+    if not good or bad:
+        raise AssertionError("함의 관계가 예상과 다르다")
+    return "∃(정비∩야간)", f"존재 결론 참 · 전칭(모든 정비사→자격) 반례 {c}"
+
+
+def v_contrapositive():
+    """p→q 에서 참인 것은 대우뿐. 역·이는 반례가 있다."""
+    import itertools
+    def tt(prem, con):
+        for vals in itertools.product([0, 1], repeat=2):
+            v = dict(zip("pq", vals))
+            if all(f(v) for f in prem) and not con(v):
+                return False, v
+        return True, None
+    imp = lambda v: (not v["p"]) or v["q"]
+    ok, _ = tt([imp, lambda v: not v["q"]], lambda v: not v["p"])
+    r1, c1 = tt([imp, lambda v: v["q"]], lambda v: v["p"])
+    r2, c2 = tt([imp, lambda v: not v["p"]], lambda v: not v["q"])
+    if not ok or r1 or r2:
+        raise AssertionError("대우 관계가 예상과 다르다")
+    return "대우", f"대우 참 · 후건 긍정 반례 {c1} · 전건 부정 반례 {c2}"
 
 
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
@@ -217,6 +348,20 @@ REGISTRY = {
     "ncs-math-common-018": (v_lcm_time, lambda h: {8: 1, 9: 2, 10: 3, 11: 4, 12: 5}[h]),
     "ncs-math-common-019": (v_seq, lambda n: {36: 1, 40: 2, 42: 3, 44: 4, 48: 5}[n]),
     "ncs-math-common-020": (v_clock, lambda a: {110: 1, 120: 2, 125: 3, 130: 4, 140: 5}[round(a)]),
+
+    # ── 문제해결 ────────────────────────────────────────────────────
+    "ncs-prob-common-001": (v_floor, lambda w: "ABCDE".index(w) + 1),
+    "ncs-prob-common-002": (v_duty, lambda w: "ABCDE".index(w) + 1),
+    "ncs-prob-common-003": (v_dept, lambda w: "갑을병정".index(w) + 1),
+    "ncs-prob-common-004": (v_race, lambda w: "ABCDE".index(w) + 1),
+    "ncs-prob-common-005": (v_liar, lambda w: "갑을병정".index(w) + 1),
+    "ncs-prob-common-006": (v_syllogism, lambda _: 2),
+    "ncs-prob-common-007": (v_existential, lambda _: 2),
+    "ncs-prob-common-008": (v_contrapositive, lambda _: 3),
+    "ncs-prob-common-015": (v_qualify, lambda w: "갑을병정무".index(w) + 1),
+    "ncs-prob-common-020": (v_cause, lambda _: 3),
+    # 나머지(논리오류·모듈·SWOT)는 개념 판정형이다. 계산으로 확정되지 않으므로 등록하지 않는다 —
+    # 미검증으로 남는 것이 정상이다 (아래 main 의 안내 참조).
 }
 
 
