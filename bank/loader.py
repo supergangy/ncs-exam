@@ -26,6 +26,7 @@ ID_RE = re.compile(r"^(ncs|major)-[a-z]+-[a-z0-9]+-\d{3}$")
 #   mid    표준 문서·규격에서 값이 고정된다 (OSI 계층·포트 번호·격리수준 표)
 #   high   교과서 서술에 의존한다. **사람이 확인해야 한다**
 RISK = ("low", "mid", "high")
+TAG_RE = re.compile(r"<[a-zA-Z/!]")
 
 
 def _load(path: pathlib.Path) -> list[dict]:
@@ -56,6 +57,16 @@ def load_all() -> list[dict]:
             if it["kind"] == "major" and r not in RISK:
                 raise SystemExit(f"[중단] 직무 문항에 risk 가 없거나 값이 다르다: {i}\n"
                                  f"  {RISK} 중 하나여야 한다 (지금 {r!r})")
+            # 규칙 3-7 (`D46`·`D59`) — **발문·머리글은 평문이다.**
+            # `selfcheck.py` 의 7a 검사가 회차만 보아 은행이 그대로 새어 나갔다.
+            # 강조하고 싶으면 태그가 아니라 문장을 고쳐 쓴다.
+            for fname, val in (("lead", it.get("lead")),
+                               *(("stem", q.get("stem")) for q in it["questions"])):
+                if val and TAG_RE.search(val):
+                    raise SystemExit(
+                        f"[중단] {fname} 에 태그가 있다 (규칙 3-7 · D46): {i}\n"
+                        f"  {val}\n"
+                        f"  발문은 평문이다. 굵게 잡으면 어디를 봐야 할지 미리 알려 준다.")
             seen[i] = str(p)
             it["_file"] = str(p.relative_to(HERE))
             out.append(it)

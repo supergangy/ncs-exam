@@ -67,7 +67,7 @@ ITEMS = [
         "area": "전자계산기구조", "lead": None, "passage": None,
         "questions": [{
             "type": "수체계",
-            "stem": "2진수 <code>10110101</code> 을 16진수로 바꾼 값은?",
+            "stem": "2진수 10110101 을 16진수로 바꾼 값은?",
             "material": None,
             "choices": ["A5", "B5", "D5", "5B", "165"],
             "answer": 2,
@@ -906,7 +906,7 @@ ITEMS = [
         "area": "전자계산기구조", "lead": None, "passage": None,
         "questions": [{
             "type": "명령어",
-            "stem": "명령어 인출(fetch) 주기에 일어나는 일이 <b>아닌</b> 것은?",
+            "stem": "명령어 인출(fetch) 주기에 일어나지 않는 일은?",
             "material": None,
             "choices": [
                 "PC 의 값을 MAR 로 옮긴다.",

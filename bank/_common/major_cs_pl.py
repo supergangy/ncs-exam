@@ -20,7 +20,7 @@ ITEMS = [
         "area": "프로그래밍언어", "lead": None, "passage": None,
         "questions": [{
             "type": "매개변수",
-            "stem": "다음 프로그램을 <b>값 호출(call by value)</b>로 실행했을 때 출력은?",
+            "stem": "다음 프로그램을 값 호출(call by value)로 실행했을 때 출력은?",
             "material": (
                 '<div class="box"><div class="box-title">&lt;코드&gt;</div>'
                 "<p><code>swap(x, y) {<br>"
@@ -81,7 +81,7 @@ ITEMS = [
         "area": "프로그래밍언어", "lead": None, "passage": None,
         "questions": [{
             "type": "재귀",
-            "stem": "<code>f(6)</code>을 호출했을 때 함수 <code>f</code>가 호출되는 총 횟수는?",
+            "stem": "f(6) 을 호출했을 때 함수 f 가 호출되는 총 횟수는?",
             "material": (
                 '<div class="box"><div class="box-title">&lt;코드&gt;</div>'
                 "<p><code>int f(int n) {<br>"
@@ -193,7 +193,7 @@ ITEMS = [
         "area": "프로그래밍언어", "lead": None, "passage": None,
         "questions": [{
             "type": "자료구조",
-            "stem": "중위 표기식 <code>(A + B) * C - D</code> 를 후위 표기로 바꾼 것은?",
+            "stem": "중위 표기식 (A + B) * C - D 를 후위 표기로 바꾼 것은?",
             "material": None,
             "choices": [
                 "A B + C * D -", "A B C + * D -", "A + B C * D -",
@@ -244,7 +244,7 @@ ITEMS = [
         "area": "프로그래밍언어", "lead": None, "passage": None,
         "questions": [{
             "type": "자료구조",
-            "stem": "다음 순서로 삽입한 이진 탐색 트리를 <b>후위 순회</b>한 결과는?",
+            "stem": "다음 순서로 삽입한 이진 탐색 트리를 후위 순회한 결과는?",
             "material": (
                 '<div class="box"><div class="box-title">&lt;삽입 순서&gt;</div>'
                 "<p><code>50 · 30 · 70 · 20 · 40 · 60 · 80</code></p>"
@@ -303,7 +303,7 @@ ITEMS = [
         "area": "프로그래밍언어", "lead": None, "passage": None,
         "questions": [{
             "type": "복잡도",
-            "stem": "최악의 경우 시간 복잡도가 나머지와 <b>다른</b> 정렬 알고리즘은?",
+            "stem": "최악의 경우 시간 복잡도가 나머지 넷과 다른 정렬 알고리즘은?",
             "material": None,
             "choices": ["버블 정렬", "선택 정렬", "삽입 정렬", "퀵 정렬", "병합 정렬"],
             "answer": 5,
@@ -627,7 +627,7 @@ ITEMS = [
         "area": "프로그래밍언어", "lead": None, "passage": None,
         "questions": [{
             "type": "자료구조",
-            "stem": "<code>A[2][3]</code> 의 주소는?",
+            "stem": "배열 원소 A[2][3] 의 주소는?",
             "material": (
                 '<div class="box"><div class="box-title">&lt;조건&gt;</div>'
                 "<p>1. 배열은 <code>A[5][4]</code> 이고 첨자는 0부터 시작한다.</p>"
@@ -946,7 +946,7 @@ ITEMS = [
         "area": "프로그래밍언어", "lead": None, "passage": None,
         "questions": [{
             "type": "언어분류",
-            "stem": "예외 처리에서 <code>finally</code> 블록에 대한 설명으로 옳은 것은?",
+            "stem": "예외 처리의 finally 블록에 대한 설명으로 옳은 것은?",
             "material": None,
             "choices": [
                 "예외가 발생했을 때만 실행된다.",

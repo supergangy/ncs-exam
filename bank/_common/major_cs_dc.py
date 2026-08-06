@@ -242,7 +242,7 @@ ITEMS = [
         "area": "데이터통신", "lead": None, "passage": None,
         "questions": [{
             "type": "오류검출",
-            "stem": "데이터 <code>1011010</code> 에 <b>홀수 패리티</b> 비트를 붙인 것은?",
+            "stem": "데이터 1011010 에 홀수 패리티 비트를 붙인 것은?",
             "material": None,
             "choices": [
                 "10110100", "10110101", "01011010", "11011010", "10110110",
@@ -398,7 +398,7 @@ ITEMS = [
         "area": "데이터통신", "lead": None, "passage": None,
         "questions": [{
             "type": "변조·부호화",
-            "stem": "반송파의 <b>진폭과 위상을 함께</b> 바꾸어 데이터를 싣는 변조 방식은?",
+            "stem": "반송파의 진폭과 위상을 함께 바꾸어 데이터를 싣는 변조 방식은?",
             "material": None,
             "choices": ["ASK", "FSK", "PSK", "QAM", "PCM"],
             "answer": 4,
@@ -606,7 +606,7 @@ ITEMS = [
         "area": "데이터통신", "lead": None, "passage": None,
         "questions": [{
             "type": "오류검출",
-            "stem": "순서 번호가 3비트일 때 <b>선택적 재전송(SR)</b>의 최대 윈도우 크기는?",
+            "stem": "순서 번호가 3비트일 때 선택적 재전송(SR)의 최대 윈도우 크기는?",
             "material": (
                 '<p class="note">※ 되돌아가기 N(GBN)은 2<sup>k</sup> − 1, '
                 "선택적 재전송은 2<sup>k−1</sup> 까지 쓸 수 있다.</p>"
@@ -759,7 +759,7 @@ ITEMS = [
         "area": "데이터통신", "lead": None, "passage": None,
         "questions": [{
             "type": "무선",
-            "stem": "사용자마다 <b>서로 다른 코드</b>를 할당해 같은 주파수와 시간에 함께 쓰는 방식은?",
+            "stem": "사용자마다 서로 다른 코드를 할당해 같은 주파수와 시간에 함께 쓰는 방식은?",
             "material": None,
             "choices": ["FDMA", "TDMA", "CDMA", "OFDMA", "ALOHA"],
             "answer": 3,
