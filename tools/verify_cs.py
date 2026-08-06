@@ -688,6 +688,38 @@ def v_csnet_017() -> tuple[int, str]:
     return (out[0] if len(out) == 1 else 0), f"사설 아닌 것 {out} ({cand[out[0]-1]})"
 
 
+# ── 정보보안 ────────────────────────────────────────────────────────────
+
+def v_cssec_001() -> tuple[int, str]:
+    import math
+    p, q, e = 7, 11, 7
+    n, phi = p * q, (p - 1) * (q - 1)
+    d = pow(e, -1, phi)
+    others = {x: pow(x, -1, phi) for x in (13, 17, 19) if math.gcd(x, phi) == 1}
+    m = 9
+    c = pow(m, e, n)
+    return d, (f"n={n} φ={phi} e={e} → d={d} · 검산 {m}→{c}→{pow(c,d,n)} · "
+               f"다른 e {others}")
+
+
+def v_cssec_002() -> tuple[int, str]:
+    n = 100
+    sym, pub = n * (n - 1) // 2, 2 * n
+    return sym, f"{n}명 → 대칭 {sym} · 공개키 {pub}(오답②) · 2로 안 나누면 {n*(n-1)}(오답④)"
+
+
+def v_cssec_004() -> tuple[int, str]:
+    bits = 128
+    return bits // 2, f"{bits}비트 → 충돌 2^{bits//2} · 역상 2^{bits}(오답③)"
+
+
+def v_cssec_012() -> tuple[int, str]:
+    asset, ef, aro = 100_000_000, 0.4, 0.5
+    sle = asset * ef
+    ale = sle * aro
+    return int(ale), (f"SLE {int(sle):,}(오답③) × ARO {aro} = ALE {int(ale):,}")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -808,6 +840,52 @@ REGISTRY = {
     # 020 포트까지 변환해 N:1 을 만드는 것은 PAT (선지 ③)
     "major-csnet-common-020": (lambda: (3, "정적 1:1 고정 · 동적 1:1 임시 · PAT N:1"),
                                lambda i: i),
+
+    "major-cssec-common-001": (v_cssec_001, lambda d: {
+        13: 1, 37: 2, 43: 3, 53: 4, 60: 5}[d]),
+    "major-cssec-common-002": (v_cssec_002, lambda k: {
+        100: 1, 200: 2, 4950: 3, 9900: 4, 10000: 5}[k]),
+    # 003 CBC 암호화는 앞 블록에 묶여 병렬 불가 (선지 ④가 틀린 진술)
+    "major-cssec-common-003": (lambda: (4, "CBC 암호화만 순차 강제 · 복호화는 병렬 가능"),
+                               lambda i: i),
+    "major-cssec-common-004": (v_cssec_004, lambda e: {64: 1, 127: 2, 128: 3, 256: 4}[e]),
+    # 005 전자서명은 기밀성을 주지 않는다 (선지 ④)
+    "major-cssec-common-005": (lambda: (4, "인증·무결성·부인방지 O / 기밀성 X"), lambda i: i),
+    # 006 벨-라파듈라 — no read up, no write down → 위에 쓰기는 허용 (선지 ③)
+    "major-cssec-common-006": (lambda: (3, "기밀성 모델: 아래 읽기·위에 쓰기 허용"),
+                               lambda i: i),
+    # 007 MAC 는 DAC 보다 경직 (선지 ④가 틀린 진술)
+    "major-cssec-common-007": (lambda: (4, "DAC 유연 · MAC 강제·경직 · RBAC 중간"),
+                               lambda i: i),
+    # 008 매개변수화 질의가 근본 대책 (선지 ②)
+    "major-cssec-common-008": (lambda: (2, "질의 구조를 먼저 확정해 값이 구문이 되지 않게 한다"),
+                               lambda i: i),
+    # 009 인증 상태를 빌려 요청을 위조 → CSRF (선지 ③)
+    "major-cssec-common-009": (lambda: (3, "훔치지 않고 브라우저가 보내는 인증 정보를 이용"),
+                               lambda i: i),
+    # 010 URL 경로는 7계층이라 패킷 필터링으로 못 본다 (선지 ④)
+    "major-cssec-common-010": (lambda: (4, "패킷 필터링은 3·4계층 헤더만 본다"), lambda i: i),
+    # 011 커버로스는 대칭키 기반, PKI 인증서를 쓰지 않는다 (선지 ⑤)
+    "major-cssec-common-011": (lambda: (5, "AS→TGT · TGS→서비스티켓 · 대칭키 · 시간동기"),
+                               lambda i: i),
+    "major-cssec-common-012": (v_cssec_012, lambda ale: {
+        10_000_000: 1, 20_000_000: 2, 40_000_000: 3, 50_000_000: 4, 80_000_000: 5}[ale]),
+    # 013 IDS 는 경로 밖 복사본을 본다 (선지 ③)
+    "major-cssec-common-013": (lambda: (3, "IDS 미러링·탐지 / IPS 인라인·차단, 오탐 피해는 IPS"),
+                               lambda i: i),
+    # 014 절반 연결을 쌓는 것은 SYN 플러딩 (선지 ①)
+    "major-cssec-common-014": (lambda: (1, "마지막 ACK 를 안 보내 백로그를 채운다"),
+                               lambda i: i),
+    # 015 공개키로 세션키, 대칭키로 본문 (선지 ②)
+    "major-cssec-common-015": (lambda: (2, "키 전달은 공개키 · 본문은 빠른 대칭키"),
+                               lambda i: i),
+    # 016 공개 내용을 변경, 접속은 정상 → 무결성만 (선지 ②)
+    "major-cssec-common-016": (lambda: (2, "기밀성·가용성은 상황문에서 배제됨"), lambda i: i),
+    # 017 가상 규정 제3조의 통계 작성 (선지 ②)
+    "major-cssec-common-017": (lambda: (2, "제3조 세 목적 중 통계 작성. 나머지는 제1·3·4조 위반"),
+                               lambda i: i),
+    # 018 PDCA — 계획 → 수행 → 점검 → 조치 (선지 ②)
+    "major-cssec-common-018": (lambda: (2, "Plan Do Check Act"), lambda i: i),
 }
 
 
