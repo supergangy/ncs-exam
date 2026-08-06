@@ -720,6 +720,96 @@ def v_cssec_012() -> tuple[int, str]:
     return int(ale), (f"SLE {int(sle):,}(오답③) × ARO {aro} = ALE {int(ale):,}")
 
 
+# ── 소프트웨어공학 ──────────────────────────────────────────────────────
+
+def v_csse_001() -> tuple[int, str]:
+    """COCOMO 기본형 조직형 — 노력 2.4·KLOC^1.05, 기간 2.5·E^0.38."""
+    tbl = {k: (2.4 * k ** 1.05) for k in (30, 50, 100)}
+    e = tbl[50]
+    return round(e), (f"50 KLOC → {e:.1f} 인월 · 기간 {2.5 * e ** 0.38:.1f}개월 · "
+                      f"30 KLOC {tbl[30]:.1f}(오답①) · 100 KLOC {tbl[100]:.1f}(오답⑤) · "
+                      f"지수 무시 {2.4 * 50:.0f}(오답②)")
+
+
+def v_csse_002() -> tuple[int, str]:
+    """기능점수 — 유형별 개수 × 가중치의 합."""
+    rows = {"입력": (10, 4), "출력": (8, 5), "조회": (6, 4),
+            "파일": (3, 10), "인터페이스": (2, 7)}
+    parts = {k: c * w for k, (c, w) in rows.items()}
+    fp = sum(parts.values())
+    return fp, (f"{parts} → {fp} · 개수만 합 {sum(c for c, _ in rows.values())}(오답①)")
+
+
+def v_csse_003() -> tuple[int, str]:
+    """CPM — 선행 관계를 따라 각 작업의 종료 시각을 구하고 최댓값을 잡는다."""
+    acts = {"A": (None, 3), "B": ("A", 4), "C": ("A", 2), "D": ("B", 5),
+            "E": ("C", 6), "F": ("D", 2), "G": ("E", 1)}
+
+    def fin(n):
+        p, d = acts[n]
+        return d + (0 if p is None else fin(p))
+
+    ends = {n: fin(n) for n in acts}
+    span = max(ends.values())
+    return span, (f"종료 시각 {ends} → 임계경로 A→B→D→F {span}일 · "
+                  f"A→C→E→G {ends['G']}일 · 단순 합 "
+                  f"{sum(d for _, d in acts.values())}(오답⑤)")
+
+
+def _cov_min(expr, n_cond: int) -> dict[str, int]:
+    """조건 n개짜리 식에 대해 각 커버리지 기준의 **최소 테스트 케이스 수**."""
+    from itertools import combinations, product
+    cases = list(product([True, False], repeat=n_cond))
+
+    def decision(ts):                      # 전체 결과 T·F 모두
+        return {expr(*t) for t in ts} == {True, False}
+
+    def condition(ts):                     # 각 조건이 T·F 모두
+        return all({t[i] for t in ts} == {True, False} for i in range(n_cond))
+
+    def mcdc(ts):                          # 조건마다 그것만 뒤집어 결과가 갈리는 짝
+        s = set(ts)
+        for i in range(n_cond):
+            if not any(t[i] and (f := tuple(v if j != i else not v
+                                            for j, v in enumerate(t))) in s
+                       and expr(*t) != expr(*f) for t in s):
+                return False
+        return True
+
+    def least(pred):
+        for k in range(1, len(cases) + 1):
+            if any(pred(c) for c in combinations(cases, k)):
+                return k
+        return 0
+
+    return {"결정": least(decision), "조건": least(condition),
+            "MC/DC": least(mcdc), "다중조건": len(cases)}
+
+
+def v_csse_004() -> tuple[int, str]:
+    m = _cov_min(lambda a, b: a and b, 2)
+    return m["결정"], f"A and B — 최소 케이스 {m}"
+
+
+def v_csse_011() -> tuple[int, str]:
+    """순환 복잡도 V(G) = E − N + 2."""
+    e, n = 11, 8
+    return e - n + 2, (f"E {e} − N {n} + 2 = {e - n + 2} · "
+                       f"+1 로 하면 {e - n + 1}(오답②) · E+N 이면 {e + n}(오답⑤)")
+
+
+def v_csse_017() -> tuple[int, str]:
+    """포함 관계 — 조건 커버리지가 결정 커버리지를 **함의하지 않는** 반례를 찾는다."""
+    from itertools import combinations, product
+    cases = list(product([True, False], repeat=2))
+    ce = [ts for k in (2, 3) for ts in combinations(cases, k)
+          if all({t[i] for t in ts} == {True, False} for i in (0, 1))
+          and {a and b for a, b in ts} != {True, False}]
+    m = _cov_min(lambda a, b: a and b, 2)
+    show = [tuple("T" if v else "F" for v in t) for t in ce[0]] if ce else None
+    return (len(ce), f"조건⊅결정 반례 {len(ce)}개 · 최소 예 {show} · 강도 {m}")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -886,6 +976,49 @@ REGISTRY = {
                                lambda i: i),
     # 018 PDCA — 계획 → 수행 → 점검 → 조치 (선지 ②)
     "major-cssec-common-018": (lambda: (2, "Plan Do Check Act"), lambda i: i),
+
+    "major-csse-common-001": (v_csse_001, lambda e: {85: 1, 120: 2, 146: 3,
+                                                     210: 4, 302: 5}[e]),
+    "major-csse-common-002": (v_csse_002, lambda f: {29: 1, 104: 2, 148: 3,
+                                                     160: 4, 290: 5}[f]),
+    "major-csse-common-003": (v_csse_003, lambda d: {12: 1, 13: 2, 14: 3,
+                                                     17: 4, 23: 5}[d]),
+    "major-csse-common-004": (v_csse_004, lambda k: {1: 1, 2: 2, 3: 3, 4: 4, 8: 5}[k]),
+    # 005 기초 경로 검사만 제어 흐름을 봐야 한다 → 화이트박스 (선지 ④)
+    "major-csse-common-005": (lambda: (4, "동등분할·경계값·원인결과·오류예측은 명세만으로 설계"),
+                              lambda i: i),
+    # 006 응집도는 높게 결합도는 낮게 (선지 ②)
+    "major-csse-common-006": (lambda: (2, "응집 기능적↑ 우연적↓ · 결합 자료(약)~내용(강)"),
+                              lambda i: i),
+    # 007 인스턴스를 하나로 제한 → 싱글턴 (선지 ②)
+    "major-csse-common-007": (lambda: (2, "팩토리는 무엇을·싱글턴은 몇 개를 다룬다"),
+                              lambda i: i),
+    # 008 단계를 마쳐야 다음으로 — 폭포수의 특징 (선지 ④)
+    "major-csse-common-008": (lambda: (4, "애자일은 되돌아가는 것을 정상으로 본다"),
+                              lambda i: i),
+    # 009 도출 → 분석 → 명세 → 확인 (선지 ①)
+    "major-csse-common-009": (lambda: (1, "정리하지 않고 명세하면 충돌이 문서에 굳는다"),
+                              lambda i: i),
+    # 010 형상관리 4활동에 「최적화」는 없다 (선지 ⑤)
+    "major-csse-common-010": (lambda: (5, "식별·통제·감사·기록"), lambda i: i),
+    "major-csse-common-011": (v_csse_011, lambda v: {3: 1, 4: 2, 5: 3, 6: 4, 19: 5}[v]),
+    # 012 복구 시간·데이터 보존 → 신뢰성 (선지 ③)
+    "major-csse-common-012": (lambda: (3, "회복성·결함 허용성은 신뢰성의 하위 특성"),
+                              lambda i: i),
+    # 013 모델은 표현 형식을 모른다 (선지 ④가 틀린 진술)
+    "major-csse-common-013": (lambda: (4, "④가 성립하면 ⑤(여러 뷰)가 불가능해진다"),
+                              lambda i: i),
+    # 014 OS 변경 = 환경 변화 → 적응 (선지 ②)
+    "major-csse-common-014": (lambda: (2, "결함이 아니라 바깥이 바뀐 경우"), lambda i: i),
+    # 015 초기 → 관리 → 정의 → 정량적 관리 → 최적화 (선지 ②)
+    "major-csse-common-015": (lambda: (2, "개별 프로젝트 관리가 먼저, 조직 표준 정의가 나중"),
+                              lambda i: i),
+    # 016 내용 결합도가 가장 강하다 (선지 ⑤)
+    "major-csse-common-016": (lambda: (5, "자료<스탬프<제어<외부<공통<내용"), lambda i: i),
+    "major-csse-common-017": (v_csse_017, lambda n: 2 if n else 0),
+    # 018 요구가 불분명할 때 → 프로토타입 (선지 ②)
+    "major-csse-common-018": (lambda: (2, "시제품은 버려지는 비용 — 일정이 빠듯하면 불리"),
+                              lambda i: i),
 }
 
 
