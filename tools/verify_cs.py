@@ -634,6 +634,60 @@ def v_csnet_010() -> tuple[int, str]:
     return correct, f"거리 {d} → 검출 {detect}(오답④) · 정정 {correct} · {table}"
 
 
+def v_csnet_011() -> tuple[str, str]:
+    import ipaddress
+    nets = [ipaddress.ip_network(f"192.168.{i}.0/24") for i in (8, 9, 10, 11)]
+    merged = list(ipaddress.collapse_addresses(nets))
+    return str(merged[0]), f"{[str(n) for n in nets]} → {[str(m) for m in merged]}"
+
+
+def v_csnet_013() -> tuple[float, str]:
+    w, mss, rtt = 8, 1460, 0.1
+    thr = w * mss * 8 / rtt / 1e6
+    thr16 = 16 * mss * 8 / rtt / 1e6
+    return round(thr, 2), f"윈도 {w} → {thr:.2f}Mbps · 윈도 16 이면 {thr16:.2f}(오답③)"
+
+
+def v_csnet_014() -> tuple[float, str]:
+    L, R = 1500 * 8, 10e6
+    d, s = 2000e3, 2e8
+    tx, pr = L / R * 1000, d / s * 1000
+    return round(tx + pr, 1), f"전송 {tx:.1f}ms(오답①) + 전파 {pr:.1f}ms(오답②) = {tx+pr:.1f}ms"
+
+
+def v_csnet_015() -> tuple[int, str]:
+    m = 8
+    r = 1
+    while 2 ** r < m + r + 1:
+        r += 1
+    table = {x: next(k for k in range(1, 9) if 2 ** k >= x + k + 1) for x in (4, 8, 11, 16)}
+    return r, f"m={m} → r={r} (2^{r}={2**r} ≥ {m+r+1}) · 데이터별 {table}"
+
+
+def v_csnet_016() -> tuple[str, str]:
+    def crc(data: str, gen: str) -> str:
+        d = [int(x) for x in data] + [0] * (len(gen) - 1)
+        g = [int(x) for x in gen]
+        for i in range(len(data)):
+            if d[i]:
+                for j in range(len(g)):
+                    d[i + j] ^= g[j]
+        return "".join(map(str, d[-(len(gen) - 1):]))
+    r = crc("1101011011", "10011")
+    chk = crc("1010001101", "1101")
+    return r, f"CRC {r} · 전송 11010110111110 · 다른 조합 검산 1010001101÷1101 → {chk}"
+
+
+def v_csnet_017() -> tuple[int, str]:
+    import ipaddress
+    priv = [ipaddress.ip_network(c) for c in ("10.0.0.0/8", "172.16.0.0/12",
+                                              "192.168.0.0/16")]
+    cand = ["10.20.30.40", "172.16.5.1", "172.32.5.1", "192.168.100.1", "10.255.255.254"]
+    out = [i for i, a in enumerate(cand, 1)
+           if not any(ipaddress.ip_address(a) in n for n in priv)]
+    return (out[0] if len(out) == 1 else 0), f"사설 아닌 것 {out} ({cand[out[0]-1]})"
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
@@ -730,6 +784,30 @@ REGISTRY = {
                                lambda i: i),
     "major-csnet-common-010": (v_csnet_010, lambda c: {
         1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[c]),
+    "major-csnet-common-011": (v_csnet_011, lambda s: {
+        "192.168.8.0/21": 1, "192.168.8.0/22": 2, "192.168.8.0/23": 3,
+        "192.168.0.0/22": 4, "192.168.8.0/20": 5}[s]),
+    # 012 설정 3단계·종료 4단계, 이유는 반이중 종료 (선지 ②)
+    "major-csnet-common-012": (lambda: (2, "설정 SYN·SYN+ACK·ACK 3 · 종료 FIN·ACK·FIN·ACK 4"),
+                               lambda i: i),
+    "major-csnet-common-013": (v_csnet_013, lambda t: {
+        0.12: 1, 0.93: 2, 1.87: 3, 11.7: 4, 93.0: 5}[t]),
+    "major-csnet-common-014": (v_csnet_014, lambda t: {
+        1.2: 1, 10.0: 2, 11.2: 3, 12.0: 4, 21.2: 5}[t]),
+    "major-csnet-common-015": (v_csnet_015, lambda r: {3: 1, 4: 2, 5: 3, 6: 4, 8: 5}[r]),
+    "major-csnet-common-016": (v_csnet_016, lambda s: {
+        "1110": 1, "0110": 2, "1010": 3, "0011": 4, "1111": 5}[s]),
+    "major-csnet-common-017": (v_csnet_017, lambda i: i),
+    # 018 IPv6 헤더에는 체크섬이 없다 (선지 ④가 틀린 진술)
+    "major-csnet-common-018": (lambda: (4, "IPv6 기본 헤더 40바이트에 체크섬 필드 없음"),
+                               lambda i: i),
+    # 019 거리 벡터는 이웃에게만 자신의 표를 알린다 (선지 ②)
+    "major-csnet-common-019": (lambda: (2, "거리벡터=이웃에게 표 전체·벨만포드·RIP / "
+                                           "링크상태=전체에 링크·다익스트라·OSPF"),
+                               lambda i: i),
+    # 020 포트까지 변환해 N:1 을 만드는 것은 PAT (선지 ③)
+    "major-csnet-common-020": (lambda: (3, "정적 1:1 고정 · 동적 1:1 임시 · PAT N:1"),
+                               lambda i: i),
 }
 
 
