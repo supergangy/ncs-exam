@@ -329,3 +329,56 @@ git push -f origin main                           # 이력을 안 남기고 매�
 9개 파일이 캐시되는 것을 확인했다 — `ncsbank-v3`. 내장 미리보기 브라우저가
 막고 있던 바로 그 부분이다. `admin.json` 은 캐시에 없다(설계대로 관리자 모드일
 때만 받는다).
+
+## 7. Flutter 앱 — 네이티브 포팅
+
+`app/` (PWA)과 같은 `bank.json`·`admin.json` 을 에셋으로 번들해 그대로 이식했다.
+서버 델타는 없다 — 웹판과 같은 완전 오프라인 우선 구조다. 화면·저장 형식·SM-2
+간격 알고리즘·검색 로직을 웹판과 1:1로 맞췄다(`mobile/lib/`).
+
+| 층 | 파일 |
+|---|---|
+| 데이터 모델 | `models.dart` — `bank.json`/`admin.json` 의 축약 키를 그대로 씀 |
+| 로컬 기록 | `store.dart` — `SharedPreferences` 한 칸에 JSON 하나(웹의 `localStorage` 한 칸과 동일) |
+| 조회 | `repo.dart` — 웹의 `DB` 객체 |
+| 화면 16개 | `screens/` — 홈·직렬·과목·문제풀이·회차 목록/상세/응시/결과·복습·오답·키워드·검색·북마크·통계·설정·더보기 |
+| 앱 셸 | `main.dart` — 하단 탭 5개(홈·회차·복습·오답·더보기), 부팅 시 `Repo.load()`+`Store.load()` 완료를 기다림 |
+
+넘어오며 새로 생긴 것 — **오답노트/북마크 내보내기가 파일 공유 시트로 바뀐다**
+(`share_plus`). 데스크톱처럼 다운로드 폴더가 없으니, 내보낸 `.json`을 카카오톡이나
+메일로 보내 PC로 옮긴 뒤 `tools/wrongnote_pdf.py` 에 넘기는 흐름이다.
+
+### 겪은 문제 — Windows 사용자 이름의 한글
+
+`C:\Users\<한글 이름>\...` 경로 밑에서는 세 군데가 차례로 막힌다.
+
+1. AGP가 프로젝트 경로의 비 ASCII 문자를 거부한다 →
+   `android/gradle.properties` 에 `android.overridePathCheck=true`
+2. `jni` 패키지의 ninja/cmake 빌드가 (JVM 기반이 아니라서) pub 캐시 경로의
+   한글을 못 읽는다 → `PUB_CACHE` 를 `C:\pub-cache` 로 옮긴다
+3. 그래도 안 되면 — Gradle 빌드 **출력** 경로 자체(`mobile/build/...`)가
+   프로젝트 위치라 여전히 한글이다. 이건 설정으로 못 고친다.
+   **프로젝트 전체를 ASCII 경로로 복사해 그곳에서 빌드한다**
+
+```powershell
+robocopy "<git 저장소>\mobile" "C:\dev\ncs_bank" /MIR /XD build .dart_tool .idea .gradle .cxx Pods
+```
+
+소스는 계속 저장소 안(`mobile/`)에서 고치고, 컴파일·빌드만 `C:\dev\ncs_bank` 에서
+돌린다. `flutter test` 는 이 환경(에이전트 샌드박스)에서 VM 서비스 소켓 연결이
+막혀 있어 확인하지 못했다 — `flutter analyze` (0 issues)와 실제 릴리스 빌드
+성공으로 갈음했다.
+
+### APK
+
+```powershell
+flutter build apk --release
+```
+
+서명은 아직 debug 키다(`android/app/build.gradle.kts` 의 기본값 — Play 스토어에
+올리려면 그때 실제 키를 만든다). 개인 설치용으로는 문제없다.
+
+- 산출물: `build/app/outputs/flutter-apk/app-release.apk` (53.4MB)
+- 패키지 `com.supergangy.ncs_bank` · minSdk 24 · targetSdk 36
+- `aapt2 dump badging` 로 라벨·권한·SDK 범위를 확인했다 — 에뮬레이터가 없어
+  실제 기기 설치까지는 확인하지 못했다
