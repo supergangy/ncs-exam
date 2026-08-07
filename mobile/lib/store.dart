@@ -1,111 +1,36 @@
 /// 기기 로컬 기록 — 웹앱의 `Store` 객체와 같은 역할·같은 알고리즘.
 /// SharedPreferences 에 JSON 문자열 하나로 저장한다(웹의 localStorage 한 칸과 동일).
 ///
+/// 여기는 **상태를 들고 저장하고 알리는** 일만 한다.
+/// 클래스와 JSON 왕복은 [backup.dart] 에 있다 — Flutter 없이 검증하기 위해서다.
+///
 /// `ChangeNotifier` 인 이유 — 탭 다섯 개가 한 화면에 살아 있어서(`IndexedStack`),
 /// 오답 탭에서 문제를 풀면 홈 탭의 진도·오답 개수도 함께 바뀌어야 한다.
-/// 안 그러면 앱을 껐다 켤 때까지 옛 숫자가 붙어 있는다.
 library;
 
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'backup.dart';
 
-class Attempt {
-  final int? chosen;
-  final bool ok;
-  final int at; // epoch ms
-  Attempt({required this.chosen, required this.ok, required this.at});
-  factory Attempt.fromJson(Map<String, dynamic> j) =>
-      Attempt(chosen: j['c'], ok: j['k'] == 1, at: j['t'] ?? 0);
-  Map<String, dynamic> toJson() => {'c': chosen, 'k': ok ? 1 : 0, 't': at};
-}
-
-class Srs {
-  double e; // 난이도 계수
-  int i; // 간격(일)
-  int due; // 다음 복습 epoch ms
-  Srs({this.e = 2.5, this.i = 0, this.due = 0});
-  factory Srs.fromJson(Map<String, dynamic> j) => Srs(
-        e: (j['e'] as num?)?.toDouble() ?? 2.5,
-        i: (j['i'] as num?)?.toInt() ?? 0,
-        due: (j['due'] as num?)?.toInt() ?? 0,
-      );
-  Map<String, dynamic> toJson() => {'e': e, 'i': i, 'due': due};
-}
-
-class ExamRecord {
-  final int at;
-  final int score, n, sec;
-  final bool auto;
-  final Map<int, int> ans; // 문항 번호 → 고른 선지
-  ExamRecord({
-    required this.at, required this.score, required this.n,
-    required this.sec, required this.auto, required this.ans,
-  });
-  factory ExamRecord.fromJson(Map<String, dynamic> j) => ExamRecord(
-        at: j['at'], score: j['score'], n: j['n'], sec: j['sec'],
-        auto: j['auto'] == 1,
-        ans: (j['ans'] as Map).map((k, v) => MapEntry(int.parse(k), (v as num).toInt())),
-      );
-  Map<String, dynamic> toJson() => {
-        'at': at, 'score': score, 'n': n, 'sec': sec, 'auto': auto ? 1 : 0,
-        'ans': ans.map((k, v) => MapEntry(k.toString(), v)),
-      };
-  double get rate => n == 0 ? 0 : score / n;
-}
-
-/// 응시 중인 회차 — 한 번에 하나만 존재한다.
-class SitState {
-  final String tag;
-  final int at, endsAt;
-  Map<int, int> ans; // 번호 → 고른 선지
-  Map<int, bool> flag; // 번호 → 별표
-  int atNo; // 지금 보고 있는 번호
-  SitState({
-    required this.tag, required this.at, required this.endsAt,
-    required this.ans, required this.flag, required this.atNo,
-  });
-  factory SitState.fromJson(Map<String, dynamic> j) => SitState(
-        tag: j['tag'], at: j['at'], endsAt: j['endsAt'],
-        ans: (j['ans'] as Map).map((k, v) => MapEntry(int.parse(k), (v as num).toInt())),
-        flag: (j['flag'] as Map).map((k, v) => MapEntry(int.parse(k), v == 1)),
-        atNo: j['at_no'] ?? 1,
-      );
-  Map<String, dynamic> toJson() => {
-        'tag': tag, 'at': at, 'endsAt': endsAt,
-        'ans': ans.map((k, v) => MapEntry(k.toString(), v)),
-        'flag': flag.map((k, v) => MapEntry(k.toString(), v ? 1 : 0)),
-        'at_no': atNo,
-      };
-}
-
-class Mark {
-  bool bookmark, flag;
-  String memo;
-  int at;
-  Mark({this.bookmark = false, this.flag = false, this.memo = '', this.at = 0});
-  factory Mark.fromJson(Map<String, dynamic> j) => Mark(
-        bookmark: j['b'] == 1, flag: j['f'] == 1, memo: j['memo'] ?? '',
-        at: j['at'] ?? 0,
-      );
-  Map<String, dynamic> toJson() =>
-      {'b': bookmark ? 1 : 0, 'f': flag ? 1 : 0, 'memo': memo, 'at': at};
-  bool get isEmpty => !bookmark && !flag && memo.isEmpty;
-}
+export 'backup.dart';
 
 class Store extends ChangeNotifier {
   Store._();
   static final Store instance = Store._();
   static const _key = 'ncsbank.v1';
-  static const _backupKey = 'ncsbank.v1.broken';
+  static const _brokenKey = 'ncsbank.v1.broken';
+  static const _prevKey = 'ncsbank.v1.prev';
 
   final Map<String, List<Attempt>> att = {};
   final Map<String, Srs> srs = {};
   final Map<String, List<ExamRecord>> exams = {};
   final Map<String, Mark> mark = {};
   SitState? sit;
+  SoloSession? solo;
   bool admin = false;
+  double textScale = 1.0;
 
   late SharedPreferences _prefs;
   bool _loaded = false;
@@ -119,36 +44,43 @@ class Store extends ChangeNotifier {
     _loaded = true;
     if (raw == null) return;
     try {
-      // **먼저 통째로 읽고, 다 읽힌 뒤에야 옮긴다.** 중간에 터지면 반만 남는데,
-      // 그 상태로 다음 저장이 일어나면 못 읽은 나머지가 영영 지워진다.
-      final d = jsonDecode(raw) as Map<String, dynamic>;
-      final a = <String, List<Attempt>>{};
-      (d['att'] as Map?)?.forEach((k, v) {
-        a[k] = (v as List).map((e) => Attempt.fromJson(e)).toList();
-      });
-      final s = <String, Srs>{};
-      (d['srs'] as Map?)?.forEach((k, v) => s[k] = Srs.fromJson(v));
-      final e = <String, List<ExamRecord>>{};
-      (d['exams'] as Map?)?.forEach((k, v) {
-        e[k] = (v as List).map((x) => ExamRecord.fromJson(x)).toList();
-      });
-      final m = <String, Mark>{};
-      (d['mark'] as Map?)?.forEach((k, v) => m[k] = Mark.fromJson(v));
-      final st = d['sit'] == null ? null : SitState.fromJson(d['sit']);
-
-      att..clear()..addAll(a);
-      srs..clear()..addAll(s);
-      exams..clear()..addAll(e);
-      mark..clear()..addAll(m);
-      sit = st;
-      admin = d['admin'] == true;
+      _adopt(decodeStore((jsonDecode(raw) as Map).cast<String, dynamic>()));
     } catch (err) {
       // 못 읽은 원본은 따로 남긴다 — 덮어써 버리면 되살릴 길이 없다.
       debugPrint('기록을 읽지 못했다: $err');
-      await _prefs.setString(_backupKey, raw);
-      att.clear(); srs.clear(); exams.clear(); mark.clear();
-      sit = null; admin = false;
+      await _prefs.setString(_brokenKey, raw);
+      _adopt(StoreData(att: {}, srs: {}, exams: {}, mark: {}));
     }
+  }
+
+  /// 다 읽힌 뒤에야 옮긴다. 중간에 터져서 반만 남으면, 다음 저장이
+  /// 못 읽은 나머지를 영영 지운다.
+  void _adopt(StoreData d) {
+    att..clear()..addAll(d.att);
+    srs..clear()..addAll(d.srs);
+    exams..clear()..addAll(d.exams);
+    mark..clear()..addAll(d.mark);
+    sit = d.sit;
+    solo = d.solo;
+    admin = d.admin;
+    textScale = d.textScale;
+  }
+
+  StoreData snapshot() => StoreData(
+        att: att, srs: srs, exams: exams, mark: mark,
+        sit: sit, solo: solo, admin: admin, textScale: textScale,
+      );
+
+  /// 백업 파일에 담을 것.
+  Map<String, dynamic> exportMap(DateTime at) => wrapBackup(snapshot(), at);
+
+  /// 백업으로 **통째로 바꾼다.** 부르기 전에 [readBackup] 으로 검증돼 있어야 한다.
+  /// 덮어쓰기 직전 지금 기록을 따로 남긴다 — 잘못 골랐을 때 되돌릴 여지.
+  Future<void> importAll(StoreData d) async {
+    final now = _prefs.getString(_key);
+    if (now != null) await _prefs.setString(_prevKey, now);
+    _adopt(d);
+    await save();
   }
 
   /// 바로 저장한다. 제출·설정처럼 잃으면 안 되는 순간에 쓴다.
@@ -177,15 +109,7 @@ class Store extends ChangeNotifier {
   Future<void> _write() async {
     if (!_loaded) return;
     _dirty = false;
-    final d = {
-      'att': att.map((k, v) => MapEntry(k, v.map((a) => a.toJson()).toList())),
-      'srs': srs.map((k, v) => MapEntry(k, v.toJson())),
-      'exams': exams.map((k, v) => MapEntry(k, v.map((e) => e.toJson()).toList())),
-      'mark': mark.map((k, v) => MapEntry(k, v.toJson())),
-      'sit': sit?.toJson(),
-      'admin': admin,
-    };
-    final ok = await _prefs.setString(_key, jsonEncode(d));
+    final ok = await _prefs.setString(_key, jsonEncode(encodeStore(snapshot())));
     if (!ok) debugPrint('기록을 저장하지 못했다 — 저장 공간을 확인해 주세요');
     notifyListeners();
   }
@@ -203,16 +127,16 @@ class Store extends ChangeNotifier {
 
   int wrongCount(Iterable<String> ids) => ids.where(isWrong).length;
 
-  Future<void> record(String id, int? chosen, bool ok) async {
-    recordQuiet(id, chosen, ok);
+  Future<void> record(String id, int? chosen, bool ok, {int? ms}) async {
+    recordQuiet(id, chosen, ok, ms: ms);
     await save();
   }
 
   /// 저장하지 않고 기록만 올린다. 회차 제출처럼 **한 번에 수십 건**을 넣을 때 쓴다 —
   /// 건건이 저장하면 저장소 전체를 그 횟수만큼 다시 쓴다. 부른 쪽이 마지막에 [save] 한다.
-  void recordQuiet(String id, int? chosen, bool ok) {
+  void recordQuiet(String id, int? chosen, bool ok, {int? ms}) {
     final list = att[id] ??= [];
-    list.add(Attempt(chosen: chosen, ok: ok, at: _now()));
+    list.add(Attempt(chosen: chosen, ok: ok, at: _now(), ms: ms));
     // 한 문항을 수백 번 풀어도 기록이 무한정 늘지 않게 한다. 최근 것만 쓸모가 있다.
     if (list.length > 40) list.removeRange(0, list.length - 40);
     _schedule(id, ok);
@@ -253,6 +177,22 @@ class Store extends ChangeNotifier {
     return ((soonest - _now()) / 86400000).ceil();
   }
 
+  /// 낱개 풀이의 평균 소요 시간(ms). 잰 기록이 없으면 null.
+  /// 회차 응시는 채점 순간이 없어 시간을 재지 않으므로 여기 안 들어온다.
+  int? avgSolveMs([Iterable<String>? ids]) {
+    var sum = 0, n = 0;
+    final keys = ids ?? att.keys;
+    for (final id in keys) {
+      for (final a in att[id] ?? const <Attempt>[]) {
+        if (a.ms != null) {
+          sum += a.ms!;
+          n++;
+        }
+      }
+    }
+    return n == 0 ? null : sum ~/ n;
+  }
+
   double? best(String tag) {
     final h = exams[tag];
     if (h == null || h.isEmpty) return null;
@@ -262,6 +202,10 @@ class Store extends ChangeNotifier {
   List<ExamRecord> history(String tag) => exams[tag] ?? const [];
 
   Mark markOf(String id) => mark[id] ?? Mark();
+  bool isMarked(String id) {
+    final m = mark[id];
+    return m != null && (m.bookmark || m.flag);
+  }
 
   Future<void> toggleMark(String id, {bool? bookmark, bool? flag}) async {
     final m = mark[id] ?? Mark();
@@ -309,13 +253,17 @@ class Store extends ChangeNotifier {
   }
 
   Future<void> reset() async {
-    att.clear(); srs.clear(); exams.clear(); mark.clear();
-    sit = null; admin = false;
+    _adopt(StoreData(att: {}, srs: {}, exams: {}, mark: {}, textScale: textScale));
     await save();
   }
 
   Future<void> setSit(SitState? s) async {
     sit = s;
+    await save();
+  }
+
+  Future<void> setSolo(SoloSession? s) async {
+    solo = s;
     await save();
   }
 
@@ -326,6 +274,11 @@ class Store extends ChangeNotifier {
 
   Future<void> setAdmin(bool v) async {
     admin = v;
+    await save();
+  }
+
+  Future<void> setTextScale(double v) async {
+    textScale = clampScale(v);
     await save();
   }
 

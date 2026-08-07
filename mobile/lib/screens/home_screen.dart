@@ -46,6 +46,22 @@ class HomeScreen extends StatelessWidget {
             children: [
               if (sit != null)
                 _SitResume(sit: sit)
+              else if (store.solo case final s?)
+                ResumeCard(
+                  title: s.title.isEmpty
+                      ? '풀던 ${s.ids.length}문항 이어서'
+                      : '「${s.title}」 이어서 풀기',
+                  subtitle: '${s.at + 1}번째 · ${s.done}/${s.ids.length} 채점함',
+                  onTap: () {
+                    final screen = QuestionScreen.fromSaved(s);
+                    if (screen == null) {
+                      Store.instance.setSolo(null);
+                      return;
+                    }
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => screen));
+                  },
+                )
               else if (due > 0)
                 ResumeCard(
                   title: '복습할 문제 $due개',

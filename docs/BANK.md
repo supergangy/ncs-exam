@@ -436,3 +436,54 @@ cd mobile && dart run tool/check_text.dart      # 19건 통과 · 426문항 전�
 
 위젯 렌더링 회귀 테스트(`test/render_test.dart`)도 함께 두었다. 이 샌드박스에서는
 안 돌지만 보통 환경에서는 `flutter test` 로 돈다.
+
+## 9. 오래 쓰기 위한 것 (v1.2)
+
+### 기록을 옮길 수 있게 됐다
+
+이때까지 기록은 기기에만 있었고 **꺼낼 길이 없었다.** 폰을 바꾸면 그걸로 끝이다.
+
+설정 › 기록에서 `.json` 한 장으로 내보내고 불러온다. 형식은 저장하던 blob 을
+봉투로 감싼 것이라 새 필드가 늘어도 그대로 간다.
+
+```jsonc
+{ "v": 1, "app": "ncs-bank", "at": "…",
+  "counts": { "att": 312, "exams": 4, "mark": 7 },   // 확인창용
+  "data": { … 저장 blob 그대로 … } }
+```
+
+복원은 **통째로 덮어쓰기**다(사용자 결정). 확인창에 백업과 지금 기록의 건수를
+나란히 놓고, 덮어쓰기 직전 지금 blob 을 `ncsbank.v1.prev` 로 남긴다.
+
+여기서 걸린 것 — `share_plus` 는 `share`/`shareXFiles`/`shareUri` 셋뿐인
+**내보내기 전용**이다. 파일을 되돌려 받을 수단이 앱에 없어 `file_picker` 를 넣었다.
+
+### 검증을 또 코드로 대신했다
+
+`lib/backup.dart` 는 **Flutter 를 쓰지 않는다.** `lib/text.dart` 와 같은 수법이다.
+
+```bash
+cd mobile && dart run tool/check_backup.dart    # 47건
+```
+
+특히 **깨진 백업을 물려도 아무것도 안 바뀌는지**를 본다. 반만 읽어 들이면
+다음 저장이 못 읽은 나머지를 영영 지운다 — v1.1 에서 고친 바로 그 부류의 사고다.
+
+### 아이콘도 코드로 만든다
+
+이 기계에 SVG 래스터라이저가 없다. ImageMagick·rsvg·inkscape 전부 없고,
+PATH 의 `convert` 는 **윈도우 파일시스템 변환 유틸**이라 `command -v convert` 로
+탐지하면 거짓 양성이 난다.
+
+`app/icon.svg` 가 도형 넷뿐이라 `tools/make_icons.py` 에서 Pillow 로 다시 그린다.
+legacy 5종 + adaptive 전경 5종 + `anydpi-v26` 선언 + 배경색을 낸다.
+`--check` 로 크기·모서리색·전경 면적(10~45%)·안전영역 침범을 되본다.
+
+adaptive 를 함께 만드는 이유 — Android 8+ 는 정사각 아이콘을 흰 테두리째
+스퀘어클에 우겨넣는다. 전경은 안전영역(가운데 72dp)에 맞춰 다시 앉혔다.
+
+### 안드로이드 전용으로 정리했다
+
+`mobile/windows/` 를 지웠다. 쓰지 않는 타깃인데 `file_picker` 의 데스크톱
+플러그인이 심볼릭 링크를 요구해 **Windows 개발자 모드 없이는 `pub get` 이 막혔다.**
+개발자 모드는 시스템 보안 설정이라 켜지 않는다. `ios/`·`macos/` 는 원래 없다.

@@ -17,31 +17,74 @@ class QuestionScreen extends StatefulWidget {
   final String title;
   const QuestionScreen({super.key, required this.pool, this.title = ''});
 
+  /// 저장해 둔 묶음을 그대로 다시 연다 (홈의 이어하기 카드).
+  static QuestionScreen? fromSaved(SoloSession s) {
+    final pool = s.ids.map(Repo.instance.byId).whereType<Item>().toList();
+    // 판올림으로 문항이 빠졌으면 자리가 밀린다. 되살리지 않는다.
+    if (pool.length != s.ids.length) return null;
+    return QuestionScreen(pool: pool, title: s.title);
+  }
+
   @override
   State<QuestionScreen> createState() => _QuestionScreenState();
 }
 
+/// 한 문항에 이보다 오래 머물렀으면 재지 않는다 —
+/// 화면을 켜 둔 채 자리를 비운 것이지 푼 것이 아니다.
+const _maxSolveMs = 10 * 60 * 1000;
+
 class _QuestionScreenState extends State<QuestionScreen> {
   late final PageController _pager;
-  late final List<int?> _chosen;
-  late final List<bool> _graded;
+  late List<Item> pool;
+  late List<int?> _chosen;
+  late List<bool> _graded;
   int at = 0;
+  /// 지금 쪽이 보이기 시작한 시각. 여기서 걸린 시간을 뺀다.
+  int _shownAt = 0;
 
-  Item get item => widget.pool[at];
-  int get right {
-    var n = 0;
-    for (var i = 0; i < widget.pool.length; i++) {
-      if (_graded[i] && _chosen[i] == widget.pool[i].an) n++;
-    }
-    return n;
-  }
+  Item get item => pool[at];
 
   @override
   void initState() {
     super.initState();
-    _pager = PageController();
-    _chosen = List.filled(widget.pool.length, null);
-    _graded = List.filled(widget.pool.length, false);
+    pool = widget.pool;
+    _chosen = List.filled(pool.length, null);
+    _graded = List.filled(pool.length, false);
+
+    // 나갔다 온 것이면 그 자리에서 잇는다. 섞여 들어와도 **문항 집합이 같으면**
+    // 저장된 순서와 상태를 쓴다 — 그래야 16곳 호출부를 안 고치고도 이어진다.
+    final saved = Store.instance.solo;
+    if (saved != null && pool.length > 1 && _sameSet(saved.ids)) {
+      final restored = saved.ids.map(Repo.instance.byId).whereType<Item>().toList();
+      if (restored.length == saved.ids.length) {
+        pool = restored;
+        _chosen = List.of(saved.chosen);
+        _graded = List.of(saved.graded);
+        at = saved.at.clamp(0, pool.length - 1);
+      }
+    }
+    _pager = PageController(initialPage: at);
+    _shownAt = DateTime.now().millisecondsSinceEpoch;
+    if (pool.length > 1) _persist();
+  }
+
+  bool _sameSet(List<String> ids) {
+    if (ids.length != pool.length) return false;
+    final mine = pool.map((i) => i.id).toSet();
+    return ids.every(mine.contains);
+  }
+
+  void _persist() {
+    if (pool.length <= 1) return;
+    Store.instance.solo = SoloSession(
+      ids: pool.map((i) => i.id).toList(),
+      chosen: List.of(_chosen),
+      graded: List.of(_graded),
+      at: at,
+      title: widget.title,
+      savedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+    Store.instance.saveSoon();
   }
 
   @override
@@ -53,36 +96,48 @@ class _QuestionScreenState extends State<QuestionScreen> {
   void _pick(int n) {
     if (_graded[at]) return;
     setState(() => _chosen[at] = n);
+    _persist();
   }
 
   Future<void> _grade() async {
     final ok = _chosen[at] == item.an;
+    final spent = DateTime.now().millisecondsSinceEpoch - _shownAt;
     setState(() => _graded[at] = true);
-    await Store.instance.record(item.id, _chosen[at], ok);
+    _persist();
+    await Store.instance.record(item.id, _chosen[at], ok,
+        ms: (spent > 0 && spent <= _maxSolveMs) ? spent : null);
   }
 
   void _go(int i) {
-    if (i < 0 || i >= widget.pool.length) return;
+    if (i < 0 || i >= pool.length) return;
     _pager.animateToPage(i,
         duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic);
   }
 
+  void _onPage(int i) {
+    setState(() => at = i);
+    _shownAt = DateTime.now().millisecondsSinceEpoch;
+    _persist();
+  }
+
   void _finish() {
+    Store.instance.solo = null;
+    Store.instance.save();
     Navigator.of(context).pushReplacement(MaterialPageRoute(
-      builder: (_) => _ResultPage(pool: widget.pool, chosen: _chosen, graded: _graded),
+      builder: (_) => _ResultPage(pool: pool, chosen: _chosen, graded: _graded),
     ));
   }
 
   /// 어느 쪽(page)의 문항인지 **받아서** 쓴다. `at` 을 쓰면 손가락이 스와이프
   /// 중일 때 옆 쪽의 별을 눌러 엉뚱한 문항이 북마크된다.
   Future<void> _toggleBookmark(int i, bool v) async {
-    await Store.instance.toggleMark(widget.pool[i].id, bookmark: v);
+    await Store.instance.toggleMark(pool[i].id, bookmark: v);
     if (!mounted) return;
     setState(() {});
   }
 
   Future<void> _promptMemo(int i) async {
-    final id = widget.pool[i].id;
+    final id = pool[i].id;
     final cur = Store.instance.markOf(id);
     final ctl = TextEditingController(text: cur.memo);
     try {
@@ -124,12 +179,12 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
   NavMark _mark(int i) {
     if (!_graded[i]) return _chosen[i] != null ? NavMark.done : NavMark.none;
-    return _chosen[i] == widget.pool[i].an ? NavMark.ok : NavMark.no;
+    return _chosen[i] == pool[i].an ? NavMark.ok : NavMark.no;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.pool.isEmpty) {
+    if (pool.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.title.isEmpty ? '풀기' : widget.title)),
         body: const EmptyState(title: '풀 문항이 없습니다', body: '다른 분류를 골라 보세요.'),
@@ -137,26 +192,26 @@ class _QuestionScreenState extends State<QuestionScreen> {
     }
     final graded = _graded[at];
     final chosen = _chosen[at];
-    final last = at >= widget.pool.length - 1;
+    final last = at >= pool.length - 1;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title.isEmpty
-            ? '${at + 1} / ${widget.pool.length}'
-            : '${widget.title} · ${at + 1}/${widget.pool.length}'),
-        bottom: widget.pool.length > 1
+            ? '${at + 1} / ${pool.length}'
+            : '${widget.title} · ${at + 1}/${pool.length}'),
+        bottom: pool.length > 1
             ? QuestionStrip(
-                count: widget.pool.length, current: at,
+                count: pool.length, current: at,
                 markOf: _mark, labelOf: (i) => '${i + 1}', onTap: _go,
               )
             : null,
       ),
       body: PageView.builder(
         controller: _pager,
-        itemCount: widget.pool.length,
-        onPageChanged: (i) => setState(() => at = i),
+        itemCount: pool.length,
+        onPageChanged: _onPage,
         itemBuilder: (ctx, i) => _QuestionBody(
-          item: widget.pool[i],
+          item: pool[i],
           chosen: _chosen[i],
           graded: _graded[i],
           onPick: (n) { if (i == at) _pick(n); },

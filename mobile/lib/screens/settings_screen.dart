@@ -1,8 +1,12 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -76,6 +80,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // ───────────────────────────────────────────────────────── 백업·복원
+
+  void _toast(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _exportBackup() async {
+    final now = DateTime.now();
+    final stamp = '${now.year}${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}';
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/ncsbank-backup-$stamp.json');
+      await file.writeAsString(
+          const JsonEncoder.withIndent('  ').convert(Store.instance.exportMap(now)));
+      await Share.shareXFiles([XFile(file.path)],
+          text: 'NCS 기출은행 기록 백업 — 새 기기에서 설정 › 기록 › 백업 불러오기');
+    } catch (e) {
+      _toast('내보내지 못했습니다: $e');
+    }
+  }
+
+  Future<void> _importBackup() async {
+    Backup backup;
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+      if (picked == null || picked.files.isEmpty) return; // 취소
+      final f = picked.files.single;
+      final raw = f.bytes != null
+          ? utf8.decode(f.bytes!)
+          : await File(f.path!).readAsString();
+      backup = readBackup(jsonDecode(raw));
+    } on FormatException catch (e) {
+      _toast(e.message);
+      return;
+    } catch (e) {
+      _toast('백업을 읽지 못했습니다: $e');
+      return;
+    }
+
+    if (!mounted) return;
+    final cur = Store.instance.snapshot();
+    final b = backup.data;
+    final when = backup.at == null
+        ? '만든 날짜 없음'
+        : '${backup.at!.year}년 ${backup.at!.month}월 ${backup.at!.day}일';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('백업 불러오기'),
+        content: Column(mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('백업 · $when\n'
+              '  ${b.attCount}문항 기록 · 회차 ${b.examCount}건 · 표시 ${b.markCount}건'),
+          const SizedBox(height: 10),
+          Text('지금\n'
+              '  ${cur.attCount}문항 기록 · 회차 ${cur.examCount}건 · 표시 ${cur.markCount}건'),
+          const SizedBox(height: 14),
+          const Text('지금 기록은 전부 사라지고 백업으로 바뀝니다.'),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true), child: const Text('덮어쓰기')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    await Store.instance.importAll(b);
+    if (Store.instance.admin) {
+      try {
+        await Repo.instance.loadAdmin();
+      } catch (_) {/* 배지만 안 나온다 */}
+    }
+    if (!mounted) return;
+    setState(() {});
+    _toast('${b.attCount}문항 기록을 되살렸습니다.');
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
@@ -88,6 +177,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(14),
         children: [
+          const SectionTitle('글자 크기'),
+          _field(
+            c,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final (label, v) in textScaleSteps)
+                  ChipButton(
+                    label: label,
+                    on: (Store.instance.textScale - v).abs() < 0.01,
+                    onTap: () async {
+                      await Store.instance.setTextScale(v);
+                      if (!mounted) return;
+                      setState(() {});
+                    },
+                  ),
+              ]),
+              const SizedBox(height: 12),
+              // 미리보기는 실제 발문과 같은 크기로 둔다 — 고르는 즉시 이만큼 커진다.
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: c.bg, borderRadius: BorderRadius.circular(10)),
+                child: Text(
+                  '다음 자료에 대한 설명으로 옳은 것만을 <보기>에서 모두 고르면?',
+                  style: TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w600, color: c.ink, height: 1.5),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text('문제·지문·해설이 모두 이 배율로 나옵니다.',
+                  style: TextStyle(color: c.faint, fontSize: 12.5)),
+            ]),
+          ),
           const SectionTitle('관리자 모드'),
           _field(
             c,
@@ -141,10 +264,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 4),
               Text(
                 '푼 기록과 복습 일정은 이 기기에만 저장됩니다. 서버로 올라가지 않으므로 '
-                '다른 기기와 공유되지 않고, 앱을 지우면 함께 사라집니다.',
+                '다른 기기와 공유되지 않고, 앱을 지우면 함께 사라집니다.\n'
+                '폰을 바꾸기 전에 백업을 내보내 두세요.',
                 style: TextStyle(color: c.faint, fontSize: 12.5),
               ),
               const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                    onPressed: _exportBackup, child: const Text('백업 내보내기')),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                    onPressed: _importBackup, child: const Text('백업 불러오기')),
+              ),
+              const SizedBox(height: 6),
               SizedBox(
                 width: double.infinity,
                 child:

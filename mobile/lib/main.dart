@@ -25,6 +25,22 @@ class NcsBankApp extends StatelessWidget {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: ThemeMode.system,
+      // 글자 크기는 여기 한 곳에서 건다. 크기가 화면마다 코드에 박혀 있어
+      // 개별로는 손댈 수 없고, MediaQuery 를 타면 flutter_html 이 그리는
+      // 자료·해설까지 함께 커진다.
+      builder: (ctx, child) => ListenableBuilder(
+        listenable: Store.instance,
+        builder: (ctx2, _) {
+          final mq = MediaQuery.of(ctx2);
+          return MediaQuery(
+            data: mq.copyWith(
+              textScaler: TextScaler.linear(
+                  mq.textScaler.scale(1) * Store.instance.textScale),
+            ),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+      ),
       home: const _Boot(),
     );
   }
