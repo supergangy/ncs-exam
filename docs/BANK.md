@@ -300,3 +300,32 @@ DB를 손으로 고치지 않는다. `reviews/db.json` ↔ `--rebuild` 와 같�
   남의 콘텐츠는 저작물이다
 - 근거 건수를 적을 때는 **스냅샷 ID를 함께** 적는다 (`D55`),
   비율의 분모는 **소재를 적은 후기**다 (`D56`)
+
+## 6. 배포 — 공개 저장소로 분리
+
+`app/` 의 산출물만 별도 **공개** 저장소로 옮겨 GitHub Pages 로 띄운다.
+집필·검증 파이프라인(`bank/`·`reviews/`·`tools/`)이 있는 이 저장소는 계속 비공개다.
+
+- 배포 URL: https://supergangy.github.io/ncs-exam-app/
+- 소스: https://github.com/supergangy/ncs-exam-app (public)
+- 접근 제한 없음 — 사용자 결정. `data/admin.json` 도 정적 파일이라
+  URL을 알면 누구나 받을 수 있다 (`app/README.md` 에 이미 적힌 대로,
+  클라이언트 암호 확인은 보안 장치가 아니다)
+
+### 다시 배포하는 법
+
+```bash
+python tools/export_bank.py                      # bank.json · admin.json 갱신
+# sw.js 의 VERSION 을 올린다 — 안 올리면 옛 캐시가 계속 나간다
+rm -rf /tmp/deploy && mkdir /tmp/deploy
+cp -r app/* /tmp/deploy/
+cd /tmp/deploy && git init -q -b main
+git remote add origin https://github.com/supergangy/ncs-exam-app.git
+git add -A && git commit -q -m "재배포 — <바뀐 것>"
+git push -f origin main                           # 이력을 안 남기고 매번 새로 편다
+```
+
+실제 크롬(GitHub Pages, HTTPS)에서 서비스 워커가 정상 등록·활성화되고
+9개 파일이 캐시되는 것을 확인했다 — `ncsbank-v3`. 내장 미리보기 브라우저가
+막고 있던 바로 그 부분이다. `admin.json` 은 캐시에 없다(설계대로 관리자 모드일
+때만 받는다).
