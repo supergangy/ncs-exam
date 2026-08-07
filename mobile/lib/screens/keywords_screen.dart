@@ -14,12 +14,11 @@ class KeywordsScreen extends StatelessWidget {
     final c = AppColors.of(context);
     final repo = Repo.instance;
 
+    // 과목은 불러올 때 이미 색인해 뒀다. 여기서 키워드 305개 × 문항 426개를
+    // 그때그때 돌면 13만 번이라 화면이 멈춘다.
     final groups = <String, List<MapEntry<int, KeywordEntry>>>{};
     for (var idx = 0; idx < repo.bank.keywords.length; idx++) {
-      final k = repo.bank.keywords[idx];
-      final its = repo.bank.items.where((i) => i.kw.contains(idx));
-      final sj = its.isNotEmpty ? its.first.sj : '기타';
-      (groups[sj] ??= []).add(MapEntry(idx, k));
+      (groups[repo.kwSubject(idx)] ??= []).add(MapEntry(idx, repo.bank.keywords[idx]));
     }
     final sorted = groups.entries.toList()
       ..sort((a, b) => b.value.length.compareTo(a.value.length));

@@ -1,5 +1,7 @@
-/// 낱개 풀이 — 웹 `#/q?...` 의 solo 모드와 같다.
-/// 채점하지 않고 정답을 즉시 보여 주며, 앞으로만 이동한다(회차 응시와 다른 규칙).
+/// 낱개 풀이 — 웹 `#/q?...` 의 solo 모드.
+///
+/// 웹판과 다른 점 하나 — **좌우로 넘길 수 있고 되돌아갈 수 있다.**
+/// 그래서 고른 답과 채점 여부를 문항마다 따로 들고 있는다(웹은 한 벌만 들고 앞으로만 갔다).
 library;
 
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import '../store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../html_view.dart';
+import '../qnav.dart';
 
 class QuestionScreen extends StatefulWidget {
   final List<Item> pool;
@@ -19,68 +22,193 @@ class QuestionScreen extends StatefulWidget {
 }
 
 class _QuestionScreenState extends State<QuestionScreen> {
+  late final PageController _pager;
+  late final List<int?> _chosen;
+  late final List<bool> _graded;
   int at = 0;
-  int? chosen;
-  bool graded = false;
-  int right = 0;
-  final List<String> memoDraft = [];
 
   Item get item => widget.pool[at];
+  int get right {
+    var n = 0;
+    for (var i = 0; i < widget.pool.length; i++) {
+      if (_graded[i] && _chosen[i] == widget.pool[i].an) n++;
+    }
+    return n;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pager = PageController();
+    _chosen = List.filled(widget.pool.length, null);
+    _graded = List.filled(widget.pool.length, false);
+  }
+
+  @override
+  void dispose() {
+    _pager.dispose();
+    super.dispose();
+  }
 
   void _pick(int n) {
-    if (graded) return;
-    setState(() => chosen = n);
+    if (_graded[at]) return;
+    setState(() => _chosen[at] = n);
   }
 
   Future<void> _grade() async {
-    final ok = chosen == item.an;
-    if (ok) right++;
-    await Store.instance.record(item.id, chosen, ok);
-    setState(() => graded = true);
+    final ok = _chosen[at] == item.an;
+    setState(() => _graded[at] = true);
+    await Store.instance.record(item.id, _chosen[at], ok);
   }
 
-  void _next() {
-    if (at >= widget.pool.length - 1) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (_) => _ResultPage(pool: widget.pool, right: right),
-      ));
-      return;
-    }
-    setState(() {
-      at++;
-      chosen = null;
-      graded = false;
-    });
+  void _go(int i) {
+    if (i < 0 || i >= widget.pool.length) return;
+    _pager.animateToPage(i,
+        duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic);
   }
 
-  Future<void> _toggleMark({bool? bookmark, bool? flag}) async {
-    await Store.instance.toggleMark(item.id, bookmark: bookmark, flag: flag);
+  void _finish() {
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (_) => _ResultPage(pool: widget.pool, chosen: _chosen, graded: _graded),
+    ));
+  }
+
+  /// 어느 쪽(page)의 문항인지 **받아서** 쓴다. `at` 을 쓰면 손가락이 스와이프
+  /// 중일 때 옆 쪽의 별을 눌러 엉뚱한 문항이 북마크된다.
+  Future<void> _toggleBookmark(int i, bool v) async {
+    await Store.instance.toggleMark(widget.pool[i].id, bookmark: v);
+    if (!mounted) return;
     setState(() {});
   }
 
-  Future<void> _promptMemo() async {
-    final cur = Store.instance.markOf(item.id);
+  Future<void> _promptMemo(int i) async {
+    final id = widget.pool[i].id;
+    final cur = Store.instance.markOf(id);
     final ctl = TextEditingController(text: cur.memo);
-    final memo = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('무엇이 이상한가요?'),
-        content: TextField(controller: ctl, autofocus: true, maxLines: 3,
-            decoration: const InputDecoration(hintText: '그냥 확인만 눌러도 됩니다')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctl.text), child: const Text('확인')),
-        ],
+    try {
+      final action = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('무엇이 이상한가요?'),
+          content: TextField(controller: ctl, autofocus: true, maxLines: 3,
+              decoration: const InputDecoration(hintText: '그냥 확인만 눌러도 됩니다')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+            // 표시를 지우는 길이 없어서, 한 번 쓴 메모가 목록에도 내보내기에도 계속 남았다.
+            if (cur.flag || cur.memo.isNotEmpty)
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'clear'),
+                child: const Text('표시 지우기'),
+              ),
+            FilledButton(onPressed: () => Navigator.pop(ctx, 'save'), child: const Text('저장')),
+          ],
+        ),
+      );
+      if (action == null) return;
+      if (action == 'clear') {
+        await Store.instance.clearFlag(id);
+      } else {
+        final memo = ctl.text.trim();
+        if (memo.isEmpty) {
+          await Store.instance.toggleMark(id, flag: true);
+        } else {
+          await Store.instance.setMemo(id, memo);
+        }
+      }
+      if (!mounted) return;
+      setState(() {});
+    } finally {
+      ctl.dispose();
+    }
+  }
+
+  NavMark _mark(int i) {
+    if (!_graded[i]) return _chosen[i] != null ? NavMark.done : NavMark.none;
+    return _chosen[i] == widget.pool[i].an ? NavMark.ok : NavMark.no;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.pool.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.title.isEmpty ? '풀기' : widget.title)),
+        body: const EmptyState(title: '풀 문항이 없습니다', body: '다른 분류를 골라 보세요.'),
+      );
+    }
+    final graded = _graded[at];
+    final chosen = _chosen[at];
+    final last = at >= widget.pool.length - 1;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title.isEmpty
+            ? '${at + 1} / ${widget.pool.length}'
+            : '${widget.title} · ${at + 1}/${widget.pool.length}'),
+        bottom: widget.pool.length > 1
+            ? QuestionStrip(
+                count: widget.pool.length, current: at,
+                markOf: _mark, labelOf: (i) => '${i + 1}', onTap: _go,
+              )
+            : null,
+      ),
+      body: PageView.builder(
+        controller: _pager,
+        itemCount: widget.pool.length,
+        onPageChanged: (i) => setState(() => at = i),
+        itemBuilder: (ctx, i) => _QuestionBody(
+          item: widget.pool[i],
+          chosen: _chosen[i],
+          graded: _graded[i],
+          onPick: (n) { if (i == at) _pick(n); },
+          onBookmark: (v) => _toggleBookmark(i, v),
+          onFlag: () => _promptMemo(i),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+          child: Row(children: [
+            if (at > 0) ...[
+              SizedBox(
+                width: 60, height: 48,
+                child: OutlinedButton(
+                  onPressed: () => _go(at - 1),
+                  style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                  child: const Text('‹'),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: FilledButton(
+                  onPressed: graded
+                      ? (last ? _finish : () => _go(at + 1))
+                      : (chosen == null ? null : _grade),
+                  child: Text(graded ? (last ? '끝내기' : '다음 문제 ›') : '확인'),
+                ),
+              ),
+            ),
+          ]),
+        ),
       ),
     );
-    if (memo == null) return;
-    if (memo.trim().isEmpty) {
-      await Store.instance.toggleMark(item.id, flag: !cur.flag);
-    } else {
-      await Store.instance.setMemo(item.id, memo.trim());
-    }
-    setState(() {});
   }
+}
+
+/// 한 문항의 본문. PageView 의 한 쪽이다.
+class _QuestionBody extends StatelessWidget {
+  final Item item;
+  final int? chosen;
+  final bool graded;
+  final void Function(int n) onPick;
+  final void Function(bool v) onBookmark;
+  final VoidCallback onFlag;
+  const _QuestionBody({
+    required this.item, required this.chosen, required this.graded,
+    required this.onPick, required this.onBookmark, required this.onFlag,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -88,95 +216,77 @@ class _QuestionScreenState extends State<QuestionScreen> {
     final m = Store.instance.markOf(item.id);
     final admin = Store.instance.admin ? (Repo.instance.admin?[item.id]) : null;
 
-    return Scaffold(
-      appBar: AppBar(title: Text('${at + 1} / ${widget.pool.length}')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 90),
-          children: [
-            LinearProgressIndicator(
-              value: at / widget.pool.length, minHeight: 3,
-              backgroundColor: c.line,
-              valueColor: AlwaysStoppedAnimation(c.brand),
-            ),
-            const SizedBox(height: 10),
-            Row(children: [
-              _MetaChip(item.sj), const SizedBox(width: 6), _MetaChip(item.ty),
-              if (item.rd != null) ...[
-                const SizedBox(width: 6),
-                _MetaChip('${Repo.instance.round(item.rd!)?.title ?? item.rd} ${item.no}번'),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+      children: [
+        Row(children: [
+          Expanded(
+            child: Wrap(spacing: 6, runSpacing: 2, crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _MetaChip(item.sj), _MetaChip(item.ty),
+                if (item.rd != null)
+                  _MetaChip('${Repo.instance.round(item.rd!)?.title ?? item.rd} ${item.no}번'),
+                if (item.df != null) _MetaChip('난이도 ${item.df}'),
+                if (admin?.rk != null) RiskBadge(admin!.rk!),
               ],
-              if (item.df != null) ...[const SizedBox(width: 6), _MetaChip('난이도 ${item.df}')],
-              if (admin?.rk != null) ...[const SizedBox(width: 6), RiskBadge(admin!.rk!)],
-              const Spacer(),
-              IconButton(
-                icon: Icon(m.bookmark ? Icons.star : Icons.star_border,
-                    color: m.bookmark ? c.brand : c.faint, size: 22),
-                onPressed: () => _toggleMark(bookmark: !m.bookmark),
-              ),
-              IconButton(
-                icon: Icon(m.flag ? Icons.flag : Icons.outlined_flag,
-                    color: m.flag ? c.warn : c.faint, size: 20),
-                onPressed: _promptMemo,
-              ),
-            ]),
-            if (item.pg != null) ...[
-              if (Repo.instance.passage(item.pg!).lead != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(Repo.instance.passage(item.pg!).lead!,
-                      style: TextStyle(color: c.dim, fontSize: 13.5)),
-                ),
-              HtmlBox(Repo.instance.passage(item.pg!).body),
-            ] else if (item.ld != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(item.ld!, style: TextStyle(color: c.dim, fontSize: 13.5)),
-              ),
-            if (item.mt != null) HtmlBox(item.mt!),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(plainText(item.st),
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600,
-                      color: c.ink, height: 1.5)),
-            ),
-            ...List.generate(item.ch.length, (n) => _ChoiceTile(
-                  n: n, text: item.ch[n], selected: chosen == n + 1,
-                  correct: graded && n + 1 == item.an,
-                  wrong: graded && n + 1 == chosen && chosen != item.an,
-                  graded: graded,
-                  each: item.ea != null && n < item.ea!.length ? item.ea![n] : null,
-                  onTap: () => _pick(n + 1),
-                )),
-            if (graded) ...[
-              const SizedBox(height: 12),
-              _Verdict(ok: chosen == item.an, answer: item.an, chosen: chosen),
-              if (item.ex != null) ...[
-                const SizedBox(height: 10),
-                _Labeled('해설', HtmlBox(item.ex!)),
-              ],
-              if (admin != null) ...[
-                const SizedBox(height: 10),
-                _AdminBox(admin),
-              ],
-            ],
-          ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-          child: SizedBox(
-            width: double.infinity, height: 48,
-            child: FilledButton(
-              onPressed: graded ? _next : (chosen == null ? null : _grade),
-              child: Text(graded
-                  ? (at >= widget.pool.length - 1 ? '끝내기' : '다음 문제')
-                  : '확인'),
             ),
           ),
+          IconButton(
+            icon: Icon(m.bookmark ? Icons.star : Icons.star_border,
+                color: m.bookmark ? c.brand : c.faint, size: 22),
+            tooltip: '북마크',
+            onPressed: () => onBookmark(!m.bookmark),
+          ),
+          IconButton(
+            icon: Icon(m.flag ? Icons.flag : Icons.outlined_flag,
+                color: m.flag ? c.warn : c.faint, size: 20),
+            tooltip: '확인 필요',
+            onPressed: onFlag,
+          ),
+        ]),
+        if (item.pg != null && Repo.instance.passage(item.pg!) != null) ...[
+          if (Repo.instance.passage(item.pg!)!.lead != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(Repo.instance.passage(item.pg!)!.lead!,
+                  style: TextStyle(color: c.dim, fontSize: 13.5)),
+            ),
+          HtmlBox(Repo.instance.passage(item.pg!)!.body),
+        ] else if (item.ld != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(item.ld!, style: TextStyle(color: c.dim, fontSize: 13.5)),
+          ),
+        if (item.mt != null) HtmlBox(item.mt!),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SelectionArea(
+            child: HtmlText(item.st,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600,
+                    color: c.ink, height: 1.5)),
+          ),
         ),
-      ),
+        ...List.generate(item.ch.length, (n) => _ChoiceTile(
+              n: n, text: item.ch[n], selected: chosen == n + 1,
+              correct: graded && n + 1 == item.an,
+              wrong: graded && n + 1 == chosen && chosen != item.an,
+              graded: graded,
+              each: item.ea != null && n < item.ea!.length ? item.ea![n] : null,
+              onTap: () => onPick(n + 1),
+            )),
+        if (graded) ...[
+          const SizedBox(height: 12),
+          _Verdict(ok: chosen == item.an, answer: item.an, chosen: chosen),
+          if (item.ex != null) ...[
+            const SizedBox(height: 10),
+            _Labeled('해설', HtmlBox(item.ex!)),
+          ],
+          if (admin != null) ...[
+            const SizedBox(height: 10),
+            _AdminBox(admin),
+          ],
+        ],
+      ],
     );
   }
 }
@@ -237,12 +347,12 @@ class _ChoiceTile extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(plainText(text), style: TextStyle(color: c.ink, fontSize: 15)),
+              HtmlText(text, style: TextStyle(color: c.ink, fontSize: 15, height: 1.45)),
               if (graded && each != null && each!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 5),
-                  child: Text(stripLead(plainText(each)),
-                      style: TextStyle(color: c.dim, fontSize: 13)),
+                  child: HtmlText(stripLead(each!),
+                      style: TextStyle(color: c.dim, fontSize: 13, height: 1.4)),
                 ),
             ]),
           ),
@@ -337,39 +447,65 @@ class _AdminBox extends StatelessWidget {
 
 class _ResultPage extends StatelessWidget {
   final List<Item> pool;
-  final int right;
-  const _ResultPage({required this.pool, required this.right});
+  final List<int?> chosen;
+  final List<bool> graded;
+  const _ResultPage({required this.pool, required this.chosen, required this.graded});
 
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
-    final rate = pool.isEmpty ? 0 : (right / pool.length * 100).round();
-    final miss = pool.where((i) => Store.instance.isWrong(i.id)).toList();
+    final done = graded.where((g) => g).length;
+    var right = 0;
+    final miss = <Item>[];
+    for (var i = 0; i < pool.length; i++) {
+      if (!graded[i]) continue;
+      if (chosen[i] == pool[i].an) {
+        right++;
+      } else {
+        miss.add(pool[i]);
+      }
+    }
+    final rate = done == 0 ? 0 : (right / done * 100).round();
+
     return Scaffold(
       appBar: AppBar(title: const Text('결과')),
       body: ListView(
         padding: const EdgeInsets.all(14),
         children: [
           Row(children: [
-            Expanded(child: _kpi(c, '${pool.length}', '푼 문항')),
+            Expanded(child: _kpi(c, '$done', '푼 문항')),
             Expanded(child: _kpi(c, '$right', '맞힘')),
             Expanded(child: _kpi(c, '$rate%', '정답률')),
           ]),
-          if (miss.isEmpty)
+          if (done < pool.length)
+            Padding(
+              padding: const EdgeInsets.only(top: 10, left: 2),
+              child: Text('${pool.length - done}문항은 풀지 않았습니다 — 기록에 넣지 않았습니다.',
+                  style: TextStyle(color: c.faint, fontSize: 12.5)),
+            ),
+          if (miss.isEmpty && done > 0)
             const EmptyState(title: '전부 맞혔습니다', body: '다음 분류로 넘어가 보세요.')
-          else ...[
+          else if (miss.isNotEmpty) ...[
             SectionTitle('틀린 문제 ${miss.length}개'),
             ...miss.map((i) => RowTile(
-                  title: plainText(i.st).length > 40
-                      ? '${plainText(i.st).substring(0, 40)}…' : plainText(i.st),
+                  title: snippet(i.st, 40),
                   subtitle: '${i.sj} · ${i.ty}',
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => QuestionScreen(pool: [i]))),
                 )),
+            const SizedBox(height: 8),
+            ResumeCard(
+              title: '틀린 ${miss.length}문항 다시 풀기',
+              subtitle: '해설을 보며 하나씩',
+              onTap: () => Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => QuestionScreen(pool: miss))),
+            ),
           ],
           const SizedBox(height: 8),
-          ResumeCard(title: '홈으로', subtitle: '다른 과목·유형 고르기',
-              onTap: () => Navigator.of(context).popUntil((r) => r.isFirst)),
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+            child: const Text('홈으로'),
+          ),
         ],
       ),
     );

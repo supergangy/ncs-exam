@@ -41,17 +41,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
     setState(() => _busy = true);
-    await Store.instance.setAdmin(true);
     try {
+      await Store.instance.setAdmin(true);
       await Repo.instance.loadAdmin();
     } catch (_) {
-      // 파일이 없으면 배지만 안 나온다.
+      // 파일이 없으면 배지만 안 나온다. 저장이 실패해도 버튼은 풀어 줘야 한다.
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
-    if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _turnOff() async {
     await Store.instance.setAdmin(false);
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -69,6 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (ok == true) {
       await Store.instance.reset();
+      if (!mounted) return;
       setState(() {});
     }
   }
@@ -117,7 +120,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       '출제자용입니다. 문항의 위험도(low·mid·high)와 '
                       '출제 이유서(근거·설계·함정·검증)를 문제 화면에서 함께 봅니다.\n'
-                      '주의 — 이것은 화면 표시를 가리는 장치일 뿐 보안 장치가 아닙니다.',
+                      '주의 — 이것은 화면 표시를 가리는 장치일 뿐 보안 장치가 아닙니다. '
+                      '앱 파일을 뜯을 줄 아는 사람은 우회할 수 있습니다.',
                       style: TextStyle(color: c.faint, fontSize: 12.5),
                     ),
                     const SizedBox(height: 10),

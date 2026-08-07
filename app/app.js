@@ -622,7 +622,9 @@ function drawSit() {
   }
   if (it.mt) f.append(el('div', 'material', it.mt));
 
-  f.append(el('h1', 'stem', esc(it.st)));
+  // 발문은 **날것 그대로** 넣는다. esc() 를 씌우면 `&lt;보기&gt;` 가 이중으로
+  // 이스케이프되어 화면에 그대로 나온다. 발문에는 태그가 못 들어간다(loader.py 가 막는다).
+  f.append(el('h1', 'stem', it.st));
 
   const cs = el('div', 'choices');
   it.ch.forEach((c, n) => {
@@ -846,7 +848,7 @@ route(/^\/wrong$/, () => {
     b.innerHTML =
       `<div class="row-main">
          <div class="row-s">${esc(i.sj)} · ${esc(i.ty)}</div>
-         <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(i.st.slice(0, 60))}</div>
+         <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(plain(i.st).slice(0, 60))}</div>
        </div><div class="row-n">${cnt}회 틀림</div>`;
     list.append(b);
   }
@@ -889,7 +891,7 @@ route(/^\/review$/, () => {
     b.innerHTML =
       `<div class="row-main">
          <div class="row-s">${esc(i.sj)} · ${esc(i.ty)}</div>
-         <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(i.st.slice(0, 60))}</div>
+         <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(plain(i.st).slice(0, 60))}</div>
        </div><div class="row-n">${s.i ? s.i + '일 간격' : '새로'}</div>`;
     list.append(b);
   }
@@ -1019,7 +1021,20 @@ route(/^\/search$/, () => {
   inp.focus();
 });
 
-const stripTags = s => String(s || '').replace(/<[^>]+>/g, ' ');
+const ENT = { '&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"',
+              '&nbsp;': ' ', '&#39;': "'" };
+const unent = s => String(s || '').replace(/&(?:lt|gt|amp|quot|nbsp|#39);/g, m => ENT[m]);
+
+/** 목록·검색용 순수 텍스트.
+ *
+ *  두 가지를 지킨다 —
+ *  ① 문자 참조를 푼다. 안 그러면 `&lt;보기&gt;` 가 화면에 그대로 나온다.
+ *  ② 인라인 태그는 **붙여서** 지운다. 사이에 공백을 넣으면
+ *     `cm<sup>2</sup>` 가 `cm 2` 가 되어 뜻이 바뀐다. */
+const INLINE_TAG = /<\/?(?:sup|sub|u|b|strong|i|em|code|span|mark)\b[^>]*>/gi;
+const plain = s => unent(String(s || '').replace(INLINE_TAG, '').replace(/<[^>]+>/g, ' '))
+  .replace(/\s+/g, ' ').trim();
+const stripTags = plain;
 
 /** 문항의 **모든 글**을 본다 — 발문·선지·유형·키워드·자료·지문·해설·단평.
  *
@@ -1104,7 +1119,7 @@ route(/^\/marks$/, () => {
         `<div class="row-main">
            <div class="row-s">${esc(it.sj)} · ${esc(it.ty)}
              ${rk ? `<span class="badge ${rk}">${rk.toUpperCase()}</span>` : ''}</div>
-           <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(it.st.slice(0, 56))}</div>
+           <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(plain(it.st).slice(0, 56))}</div>
            ${m.memo ? `<div class="memo">${esc(m.memo)}</div>` : ''}
          </div><div class="row-go">›</div>`;
       list.append(a);
@@ -1147,7 +1162,7 @@ function exportMarks() {
   const items = Object.entries(Store.d.mark).map(([id, m]) => {
     const it = DB.byId.get(id);
     const o = { id, sj: it ? it.sj : '?', ty: it ? it.ty : '?',
-                stem: it ? it.st.slice(0, 80) : '' };
+                stem: it ? plain(it.st).slice(0, 80) : '' };
     if (it && it.rd) { o.round = it.rd; o.no = it.no; }
     if (m.f) o.flag = true;
     if (m.b) o.bookmark = true;
@@ -1356,7 +1371,9 @@ function drawQuestion() {
   }
   if (it.mt) f.append(el('div', 'material', it.mt));
 
-  f.append(el('h1', 'stem', esc(it.st)));
+  // 발문은 **날것 그대로** 넣는다. esc() 를 씌우면 `&lt;보기&gt;` 가 이중으로
+  // 이스케이프되어 화면에 그대로 나온다. 발문에는 태그가 못 들어간다(loader.py 가 막는다).
+  f.append(el('h1', 'stem', it.st));
 
   const cs = el('div', 'choices');
   it.ch.forEach((c, n) => {
@@ -1464,9 +1481,12 @@ function grade(replay) {
   if (!replay) drawFoot();
 }
 
-/** `① (정답) …` 에서 앞의 기호를 뗀다 — 선지 옆에 붙으므로 중복이다 */
+/** `① (정답) …` 에서 앞의 기호를 뗀다 — 선지 옆에 붙으므로 중복이다.
+ *
+ *  esc() 를 씌우면 안 된다. 선지 단평에는 `<sup>5</sup>/<sub>72</sub>` 같은 것이 들어 있어
+ *  이스케이프하면 분수 대신 태그 글자가 그대로 나온다. 선지 본문과 같은 규칙으로 둔다. */
 function stripLead(s) {
-  return esc(String(s).replace(/^[①②③④⑤⑥⑦]\s*/, ''));
+  return String(s).replace(/^[①②③④⑤⑥⑦]\s*/, '');
 }
 
 let DONE = null;
@@ -1499,7 +1519,7 @@ route(/^\/done$/, () => {
       b.href = `#/q?one=${encodeURIComponent(i.id)}`;
       b.innerHTML = `<div class="row-main">
         <div class="row-s">${esc(i.sj)} · ${esc(i.ty)}</div>
-        <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(i.st.slice(0, 60))}</div>
+        <div class="row-t" style="font-weight:550;font-size:.95rem">${esc(plain(i.st).slice(0, 60))}</div>
         </div><div class="row-go">›</div>`;
       list.append(b);
     }

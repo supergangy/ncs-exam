@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.12.2
@@ -38,9 +38,15 @@ dependencies:
   # 문항 본문(발문·자료·해설)이 <table>·<strong>·<sup>·인라인 SVG 를 쓴 HTML 이다.
   # 직접 파서를 짜는 대신 검증된 렌더러를 쓴다.
   flutter_html: ^3.0.0
+  # flutter_html 3.x 는 <table> 을 스스로 그리지 않는다 — 별도 확장이다.
+  # 이게 없으면 표 402개가 통째로 사라진다(자료 표가 없으면 문제를 풀 수 없다).
+  flutter_html_table: ^3.0.0
   # r4 도형 문항 등 <svg> 인라인 그림을 그린다. flutter_html 은 SVG 를 못 그려서
   # 태그 확장으로 붙인다.
   flutter_svg: ^2.0.17
+  # 발문·선지의 &lt; 같은 문자 참조를 풀고 <u>·<sup> 을 살려 그리는 데 쓴다.
+  # 정규식으로 태그를 벗기면 cm<sup>2</sup> 가 "cm 2" 가 된다 — 값이 바뀐다.
+  html: ^0.15.4
   # 기기 로컬 기록 저장 — JS 쪽 localStorage 와 같은 역할.
   shared_preferences: ^2.3.3
   # 오답노트·표시 목록을 .json 으로 내보낼 때 공유 시트를 띄운다.

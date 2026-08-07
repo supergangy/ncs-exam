@@ -6,8 +6,7 @@ import '../store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'question_screen.dart';
-
-int pct(int a, int b) => b == 0 ? 0 : (a / b * 100).round();
+import 'exam_detail_screen.dart' show pct;
 
 class ExamResultScreen extends StatelessWidget {
   final String tag;
@@ -17,14 +16,25 @@ class ExamResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
-    final r = Repo.instance.round(tag)!;
+    final r = Repo.instance.round(tag);
+    if (r == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('결과')),
+        body: const EmptyState(
+            title: '회차를 찾을 수 없습니다', body: '앱을 업데이트하면서 빠졌을 수 있습니다.'),
+      );
+    }
     final hist = Store.instance.history(tag);
     final items = Repo.instance.roundItems(tag);
     final rate = pct(rec.score, rec.n);
 
     String? trend;
-    if (hist.length > 1) {
-      final prev = hist[hist.length - 2];
+    // 이 기록보다 **앞선** 것과 견준다. 지난 성적을 거슬러 열어 볼 수도 있어서
+    // 무조건 뒤에서 두 번째를 집으면 엉뚱한 것과 비교한다.
+    final earlier = hist.where((h) => h.at < rec.at).toList()
+      ..sort((a, b) => a.at.compareTo(b.at));
+    if (earlier.isNotEmpty) {
+      final prev = earlier.last;
       final diff = rate - pct(prev.score, prev.n);
       trend = diff == 0
           ? '지난번과 같은 점수입니다.'

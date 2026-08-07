@@ -16,20 +16,23 @@ class StatsScreen extends StatelessWidget {
     final all = computeProgress(repo.bank.items);
     final atts = Store.instance.att.values.fold<int>(0, (s, l) => s + l.length);
 
+    // 기록이 없으면 아래에서 통째로 버릴 것들이다 — 만들고 나서 버리지 않는다.
     final sections = <Widget>[];
-    for (final t in repo.bank.tracks) {
-      final subs = repo.subjects(t.id);
-      if (subs.isEmpty) continue;
-      sections.add(SectionTitle(t.name));
-      for (final s in subs) {
-        final p = computeProgress(repo.filter(tr: t.id, sj: s.n));
-        sections.add(RowTile(
-          title: s.n,
-          subtitle: progText(p),
-          progress: p,
-          trailing: Text(p.done > 0 ? '${p.rate}%' : '—',
-              style: TextStyle(color: c.dim, fontWeight: FontWeight.w700)),
-        ));
+    if (all.done > 0) {
+      for (final t in repo.bank.tracks) {
+        final subs = repo.subjects(t.id);
+        if (subs.isEmpty) continue;
+        sections.add(SectionTitle(t.name));
+        for (final s in subs) {
+          final p = computeProgress(repo.filter(tr: t.id, sj: s.n));
+          sections.add(RowTile(
+            title: s.n,
+            subtitle: progText(p),
+            progress: p,
+            trailing: Text(p.done > 0 ? '${p.rate}%' : '—',
+                style: TextStyle(color: c.dim, fontWeight: FontWeight.w700)),
+          ));
+        }
       }
     }
 
