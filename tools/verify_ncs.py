@@ -386,6 +386,106 @@ def v_room():
          for k, v in R.items() if k not in ok})
 
 
+# ── 정보 · 조직이해 · 기술 ──────────────────────────────────────────────
+
+SHEET = [("김", "영업", 320, "서울"), ("이", "기술", 480, "부산"),
+         ("박", "영업", 510, "서울"), ("최", "기술", 275, "대구"),
+         ("정", "영업", 620, "서울"), ("한", "안전", 390, "부산")]
+
+
+def v_sumif():
+    got = sum(r[2] for r in SHEET if r[1] == "영업")
+    return got, f"영업 합 {got:,} · 전체 합 {sum(r[2] for r in SHEET):,}(오답⑤)"
+
+
+def v_countif():
+    got = sum(1 for r in SHEET if r[2] >= 400)
+    return got, f">=400 인 것 {got}개 · 전체 {len(SHEET)}개(오답⑤)"
+
+
+def v_averageif():
+    v = [r[2] for r in SHEET if r[3] == "서울"]
+    return round(sum(v) / len(v)), f"서울 {v} 평균 {sum(v)/len(v):.1f} · 합 {sum(v):,}(오답①)"
+
+
+def v_rank():
+    names = [r[0] for r in sorted(SHEET, key=lambda r: -r[2])]
+    return names.index("정") + 1, f"내림차순 {names} → 정 {names.index('정')+1}위"
+
+
+def v_sumifs():
+    got = sum(r[2] for r in SHEET if r[1] == "영업" and r[3] == "서울")
+    return got, f"영업∩서울 {got:,} · 이 자료에서는 SUMIF 와 같다"
+
+
+def v_mid():
+    t = "KR-2026-A031-N"
+    return t[3:7], f"{t} · 4번째부터 4글자 = {t[3:7]} · LEFT2 {t[:2]} · RIGHT1 {t[-1]}"
+
+
+def v_nested_if():
+    v = 480
+    g = "A" if v >= 600 else "B" if v >= 450 else "C" if v >= 300 else "D"
+    return g, f"{v} → 600 미만이고 450 이상 → {g}"
+
+
+def v_code():
+    reg = {"서울": "SL", "부산": "BS", "대구": "DG"}
+    it = {"레일": "RL", "침목": "SP", "전선": "CB"}
+    return f"{reg['부산']}2026{it['침목']}B", "부산 BS + 2026 + 침목 SP + B등급"
+
+
+def v_decode():
+    reg = {"SL": "서울", "BS": "부산", "DG": "대구"}
+    it = {"RL": "레일", "SP": "침목", "CB": "전선"}
+    c = "DG2025CBA"
+    got = (reg[c[:2]], c[2:6], it[c[6:8]], c[8])
+    return got, f"{c} → {got[0]}·{got[1]}·{got[2]}·{got[3]}등급"
+
+
+def v_deleg():
+    amt = 1200
+    who = next((w for lim, w in [(300, "팀장"), (1000, "처장"), (5000, "본부장")]
+                if amt < lim), "사장")
+    return who, f"{amt}만 원 → {who} (1,000 ≤ {amt} < 5,000)"
+
+
+def v_timezone():
+    import datetime
+    seoul = datetime.datetime(2026, 3, 10, 15, 0)
+    ny = seoul + datetime.timedelta(hours=-5 - 9)
+    ld = seoul + datetime.timedelta(hours=0 - 9)
+    return (ny.day, ny.hour), f"뉴욕 {ny:%m/%d %H:%M} · 런던 {ld:%m/%d %H:%M}(오답③)"
+
+
+def v_ups():
+    tot = sum(w * n for w, n in [(450, 2), (120, 3), (85, 4)])
+    need = tot * 1.3
+    pick = next(c for c, lim in [(1, 1100), (1.5, 1650), (2, 2200),
+                                 (3, 3300), (5, 5500)] if lim >= need)
+    return pick, (f"총 {tot}W × 1.3 = {need:.0f}W → {pick}kVA · "
+                  f"여유율을 빼면 1.5kVA 로 보인다")
+
+
+def v_disks():
+    import math
+    total = 1.2 * 6 + 0.18 * 10 + 0.024 * 50
+    return math.ceil(total / 2.4), (f"{total:.1f}GB ÷ 2.4 = {total/2.4:.2f} → "
+                                    f"{math.ceil(total/2.4)}장 (반올림하면 4장)")
+
+
+def v_bribe():
+    """가상 규정 제5조 제2항 — 예외에 드는 것이 하나뿐인지 본다."""
+    cases = [("7만 원 선물", None), ("1인 4만 원 식사", (4, 3)),
+             ("행사 일률 기념품", "제1호"), ("8만 원 화환", (8, 5)),
+             ("무이자 대출", None)]
+    ok = [i for i, (_, c) in enumerate(cases, 1)
+          if c == "제1호" or (isinstance(c, tuple) and c[0] <= c[1])]
+    if len(ok) != 1:
+        raise AssertionError(f"허용되는 것이 {ok} 다 — 문항이 성립하지 않는다")
+    return ok[0], f"허용 {cases[ok[0]-1][0]} · 나머지는 예외 없음 또는 한도 초과"
+
+
 # ── 명제 — 작은 세계를 전부 만들어 필연인지 본다 ─────────────────────────
 
 def _entails(names, premises, conclusion, n=4):
@@ -521,6 +621,132 @@ REGISTRY = {
                            lambda i: i),
     "ncs-res-common-019": (v_order, lambda w: "ABCD".index(w) + 1),
     "ncs-res-common-020": (v_room, lambda w: "가나다라".index(w) + 1),
+
+    # ── 정보 ────────────────────────────────────────────────────────
+    "ncs-info-common-001": (v_sumif, lambda v: {1130: 1, 1450: 2, 1930: 3,
+                                                2275: 4, 2595: 5}[v]),
+    "ncs-info-common-002": (v_countif, lambda n: {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}[n]),
+    "ncs-info-common-003": (v_averageif, lambda v: {1450: 1, 483: 2, 435: 3,
+                                                    410: 4, 320: 5}[v]),
+    "ncs-info-common-004": (v_rank, lambda r: {1: 1, 6: 3}[r]),
+    "ncs-info-common-005": (v_sumifs, lambda v: {320: 1, 1130: 2, 1450: 3,
+                                                 1930: 4, 2595: 5}[v]),
+    "ncs-info-common-006": (v_mid, lambda t: {"2026": 1, "KR-2": 2, "R-20": 3,
+                                              "-202": 4, "26-A": 5}[t]),
+    "ncs-info-common-007": (v_nested_if, lambda g: {"A": 1, "B": 2, "C": 3, "D": 4}[g]),
+    "ncs-info-common-008": (v_code, lambda c: {"BS2026SPB": 1, "BS2026RLB": 2,
+                                               "SL2026SPB": 3, "BS2026SPA": 4,
+                                               "SP2026BSB": 5}[c]),
+    "ncs-info-common-009": (v_decode, lambda t: {("대구", "2025", "전선", "A"): 2}[t]),
+    # 010 $ 뒤가 고정 — 아래로 복사할 때는 행 고정(B$1)만 살아남는다 (선지 ④)
+    "ncs-info-common-010": (lambda: (4, "$B1 은 열 고정이라 아래로 복사할 때 소용없다"),
+                            lambda i: i),
+    # 011 필터는 숨길 뿐 삭제하지 않는다 (선지 ③)
+    "ncs-info-common-011": (lambda: (3, "행 번호가 건너뛰는 것이 숨겨졌다는 표시"),
+                            lambda i: i),
+    # 012 목적에 맞게 가공 → 정보 (선지 ②)
+    "ncs-info-common-012": (lambda: (2, "DIKW — 자료·정보·지식·지혜"), lambda i: i),
+    # 013 동의는 그 목적에 한정된다 (선지 ③)
+    "ncs-info-common-013": (lambda: (3, "목적 밖 이용은 다시 동의받아야 한다"), lambda i: i),
+    # 014 계정은 빌려주지 않는다 (선지 ③)
+    "ncs-info-common-014": (lambda: (3, "기록이 섞여 추적할 수 없게 된다"), lambda i: i),
+    # 015 둘 다 있는 문서 → AND (선지 ②)
+    "ncs-info-common-015": (lambda: (2, "구절 검색은 붙어 있어야 해 범위가 더 좁다"),
+                            lambda i: i),
+
+    # ── 조직이해 ────────────────────────────────────────────────────
+    "ncs-org-common-001": (v_deleg, lambda w: {"팀장": 1, "처장": 2, "본부장": 3,
+                                               "사장": 4}[w]),
+    # 002 팀장 250만 원만 규정 안 (선지 ①)
+    "ncs-org-common-002": (lambda: (1, "나머지 넷은 모두 한 칸씩 한도를 넘는다"),
+                           lambda i: i),
+    # 003 위임해도 감독 책임은 남는다 (선지 ④)
+    "ncs-org-common-003": (lambda: (4, "권한은 넘어가되 조직의 책임은 남는다"), lambda i: i),
+    "ncs-org-common-004": (v_timezone, lambda t: {(9, 13): 1, (10, 1): 2,
+                                                  (10, 6): 3}[t]),
+    # 005 규칙·위계가 뚜렷 → 기계적 (선지 ②)
+    "ncs-org-common-005": (lambda: (2, "나머지 넷은 유기적 조직의 특징"), lambda i: i),
+    # 006 저성장·고점유 → 현금젖소 (선지 ③)
+    "ncs-org-common-006": (lambda: (3, "성장 2% 낮음 · 점유 38% 1위"), lambda i: i),
+    # 007 업종이 다른데 같은 필요를 채운다 → 대체재 (선지 ③)
+    "ncs-org-common-007": (lambda: (3, "고속버스·항공은 철도업이 아니다"), lambda i: i),
+    # 008 돌발 상황은 보고가 먼저 (선지 ②)
+    "ncs-org-common-008": (lambda: (2, "보고 → 조치 → 분석 → 대책 → 대외"), lambda i: i),
+    # 009 규칙·절차·안정 → 위계지향 (선지 ③)
+    "ncs-org-common-009": (lambda: (3, "과업지향은 성과를, 위계지향은 절차를 본다"),
+                           lambda i: i),
+    # 010 명령 계통이 둘이라 갈등이 생긴다 (선지 ④)
+    "ncs-org-common-010": (lambda: (4, "②(이중 보고)를 인정하면 ④는 성립 못 한다"),
+                           lambda i: i),
+    # 011 호칭은 상대가 권한 뒤에 (선지 ④)
+    "ncs-org-common-011": (lambda: (4, "첫 만남에서는 성과 직함을 쓴다"), lambda i: i),
+    # 012 경영 4요소에 조직 문화는 없다 (선지 ⑤)
+    "ncs-org-common-012": (lambda: (5, "목적·인적자원·자금·전략"), lambda i: i),
+    # 013 교육 과정 운영 → 인재개발처 (선지 ②)
+    "ncs-org-common-013": (lambda: (2, "대상이 사람이면 인사 부서"), lambda i: i),
+    # 014 좁은 시장에 자원을 몰았다 → 집중화 (선지 ③)
+    "ncs-org-common-014": (lambda: (3, "원가·차별화는 어떻게, 집중화는 어디에서"),
+                           lambda i: i),
+    # 015 조직도와 규정은 공식 조직의 것 (선지 ③)
+    "ncs-org-common-015": (lambda: (3, "비공식은 저절로 생기고 조직도에 없다"), lambda i: i),
+
+    # ── 기술 ────────────────────────────────────────────────────────
+    # 001 출력이 흐리다 → 용지 종류 (선지 ④)
+    "ncs-tech-common-001": (lambda: (4, "용지가 나오기는 하므로 잔량 문제가 아니다"),
+                            lambda i: i),
+    # 002 임의 분해 금지 (선지 ④)
+    "ncs-tech-common-002": (lambda: (4, "각주가 분해하지 말라고 못 박고 있다"), lambda i: i),
+    "ncs-tech-common-003": (v_ups, lambda c: {1: 1, 1.5: 2, 2: 3, 3: 4, 5: 5}[c]),
+    # 004 그 순간의 행동 → 직접 원인 (선지 ②)
+    "ncs-tech-common-004": (lambda: (2, "교육·감독·규정·예산은 배경인 간접 원인"),
+                            lambda i: i),
+    # 005 1:29:300 → 하인리히 법칙 (선지 ③)
+    "ncs-tech-common-005": (lambda: (3, "아차 사고는 그 300건에 해당하는 개별 사건"),
+                            lambda i: i),
+    # 006 우수 사례를 견주고 배운다 → 벤치마킹 (선지 ①)
+    "ncs-tech-common-006": (lambda: (1, "다른 업종을 봤으므로 비경쟁적 벤치마킹"),
+                            lambda i: i),
+    # 007 원리에 대한 이론적 이해 → 노와이 (선지 ②)
+    "ncs-tech-common-007": (lambda: (2, "노하우는 경험, 노와이는 원리"), lambda i: i),
+    # 008 사용법 vs 유지·보수 (선지 ②)
+    "ncs-tech-common-008": (lambda: (2, "안전 경고는 둘 다 넣는다"), lambda i: i),
+    # 009 최신이라는 것만으로는 근거가 아니다 (선지 ④)
+    "ncs-tech-common-009": (lambda: (4, "호환성·역량·경제성·수명을 본다"), lambda i: i),
+    "ncs-tech-common-010": (v_disks, lambda n: {3: 1, 4: 2, 5: 3, 6: 4, 8: 5}[n]),
+    # 011 생산성만을 목표로 하지 않는다 (선지 ③)
+    "ncs-tech-common-011": (lambda: (3, "「만을」이라는 한정어가 판정을 만든다"), lambda i: i),
+    # 012 금지 표지 → 멈춘다 (선지 ①)
+    "ncs-tech-common-012": (lambda: (1, "주의하며 작업은 경고 표지일 때"), lambda i: i),
+
+    # ── 직업윤리 ────────────────────────────────────────────────────
+    "ncs-eth-common-001": (v_bribe, lambda i: i),
+    # 002 신고하고 회피한다 (선지 ③)
+    "ncs-eth-common-002": (lambda: (3, "결과가 아니라 상황 자체를 막는 규정"), lambda i: i),
+    # 003 경조사 5만 원 이하로 허용 (선지 ④)
+    "ncs-eth-common-003": (lambda: (4, "③은 규정 밖일 뿐 명시적 허용은 아니다"),
+                           lambda i: i),
+    # 004 정성을 다해 한결같이 → 성실 (선지 ③)
+    "ncs-eth-common-004": (lambda: (3, "근면은 양, 성실은 질과 일관성"), lambda i: i),
+    # 005 업무상 필요와 정당한 절차 → 괴롭힘 아님 (선지 ④)
+    "ncs-eth-common-005": (lambda: (4, "우위·적정범위·고통 세 요건"), lambda i: i),
+    # 006 이탈이 아니라 인계 (선지 ③)
+    "ncs-eth-common-006": (lambda: (3, "감당 못 하면 인계한다. 자리를 뜨는 것과 다르다"),
+                           lambda i: i),
+    # 007 바로잡고 알린 뒤 기한 조정 (선지 ②)
+    "ncs-eth-common-007": (lambda: (2, "기한은 비용, 틀린 수치는 손해"), lambda i: i),
+    # 008 대가를 바라지 않고 도움 → 봉사 (선지 ①)
+    "ncs-eth-common-008": (lambda: (1, "직업에서의 봉사는 자원봉사만을 뜻하지 않는다"),
+                           lambda i: i),
+    # 009 관계가 가까워도 기준은 같다 (선지 ③)
+    "ncs-eth-common-009": (lambda: (3, "판정은 받는 쪽이 느낀 것으로 한다"), lambda i: i),
+    # 010 능력을 펼치고 성장 → 자아실현적 (선지 ③)
+    "ncs-eth-common-010": (lambda: (3, "세 의미는 공존한다. 상황이 강조한 쪽을 고른다"),
+                           lambda i: i),
+    # 011 건 쪽 또는 상대가 먼저 끊는다 (선지 ④)
+    "ncs-eth-common-011": (lambda: (4, "효율처럼 보이지만 상대가 마쳤는지가 먼저"),
+                           lambda i: i),
+    # 012 내부에서 먼저 바로잡을 기회 (선지 ③)
+    "ncs-eth-common-012": (lambda: (3, "당사자 → 내부 → 외부 순서"), lambda i: i),
 
     # 나머지(논리오류·모듈·SWOT·어문규범)는 개념 판정형이다. 계산으로 확정되지 않으므로 등록하지 않는다 —
     # 미검증으로 남는 것이 정상이다 (아래 main 의 안내 참조).
