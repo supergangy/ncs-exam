@@ -10,6 +10,7 @@ import '../store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../html_view.dart';
+import '../pdf_note.dart';
 import 'question_screen.dart';
 
 class WrongScreen extends StatefulWidget {
@@ -19,6 +20,22 @@ class WrongScreen extends StatefulWidget {
 }
 
 class _WrongScreenState extends State<WrongScreen> {
+  bool _busy = false;
+
+  /// 문항이 많으면 WebView 가 그리는 데 몇 초 걸린다. 그동안 버튼을 잠근다.
+  Future<void> _makePdf(List<Item> wrong) async {
+    setState(() => _busy = true);
+    try {
+      await printNote(wrong, title: '오답노트');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('PDF를 만들지 못했습니다: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final repo = Repo.instance;
@@ -50,16 +67,37 @@ class _WrongScreenState extends State<WrongScreen> {
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _export(wrong),
-                  child: const Text('오답노트 PDF 용으로 내보내기'),
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : () => _makePdf(wrong),
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  label: Text(_busy ? '만드는 중…' : 'PDF 만들기'),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '내보낸 파일을 PC로 옮겨 python tools/wrongnote_pdf.py 에 넘기면 '
-                  '문제와 해설이 함께 실린 인쇄본이 나옵니다.',
+                  '문제와 해설이 함께 실린 인쇄본을 폰에서 바로 만듭니다. '
+                  '뜨는 창에서 「PDF로 저장」을 고르면 파일로 남습니다.',
+                  style: TextStyle(color: c.faint, fontSize: 12.5),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => _export(wrong),
+                  child: const Text('PC용 목록 내보내기 (.json)'),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '문항 번호만 담은 목록입니다. PC로 옮겨 python tools/wrongnote_pdf.py 에 '
+                  '넘기면 표지·쪽번호까지 붙은 인쇄본이 나옵니다.',
                   style: TextStyle(color: c.faint, fontSize: 12.5),
                 ),
               ),
