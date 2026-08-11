@@ -234,7 +234,10 @@ def main() -> None:
         lines += [
             "# 출제 빈도 × 은행 보유량 대조",
             "",
-            "`python tools/gap.py --md` 로 다시 만든다. 손으로 고치지 않는다.",
+            "**표는 `python tools/gap.py --md > docs/GAP.md` 로 다시 만든다.**",
+            "그 뒤 아래 「읽는 법」과 「결론」 절을 사람이 다시 붙인다 —",
+            "판정은 숫자만으로 나오지 않으므로 도구가 대신 쓸 수 없다.",
+            "붙이는 글은 `docs/GAP_NOTES.md` 에 있다.",
             "",
             f"후기 {len(reviews)}건 · 은행 NCS {len(ncs)}문항",
             "",

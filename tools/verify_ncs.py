@@ -32,6 +32,189 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 
+# ── 자료해석 ────────────────────────────────────────────────────────────
+#
+# 문항의 표를 **여기 다시 적고** 답을 계산한다. 표와 해설이 어긋나면 여기서 잡힌다.
+# 표를 고치면 이쪽도 고쳐야 하고, 안 고치면 불일치로 뜬다 — 그게 목적이다.
+
+def _rate(new, old):
+    return (new - old) / old * 100
+
+
+def v_share_rail() -> tuple[float, str]:
+    d = {"도시철도": 2814, "시내버스": 3960, "택시": 1122, "철도": 504}
+    tot = sum(d.values())
+    p = d["도시철도"] / tot * 100
+    return (p, f"2,814 ÷ {tot:,} = {p:.1f}%")
+
+
+def v_best_growth() -> tuple[str, str]:
+    d = {"A": (1250, 1400), "B": (860, 989), "C": (2100, 2331),
+         "D": (430, 500), "E": (1580, 1706)}
+    r = {k: _rate(v[1], v[0]) for k, v in d.items()}
+    amt = {k: v[1] - v[0] for k, v in d.items()}
+    best = max(r, key=r.get)
+    return (best, f"증가율 " + " · ".join(f"{k} {v:.1f}%" for k, v in r.items())
+            + f" → {best} / 증가량 1위는 {max(amt, key=amt.get)}(다른 곳)")
+
+
+def v_bad_chart() -> tuple[int, str]:
+    """표를 그래프로 옮긴 넷 가운데 어긋난 것. 선지 번호를 돌려준다."""
+    tbl = {"1분기": 320, "2분기": 480, "3분기": 560, "4분기": 400}
+    charts = {
+        1: {"1분기": 320, "2분기": 480, "3분기": 560, "4분기": 400},
+        2: {"1분기": 320, "2분기": 480, "3분기": 560, "4분기": 400},
+        3: {"1분기": 320, "2분기": 560, "3분기": 480, "4분기": 400},
+        4: {"1분기": 320, "2분기": 480, "3분기": 560, "4분기": 400},
+    }
+    bad = [i for i, c in charts.items() if c != tbl]
+    assert len(bad) == 1, f"어긋난 그래프가 하나여야 한다: {bad}"
+    return (bad[0], f"㉠~㉣ 가운데 표와 다른 것은 {bad[0]}번뿐 "
+                    f"(2·3분기가 뒤바뀜)")
+
+
+def v_blank_sum() -> tuple[int, str]:
+    known = {"수도권": 428, "중부": 315, "호남": 267, "강원": 156}
+    tot = 1520
+    x = tot - sum(known.values())
+    return (x, f"{tot:,} − {sum(known.values()):,} = {x}")
+
+
+def v_blank_avg() -> tuple[int, str]:
+    known = [231, 258, 240, 262]
+    avg, n = 246, 5
+    x = avg * n - sum(known)
+    return (x, f"{avg} × {n} − {sum(known)} = {x} "
+               f"(다시 평균 {(sum(known)+x)/n:.1f})")
+
+
+def v_cross_seats() -> tuple[int, str]:
+    cap = {"전동차": 160, "무궁화": 72, "새마을": 56}
+    run = {"전동차": 12, "무궁화": 8, "새마을": 5}
+    per = {k: cap[k] * run[k] for k in cap}
+    return (sum(per.values()),
+            " + ".join(f"{v:,}" for v in per.values()) + f" = {sum(per.values()):,}")
+
+
+def v_unit_thousand() -> tuple[int, str]:
+    return (1449 * 1000, "표 단위가 천 명 → 1,449 × 1,000 = 1,449,000명")
+
+
+def v_wavg_fare() -> tuple[int, str]:
+    w = [(1250, 1400), (860, 1900), (430, 2600)]
+    tot_n = sum(n for n, _ in w)
+    tot_v = sum(n * p for n, p in w)
+    wa = tot_v / tot_n
+    naive = sum(p for _, p in w) / len(w)
+    return (round(wa), f"{tot_v:,} ÷ {tot_n:,} = {wa:.1f} → {round(wa):,}원 "
+                       f"(단순평균 {naive:.0f}원과 다름)")
+
+
+def v_rank_moved() -> tuple[int, str]:
+    y23 = {"가": 820, "나": 940, "다": 760, "라": 1120, "마": 680}
+    y24 = {"가": 965, "나": 918, "다": 812, "라": 1150, "마": 742}
+    rk = lambda d: {k: i + 1 for i, (k, _) in
+                    enumerate(sorted(d.items(), key=lambda x: -x[1]))}
+    a, b = rk(y23), rk(y24)
+    moved = [k for k in y23 if a[k] != b[k]]
+    return (len(moved), f"{a} → {b} · 바뀐 역 {moved} = {len(moved)}곳")
+
+
+def v_amt_vs_rate() -> tuple[tuple[str, str], str]:
+    d = {"A": (4200, 4620), "B": (680, 850), "C": (1500, 1680)}
+    amt = {k: v[1] - v[0] for k, v in d.items()}
+    rt = {k: _rate(v[1], v[0]) for k, v in d.items()}
+    a, r = max(amt, key=amt.get), max(rt, key=rt.get)
+    return ((a, r), f"증가량 {amt} → {a} / 증가율 "
+                    + " · ".join(f"{k} {v:.1f}%" for k, v in rt.items()) + f" → {r}")
+
+
+def v_index() -> tuple[float, str]:
+    base, cur = 2480, 2852
+    p = cur / base * 100
+    return (p, f"{cur:,} ÷ {base:,} × 100 = {p:.1f}")
+
+
+def v_share_down() -> tuple[tuple[str, str], str]:
+    a, b = (312, 1560), (378, 2100)
+    pa, pb = a[0] / a[1] * 100, b[0] / b[1] * 100
+    return (("늘" if b[0] > a[0] else "줄", "늘" if pb > pa else "줄"),
+            f"수 {a[0]} → {b[0]} · 비중 {pa:.1f}% → {pb:.1f}% "
+            f"(전체는 {_rate(b[1], a[1]):.1f}% 늘어 더 빠르다)")
+
+
+def v_comp_wrong() -> tuple[int, str]:
+    """구성비 표에 대한 다섯 주장 가운데 틀린 것. 선지 번호를 돌려준다."""
+    d = {"정기": 42.5, "일반": 31.0, "청소년": 14.2, "경로": 9.8, "기타": 2.5}
+    assert round(sum(d.values()), 1) == 100.0, "구성비 합이 100이어야 한다"
+    claims = {
+        1: d["정기"] == max(d.values()),
+        2: d["정기"] >= d["일반"] * 1.5,
+        3: d["청소년"] + d["경로"] < d["일반"],
+        4: d["정기"] <= 50,
+        5: d["경로"] > d["기타"] * 3,
+    }
+    wrong = [i for i, ok in claims.items() if not ok]
+    assert len(wrong) == 1, f"틀린 주장이 하나여야 한다: {wrong}"
+    return (wrong[0], f"주장별 판정 {claims} → 틀린 것 {wrong[0]}번 "
+                      f"(정기/일반 = {d['정기']/d['일반']:.3f}배, 1.5 미만)")
+
+
+def v_dec_pair() -> tuple[tuple[str, str], str]:
+    d = {"가": (520, 468), "나": (340, 289), "다": (780, 702), "라": (150, 120)}
+    amt = {k: v[0] - v[1] for k, v in d.items()}
+    rt = {k: -_rate(v[1], v[0]) for k, v in d.items()}
+    return ((max(amt, key=amt.get), max(rt, key=rt.get)),
+            f"감소량 {amt} / 감소율 "
+            + " · ".join(f"{k} {v:.1f}%" for k, v in rt.items()))
+
+
+def v_cumulative() -> tuple[int, str]:
+    cum = {2022: 1240, 2023: 2760, 2024: 4520}
+    y23 = cum[2023] - cum[2022]
+    y24 = cum[2024] - cum[2023]
+    return (y24 - y23, f"당해 실적 2023 {y23:,} · 2024 {y24:,} → 차이 {y24-y23}")
+
+
+def v_rate_times_cap() -> tuple[str, str]:
+    d = {"A": (1200, 0.82), "B": (900, 0.91), "C": (1500, 0.68)}
+    use = {k: round(c * r) for k, (c, r) in d.items()}
+    best = max(use, key=use.get)
+    rate_best = max(d, key=lambda k: d[k][1])
+    return (best, f"실제 인원 {use} → {best} "
+                  f"(이용률 1위는 {rate_best} 로 다르다)")
+
+
+def v_wavg_score() -> tuple[float, str]:
+    g = [(120, 78.5), (40, 91.0)]
+    tot_n = sum(n for n, _ in g)
+    p = sum(n * m for n, m in g) / tot_n
+    naive = sum(m for _, m in g) / len(g)
+    return (p, f"{sum(n*m for n,m in g):,.0f} ÷ {tot_n} = {p:.3f} "
+               f"(평균의 평균 {naive:.2f}와 다름)")
+
+
+def v_cagr() -> tuple[float, str]:
+    s, e, yrs = 2000, 2420, 2
+    p = ((e / s) ** (1 / yrs) - 1) * 100
+    half = _rate(e, s) / yrs
+    return (p, f"({e:,}/{s:,})^(1/{yrs}) − 1 = {p:.1f}% "
+               f"(전체 {_rate(e, s):.1f}% 의 절반 {half:.1f}% 가 아니다)")
+
+
+def v_congestion() -> tuple[int, str]:
+    cap, sets, cong = 160, 10, 1.35
+    n = round(cap * sets * cong)
+    return (n, f"{cap} × {cong} × {sets} = {n:,}명 (혼잡도 = 승차 ÷ 정원)")
+
+
+def v_pp_vs_pct() -> tuple[tuple[float, float], str]:
+    a, b = 24.0, 30.0
+    return ((round(b - a, 1), round(_rate(b, a), 1)),
+            f"차이 {b-a:.1f}%p · 증가율 {_rate(b, a):.1f}% "
+            f"(나중 값으로 나누면 {(b-a)/b*100:.1f}% 로 틀린다)")
+
+
 # ── 수리 ────────────────────────────────────────────────────────────────
 
 def v_tunnel() -> tuple[float, str]:
@@ -750,6 +933,41 @@ REGISTRY = {
 
     # 나머지(논리오류·모듈·SWOT·어문규범)는 개념 판정형이다. 계산으로 확정되지 않으므로 등록하지 않는다 —
     # 미검증으로 남는 것이 정상이다 (아래 main 의 안내 참조).
+
+    # ── 자료해석 (bank/_common/ncs_data.py) ─────────────────────────────
+    # 표의 수치에서 **다시 계산**한다. 검증기가 표를 그대로 옮겨 적고 답을 뽑으므로,
+    # 표를 고치면서 해설만 안 고치는 사고를 여기서 잡는다.
+    "ncs-data-common-001": (v_share_rail, lambda p: {29.4: 1, 31.2: 2, 33.5: 3,
+                                                     35.1: 4, 38.0: 5}[round(p, 1)]),
+    "ncs-data-common-002": (v_best_growth, lambda k: "ABCDE".index(k) + 1),
+    "ncs-data-common-003": (v_bad_chart, lambda i: i),
+    "ncs-data-common-004": (v_blank_sum, lambda n: {318: 1, 336: 2, 354: 3,
+                                                    372: 4, 390: 5}[n]),
+    "ncs-data-common-005": (v_blank_avg, lambda n: {231: 1, 235: 2, 239: 3,
+                                                    243: 4, 247: 5}[n]),
+    "ncs-data-common-006": (v_cross_seats, lambda n: {2536: 1, 2648: 2, 2776: 3,
+                                                      2904: 4, 3120: 5}[n]),
+    "ncs-data-common-007": (v_unit_thousand, lambda n: {1449: 1, 14490: 2, 144900: 3,
+                                                        1449000: 4, 14490000: 5}[n]),
+    "ncs-data-common-008": (v_wavg_fare, lambda n: {1633: 1, 1772: 2, 1900: 3,
+                                                    1967: 4, 2033: 5}[n]),
+    "ncs-data-common-009": (v_rank_moved, lambda n: n + 1),  # 0곳 → ① … 4곳 → ⑤
+    "ncs-data-common-010": (v_amt_vs_rate, lambda t: {("A", "B"): 2}[t]),
+    "ncs-data-common-011": (v_index, lambda p: {105.0: 1, 110.0: 2, 112.5: 3,
+                                                115.0: 4, 120.0: 5}[round(p, 1)]),
+    "ncs-data-common-012": (v_share_down, lambda t: {("늘", "줄"): 2}[t]),
+    "ncs-data-common-013": (v_comp_wrong, lambda i: i),
+    "ncs-data-common-014": (v_dec_pair, lambda t: {("다", "라"): 2}[t]),
+    "ncs-data-common-015": (v_cumulative, lambda n: {120: 1, 180: 2, 240: 3,
+                                                     1760: 4, 2760: 5}[n]),
+    "ncs-data-common-016": (v_rate_times_cap, lambda k: "ABC".index(k) + 1),
+    "ncs-data-common-017": (v_wavg_score, lambda p: {78.50: 1, 81.62: 2, 84.75: 3,
+                                                     86.30: 4, 91.00: 5}[round(p, 2)]),
+    "ncs-data-common-018": (v_cagr, lambda p: {9.5: 1, 10.0: 2, 10.5: 3,
+                                               21.0: 4, 42.0: 5}[round(p, 1)]),
+    "ncs-data-common-019": (v_congestion, lambda n: {1600: 1, 1850: 2, 2160: 3,
+                                                     2400: 4, 2700: 5}[n]),
+    "ncs-data-common-020": (v_pp_vs_pct, lambda t: {(6.0, 25.0): 2}[t]),
 }
 
 
