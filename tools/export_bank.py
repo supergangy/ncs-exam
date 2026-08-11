@@ -27,6 +27,8 @@ from collections import Counter
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from bank import types as bank_types  # noqa: E402  — 경로를 넣은 뒤에 불러야 한다
+
 OUT = ROOT / "app" / "data" / "bank.json"
 OUT_ADMIN = ROOT / "app" / "data" / "admin.json"
 
@@ -405,7 +407,21 @@ def build(items: list[dict], rounds: list[dict]) -> tuple[dict, dict]:
         if adm:
             admin_items[it["id"]] = adm
 
+    # 유형 어휘 검사 — **여기서 멈춘다.** 오타가 새 유형으로 굳는 것을 막는다.
+    # 표기가 갈려 `조건추리`/`조건추론` 이 두 줄로 나뉘고 문항 수가 반씩 쪼개진 적이 있다.
+    unknown = sorted({(i["sj"], i["ty"]) for i in out_items
+                      if not bank_types.known(i["sj"], i["ty"])})
+    if unknown:
+        print("\n[중단] 유형 사전(bank/types.py)에 없는 유형이 있습니다:")
+        for sj, ty in unknown:
+            n = sum(1 for i in out_items if i["sj"] == sj and i["ty"] == ty)
+            print(f"   {sj}/{ty}  ({n}문항)")
+        print("   → 오타인지 먼저 보고, 정말 새 유형이면 GROUPS 에 넣으십시오.")
+        raise SystemExit(1)
+
     # 분류 트리 — 런타임 집계를 하지 않는다 (한국사 앱과 같은 판단)
+    # `g` 는 대유형이다. 세부 유형은 그대로 두고 앱이 묶어 보이는 데 쓴다 —
+    # 세부만 늘어놓으면 NCS 127종 가운데 67종이 1문항짜리라 고를 값이 없다.
     subjects, types = [], []
     for tr in ("cs", "ncs"):
         for sj in sorted({i["sj"] for i in out_items if i["tr"] == tr}):
@@ -414,6 +430,7 @@ def build(items: list[dict], rounds: list[dict]) -> tuple[dict, dict]:
             for ty in sorted({i["ty"] for i in out_items
                               if i["tr"] == tr and i["sj"] == sj}):
                 types.append({"tr": tr, "sj": sj, "n": ty,
+                              "g": bank_types.group_of(sj, ty),
                               "c": sum(1 for i in out_items if i["tr"] == tr
                                        and i["sj"] == sj and i["ty"] == ty)})
 

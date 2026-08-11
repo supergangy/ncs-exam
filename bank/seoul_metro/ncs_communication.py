@@ -113,7 +113,7 @@ ITEMS = [
         "passage": None,
         "questions": [
             {
-                "type": "속담",
+                "type": "속담적용",
                 "stem": "다음 상황에 어울리는 속담으로 가장 적절한 것은?",
                 "material": (
                     '<div class="box">'

@@ -23,7 +23,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
     final repo = Repo.instance;
     final c = AppColors.of(context);
     final all = repo.filter(tr: widget.trackId, sj: widget.subject);
-    final types = repo.types(widget.trackId, widget.subject);
+    final groups = repo.typeGroups(widget.trackId, widget.subject);
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.subject)),
@@ -58,27 +58,32 @@ class _SubjectScreenState extends State<SubjectScreen> {
                             QuestionScreen(title: widget.subject, pool: start)));
                   },
                 ),
-                SectionTitle('유형 ${types.length}종'),
-                ...types.map((t) {
+                SectionTitle('유형 ${groups.length}종'),
+                ...groups.map((g) {
                   final items = _filter
-                      .apply(repo.filter(tr: widget.trackId, sj: widget.subject, ty: t.n));
+                      .apply(repo.groupItems(widget.trackId, widget.subject, g.name));
                   final tp = computeProgress(items);
                   // 0건이어도 줄은 남긴다 — 감추면 유형이 사라진 줄 안다.
                   if (items.isEmpty) {
                     return Opacity(
                       opacity: 0.45,
                       child: RowTile(
-                        title: t.n,
+                        title: g.name,
                         subtitle: '「${_filter.label}」 해당 없음',
                         trailing: Text('0', style: TextStyle(color: c.faint)),
                       ),
                     );
                   }
                   return RowTile(
-                    title: t.n, subtitle: progText(tp), progress: tp,
+                    title: g.name,
+                    // 안에 무엇이 들었는지 보여 준다 — 묶기만 하면 뭘 푸는지 모른다.
+                    subtitle: g.details.length > 1
+                        ? '${progText(tp)}\n${g.detailLine}'
+                        : progText(tp),
+                    progress: tp,
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) =>
-                            QuestionScreen(title: t.n, pool: List.of(items)))),
+                            QuestionScreen(title: g.name, pool: List.of(items)))),
                   );
                 }),
               ],

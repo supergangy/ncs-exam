@@ -20,10 +20,27 @@ class SubjectEntry {
 
 class TypeEntry {
   final String tr, sj, n;
+  /// 대유형. 세부 유형(`n`)을 묶는 이름 — bank/types.py 가 정한다.
+  /// 이게 없으면 NCS 120종이 그대로 목록에 늘어서고 절반이 1문항짜리다.
+  final String g;
   final int c;
-  TypeEntry({required this.tr, required this.sj, required this.n, required this.c});
-  factory TypeEntry.fromJson(Map<String, dynamic> j) =>
-      TypeEntry(tr: j['tr'], sj: j['sj'], n: j['n'], c: j['c']);
+  TypeEntry({required this.tr, required this.sj, required this.n,
+      required this.g, required this.c});
+  factory TypeEntry.fromJson(Map<String, dynamic> j) => TypeEntry(
+        tr: j['tr'], sj: j['sj'], n: j['n'],
+        g: j['g'] ?? j['n'], // 옛 bank.json 과도 읽힌다
+        c: j['c'],
+      );
+}
+
+/// 한 과목 안의 대유형 하나 — 화면에 한 줄로 나가는 단위.
+class TypeGroup {
+  final String name;
+  final List<TypeEntry> details;
+  TypeGroup(this.name, this.details);
+  int get count => details.fold(0, (s, t) => s + t.c);
+  /// 「자료해석 · 증감률 · 교차참조」처럼 안에 무엇이 있는지 보여 준다.
+  String get detailLine => details.map((t) => t.n).join(' · ');
 }
 
 class KeywordEntry {

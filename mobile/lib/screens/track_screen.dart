@@ -71,7 +71,7 @@ class _TrackScreenState extends State<TrackScreen> {
                   return RowTile(
                     title: s.n,
                     subtitle: _filter == PoolFilter.all
-                        ? '${progText(sp)} · 유형 ${repo.types(widget.trackId, s.n).length}종'
+                        ? '${progText(sp)} · 유형 ${repo.typeGroups(widget.trackId, s.n).length}종'
                         : '「${_filter.label}」 ${items.length}문항',
                     progress: items.isEmpty ? null : sp,
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
