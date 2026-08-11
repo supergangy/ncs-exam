@@ -32,6 +32,157 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 
+# ── 규정적용 (bank/_common/ncs_rule.py) ─────────────────────────────────
+#
+# 가상 규정의 배수·비율·한도를 **여기 다시 적고** 답을 계산한다.
+# 규정을 고치면서 해설만 안 고치는 사고를 잡는다.
+
+# ○○공사 여객운송약관(가상)의 수치
+_MULT_NOTICKET, _MULT_DISCOUNT, _MULT_HELD = 30, 10, 30
+_REFUND = {"1일전": 0.00, "1시간이내": 0.05, "출발후": 0.15}
+_DELAY = ((20, 40, 0.125), (40, 60, 0.25), (60, 10**9, 0.50))
+# 정기승차권 규정(가상)
+_PASS_TRIPS, _PASS_DC = 44, {"일반": 0.45, "학생": 0.60}
+# 위임전결규정(가상) — (상한, 전결권자)
+_DELEG = ((5_000_000, "팀장"), (20_000_000, "부장"),
+          (100_000_000, "본부장"), (float("inf"), "사장"))
+
+
+def _deleg(amount: float) -> str:
+    for cap, who in _DELEG:
+        if amount <= cap:
+            return who
+    raise AssertionError
+
+
+def v_rule_surcharge() -> tuple[int, str]:
+    fare = 2700
+    total = fare + fare * _MULT_NOTICKET
+    return (total, f"기준 {fare:,} + 부가 {fare*_MULT_NOTICKET:,}"
+                   f"({_MULT_NOTICKET}배) = {total:,}원")
+
+
+def v_rule_exempt() -> tuple[int, str]:
+    """부가운임을 받지 않는 경우의 선지 번호. 제12조 제3항 단서 하나뿐."""
+    cases = {
+        1: _MULT_NOTICKET,      # 승차권 없음
+        2: _MULT_DISCOUNT,      # 할인 자격 없음
+        3: _MULT_HELD,          # 소지했으나 미확인
+        4: 0,                   # 스스로 신고 → 단서로 면제
+        5: _MULT_NOTICKET,      # 적발
+    }
+    free = [k for k, v in cases.items() if v == 0]
+    assert len(free) == 1, f"면제는 하나여야 한다: {free}"
+    return (free[0], f"배수 {cases} → 면제는 {free[0]}번(제3항 단서)")
+
+
+def v_rule_refund() -> tuple[int, str]:
+    paid, r = 28000, _REFUND["1시간이내"]
+    back = int(paid * (1 - r))
+    return (back, f"{paid:,} × (1 − {r}) = {back:,}원 "
+                  f"(출발 후 {int(paid*(1-_REFUND['출발후'])):,}원과 다름)")
+
+
+def v_rule_delay() -> tuple[int, str]:
+    paid, late = 28000, 45
+    rate = next(r for lo, hi, r in _DELAY if lo <= late < hi)
+    return (int(paid * rate), f"{late}분 → {rate:.1%} → {int(paid*rate):,}원 "
+                              f"(구간 {[(lo,hi,r) for lo,hi,r in _DELAY]})")
+
+
+def _pass_fare(base: int, kind: str) -> int:
+    raw = base * _PASS_TRIPS * (1 - _PASS_DC[kind])
+    return int(raw // 100 * 100)  # 100원 미만 버림
+
+
+def v_rule_pass_adult() -> tuple[int, str]:
+    n = _pass_fare(1450, "일반")
+    raw = 1450 * _PASS_TRIPS * (1 - _PASS_DC["일반"])
+    return (n, f"1,450 × {_PASS_TRIPS} × 0.55 = {raw:,.0f} → 절사 {n:,}원")
+
+
+def v_rule_pass_student() -> tuple[int, str]:
+    n = _pass_fare(1450, "학생")
+    raw = 1450 * _PASS_TRIPS * (1 - _PASS_DC["학생"])
+    return (n, f"1,450 × {_PASS_TRIPS} × 0.40 = {raw:,.0f} → 절사 {n:,}원 "
+               f"(일반 {_pass_fare(1450,'일반'):,}원과 차 "
+               f"{_pass_fare(1450,'일반')-n:,}원)")
+
+
+def v_rule_pass_abuse() -> tuple[int, str]:
+    """정기권 규정 제5조 → 약관 제12조 제2항(10배). 30배가 아니다."""
+    fare = 1350
+    total = fare + fare * _MULT_DISCOUNT
+    return (total, f"제5조가 가리킨 제2항 = {_MULT_DISCOUNT}배 → "
+                   f"{fare:,} + {fare*_MULT_DISCOUNT:,} = {total:,}원 "
+                   f"(30배로 보면 {fare+fare*30:,}원)")
+
+
+def v_rule_deleg_amount() -> tuple[str, str]:
+    amt = 12_000_000
+    return (_deleg(amt), f"{amt:,}원 → {_deleg(amt)}")
+
+
+def v_rule_deleg_public() -> tuple[str, str]:
+    """제8조 제1항 — 금액과 무관하게 외부 공표 사항은 본부장."""
+    amt = 3_000_000
+    return ("본부장", f"금액만 보면 {_deleg(amt)}, 대외 공표라 제8조 제1항으로 본부장")
+
+
+def v_rule_deleg_split() -> tuple[str, str]:
+    """제8조 제3항 — 같은 목적은 합한 금액으로."""
+    a, b = 14_000_000, 9_000_000
+    return (_deleg(a + b), f"따로 보면 {_deleg(a)}·{_deleg(b)}, "
+                           f"합 {a+b:,}원 → {_deleg(a+b)}")
+
+
+def v_rule_deleg_acting() -> tuple[str, str]:
+    """제8조 제2항 — 차상위자가 대결. 본부장의 위는 사장."""
+    order = [w for _, w in _DELEG]
+    i = order.index("본부장")
+    return (order[i + 1], f"직위 순서 {order} → 본부장의 차상위는 {order[i+1]}")
+
+
+def v_rule_group_fare() -> tuple[int, str]:
+    n, fare = 34, 8400
+    dc = 0.15 if n >= 50 else (0.10 if n >= 30 else 0.0)
+    total = int(n * fare * (1 - dc))
+    return (total, f"{n} × {fare:,} = {n*fare:,} × (1 − {dc}) = {total:,}원 "
+                   f"(초과분만 할인하면 {int(30*fare*0.9 + 4*fare):,}원)")
+
+
+def v_rule_group_rate() -> tuple[int, str]:
+    """제3항 — 실제 승차 인원으로 센다. 예약 52 가 아니라 실승차 48."""
+    booked, rode = 52, 48
+    dc = 0.15 if rode >= 50 else (0.10 if rode >= 30 else 0.0)
+    return (int(dc * 100), f"예약 {booked} 아니라 실승차 {rode} → {dc:.0%} "
+                           f"(예약 기준이면 15%)")
+
+
+def v_rule_gift() -> tuple[int, str]:
+    """행동강령 — 한도를 넘는 사례의 선지 번호."""
+    LIMIT_FOOD, LIMIT_FLOWER = 30000, 50000
+    cases = {
+        1: True,                        # 일률 제공 기념품
+        2: 28000 <= LIMIT_FOOD,         # 식사 2만 8천
+        3: 70000 <= LIMIT_FLOWER,       # 조화 7만 → 한도 초과
+        4: True,                        # 4촌 신고·회피
+        5: True,                        # 일률 제공 기념품
+    }
+    bad = [k for k, ok in cases.items() if not ok]
+    assert len(bad) == 1, f"어긋나는 것이 하나여야 한다: {bad}"
+    return (bad[0], f"판정 {cases} → 어긋나는 것 {bad[0]}번 "
+                    f"(조화 70,000 > 한도 {LIMIT_FLOWER:,})")
+
+
+def v_rule_travel() -> tuple[int, str]:
+    fare, days, nights = 59800 * 2, 3, 2
+    raw = fare + 25000 * days + 50000 * nights
+    total = -(-raw // 1000) * 1000  # 1,000원 미만 올림
+    return (total, f"운임 {fare:,} + 일비 {25000*days:,}(3일) + "
+                   f"숙박 {50000*nights:,}(2박) = {raw:,} → 절상 {total:,}원")
+
+
 # ── 자료해석 ────────────────────────────────────────────────────────────
 #
 # 문항의 표를 **여기 다시 적고** 답을 계산한다. 표와 해설이 어긋나면 여기서 잡힌다.
@@ -968,6 +1119,37 @@ REGISTRY = {
     "ncs-data-common-019": (v_congestion, lambda n: {1600: 1, 1850: 2, 2160: 3,
                                                      2400: 4, 2700: 5}[n]),
     "ncs-data-common-020": (v_pp_vs_pct, lambda t: {(6.0, 25.0): 2}[t]),
+
+    # ── 규정적용 (bank/_common/ncs_rule.py) ─────────────────────────────
+    # 가상 규정의 수치에서 다시 계산한다. 사례 판정형은 규정 대조가 코드로
+    # 확정되는 것만 등록했다 — 012·013·018·019 는 순서·경계·절차 판정이라
+    # 규정을 코드로 옮기면 문항을 베끼는 것이 되어 뜻이 없다.
+    "ncs-rule-common-001": (v_rule_surcharge, lambda n: {81000: 1, 83700: 2, 27000: 3,
+                                                         29700: 4, 2700: 5}[n]),
+    "ncs-rule-common-002": (v_rule_exempt, lambda i: i),
+    "ncs-rule-common-003": (v_rule_refund, lambda n: {28000: 1, 26600: 2, 25200: 3,
+                                                      23800: 4, 22400: 5}[n]),
+    "ncs-rule-common-004": (v_rule_delay, lambda n: {0: 1, 3500: 2, 7000: 3,
+                                                     14000: 4, 28000: 5}[n]),
+    "ncs-rule-common-005": (v_rule_pass_adult, lambda n: {28700: 1, 35000: 2, 35090: 3,
+                                                          36300: 4, 63800: 5}[n]),
+    "ncs-rule-common-006": (v_rule_pass_student, lambda n: {25000: 1, 25500: 2, 25520: 3,
+                                                            35000: 4, 38280: 5}[n]),
+    "ncs-rule-common-007": (v_rule_pass_abuse, lambda n: {13500: 1, 14850: 2, 40500: 3,
+                                                          41850: 4, 148500: 5}[n]),
+    "ncs-rule-common-008": (v_rule_deleg_amount, lambda w: {"팀장": 1, "부장": 2,
+                                                            "본부장": 3, "사장": 4}[w]),
+    "ncs-rule-common-009": (v_rule_deleg_public, lambda w: {"팀장": 1, "부장": 2,
+                                                            "본부장": 3, "사장": 4}[w]),
+    "ncs-rule-common-010": (v_rule_deleg_split, lambda w: {"본부장": 3}[w]),
+    "ncs-rule-common-011": (v_rule_deleg_acting, lambda w: {"사장": 2}[w]),
+    "ncs-rule-common-014": (v_rule_group_fare, lambda n: {257040: 1, 265000: 2,
+                                                          285600: 3, 294000: 4,
+                                                          307000: 5}[n]),
+    "ncs-rule-common-015": (v_rule_group_rate, lambda p: {0: 1, 10: 2, 15: 3}[p]),
+    "ncs-rule-common-016": (v_rule_gift, lambda i: i),
+    "ncs-rule-common-020": (v_rule_travel, lambda n: {285000: 1, 295000: 2, 305000: 3,
+                                                      315000: 4, 325000: 5}[n]),
 }
 
 
