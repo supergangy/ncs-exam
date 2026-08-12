@@ -14,7 +14,7 @@ Python으로 문항 데이터를 관리하고, HTML 템플릿을 거쳐 **문제
 | [`r2_korail`](rounds/r2_korail/README.md) | 한국철도공사 | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 문제집 12쪽 / 해설집 15쪽 / 출제 이유서 10쪽 |
 | [`r3_korail`](rounds/r3_korail/README.md) | 한국철도공사 (2회차) | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 문제집 13쪽 / 해설집 16쪽 / 출제 이유서 11쪽 |
 | [`r4_korail`](rounds/r4_korail/README.md) | 한국철도공사 (3회차) | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 13쪽 / 18쪽 / 12쪽 · **그림 5곳** |
-| [`r5_nhis`](rounds/r5_nhis/README.md) | 국민건강보험공단 | 60문항 / 60분 · 의사소통·수리·문제해결 각 20 | 설계 완료, 후기 보강 대기 |
+| [`r5_nhis`](rounds/r5_nhis/README.md) | 국민건강보험공단 | 60문항 / 60분 · 의사소통·수리·문제해결 각 20 | **완성** — 24쪽 / 32쪽 / 14쪽 · 계산형 13건 기계 검증 |
 
 ```bash
 python build.py                      # 기본 회차(r1_public)
@@ -102,8 +102,9 @@ python build.py
 │  │  └─ content/           k1_communication.py · k2_math.py · k3_problem.py
 │  ├─ r4_korail/         한국철도공사 3회차 30문항 — 모듈 전면 신규 · 그림 도입
 │  │  └─ content/           k1_communication.py · k2_math.py · k3_problem.py
-│  └─ r5_nhis/           국민건강보험공단 60문항
-│     └─ content/           c1_communication.py · c2_math.py · c3_problem.py
+│  └─ r5_nhis/           국민건강보험공단 60문항 — 지금까지 가장 큰 회차
+│     ├─ content/           c1_communication.py · c2_math.py · c3_problem.py
+│     └─ verify.py          계산형 답을 독립적으로 다시 구해 대조한다
 ├─ tools/selfcheck.py    자가검증 스캐너 (집필 직후 · 감수 전에 실행)
 ├─ tools/reorder_choices.py  선지 순서를 바꿔 정답 위치를 옮긴다 (정답 분포 조정용)
 ├─ corpus/               시판본 분석 파이프라인 (원문·추출본은 커밋하지 않음)
