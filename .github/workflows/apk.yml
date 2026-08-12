@@ -31,9 +31,9 @@ jobs:
         working-directory: mobile
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17' # build.gradle.kts 가 JVM 17 을 쓴다
@@ -79,7 +79,7 @@ jobs:
           echo "file=mobile/ncs-bank-v$v.apk" >> "$GITHUB_OUTPUT"
           echo "version=$v" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: ncs-bank-v${{ steps.name.outputs.version }}
           path: ${{ steps.name.outputs.file }}
