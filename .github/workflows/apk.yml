@@ -68,6 +68,16 @@ jobs:
           python -m pip install --quiet Pillow
           python tools/make_icons.py --check
 
+      # 문항이 인용한 법령 조문이 원문과 한 글자도 다르지 않은지 본다.
+      # 조문을 지어내지 않는다는 규율(bank/README.md)을 기계로 지키는 자리다.
+      # 가상 규정 회차는 대조 대상이 0건이라 그냥 지나간다.
+      - name: 법령 인용 검증
+        working-directory: .
+        run: |
+          for r in r1_public r2_korail r3_korail r4_korail r5_nhis; do
+            python tools/law_text.py check bank/_law/_all.txt --round "$r"
+          done
+
       - name: APK
         run: flutter build apk --release
 
