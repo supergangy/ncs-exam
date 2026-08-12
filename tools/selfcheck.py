@@ -79,6 +79,10 @@ ALLOWED_TAGS |= SVG_TAGS
 
 CONCEPT_STEM = re.compile(r"(무엇인가|의 정의|뜻하는 것은|이란\?|란 무엇)")
 COMBO = re.compile(r"&lt;보기&gt;|<보기>")
+# 「제57조(부당이득의 징수)」처럼 **조 번호와 제목이 함께** 있으면 조문 인용으로 본다.
+# 조문을 지어내지 않는다는 규율(bank/README.md) 아래에서는 이 꼴이 나오면
+# 실제 법령이거나, 법령 형식을 그대로 흉내 낸 규정 자료다. 둘 다 원문을 줄일 수 없다.
+STATUTE = re.compile(r"제\d+조(?:의\d+)?\([^)]{2,30}\)")
 
 TAG = re.compile(r"<(/?)([a-zA-Z][a-zA-Z0-9]*)")
 BLOCK_BOUNDARY = re.compile(r"<br\s*/?>|</p>|</td>|</th>|</li>|</caption>|</div>")
@@ -158,6 +162,11 @@ def main() -> int:
 
         # 2 문장 길이
         for fname in ("lead", "passage", "stem", "material", "explain"):
+            # 법령·규정 조문을 **원문 그대로** 인용한 자료는 재지 않는다 (규칙 1-3a).
+            # 조문은 원래 한 문장이 길다. 상한에 맞추려면 줄여야 하는데,
+            # 줄이면 인용이 아니게 된다 — 문항의 근거가 사라진다 (2026-08-12).
+            if fname in ("passage", "material") and STATUTE.search(fields[fname]):
+                continue
             cap = SENT_MAX_EXPLAIN if fname in EXPLAIN_FIELDS else SENT_MAX
             for s in sentences(fields[fname]):
                 if len(s) > cap:
