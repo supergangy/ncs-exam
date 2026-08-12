@@ -205,9 +205,19 @@ def main() -> int:
     answers = [q["answer"] for _, _, q in items]
     dist = Counter(answers)
     run = mx = 1
-    for a, nxt in zip(answers, answers[1:]):
+    mx_at = 0
+    for i, (a, nxt) in enumerate(zip(answers, answers[1:]), 2):
         run = run + 1 if a == nxt else 1
-        mx = max(mx, run)
+        if run > mx:
+            mx, mx_at = run, i
+    # SPEC 8절은 3연속을 금지한다. 여태 세어서 **출력만** 하고 경고하지 않아
+    # r5_nhis 에서 3연속 두 곳이 build.py 까지 흘러갔다 (2026-08-12).
+    # 여기서 잡아야 굽기 전에 고친다.
+    if mx >= 3:
+        findings.append(("치명", mx_at, "SPEC 8",
+                         f"정답이 {mx}번 이어집니다({mx_at - mx + 1}~{mx_at}번). "
+                         f"tools/reorder_choices.py 로 맞바꾸십시오 — "
+                         f"분포를 지키려면 두 문항을 서로 바꿔야 합니다"))
     combo = sum(1 for _, _, q in items if COMBO.search(q.get("material") or ""))
 
     # ── 출력 ────────────────────────────────────────────────────
