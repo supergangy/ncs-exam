@@ -7,6 +7,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../reminder.dart';
+import '../reminder_plan.dart';
 import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -211,6 +213,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(color: c.faint, fontSize: 12.5)),
             ]),
           ),
+          const SectionTitle('복습 알림'),
+          _field(
+            c,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(
+                  child: Text(
+                    Store.instance.remind
+                        ? '매일 ${ReminderPlan.fromMinuteOfDay(Store.instance.remindAt).label} 에 알립니다'
+                        : '꺼져 있습니다',
+                    style: TextStyle(color: c.ink, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Switch(value: Store.instance.remind, onChanged: _toggleRemind),
+              ]),
+              const SizedBox(height: 4),
+              // 매일 「없습니다」가 오면 알림을 꺼 버린다. 쌓인 날에만 보낸다.
+              Text('복습할 문항이 쌓인 날에만 옵니다. 없는 날은 오지 않습니다.',
+                  style: TextStyle(color: c.faint, fontSize: 12.5)),
+              if (Store.instance.remind) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _pickRemindTime,
+                    child: const Text('시각 바꾸기'),
+                  ),
+                ),
+              ],
+            ]),
+          ),
           const SectionTitle('관리자 모드'),
           _field(
             c,
@@ -305,6 +338,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  /// 기록이 바뀌면 예약도 다시 건다 — 예전 예약은 틀린 개수를 들고 있다.
+  Future<void> _reschedule() => Reminder.instance
+      .reschedule(allIds: Repo.instance.bank.items.map((i) => i.id));
+
+  Future<void> _toggleRemind(bool on) async {
+    final messenger = ScaffoldMessenger.of(context); // await 전에 잡는다
+    if (on) {
+      final granted = await Reminder.instance.requestPermission();
+      if (!granted) {
+        // 거절해도 설정은 켜 둔다 — 나중에 시스템에서 허용하면 바로 온다.
+        messenger.showSnackBar(const SnackBar(
+          content: Text('알림 권한이 없습니다. 시스템 설정에서 허용하면 바로 옵니다.'),
+        ));
+      }
+    }
+    await Store.instance.setRemind(on: on);
+    await _reschedule();
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _pickRemindTime() async {
+    final cur = ReminderPlan.fromMinuteOfDay(Store.instance.remindAt);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: cur.hour, minute: cur.minute),
+    );
+    if (picked == null) return;
+    await Store.instance.setRemind(minuteOfDay: picked.hour * 60 + picked.minute);
+    await _reschedule();
+    if (!mounted) return;
+    setState(() {});
   }
 
   Widget _field(AppColors c, {required Widget child}) => Container(

@@ -1,6 +1,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'reminder.dart';
 import 'repo.dart';
 import 'store.dart';
 import 'theme.dart';
@@ -25,6 +27,15 @@ class NcsBankApp extends StatelessWidget {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: ThemeMode.system,
+      // 앱이 전부 한국어인데 Material 기본 위젯(시각 선택기·달력)은 로캘을 안 걸면
+      // 영어로 뜬다. 한국어 하나만 지원한다 — 기기 언어와 무관하게 한국어로 고정.
+      locale: const Locale('ko'),
+      supportedLocales: const [Locale('ko')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       // 글자 크기는 여기 한 곳에서 건다. 크기가 화면마다 코드에 박혀 있어
       // 개별로는 손댈 수 없고, MediaQuery 를 타면 flutter_html 이 그리는
       // 자료·해설까지 함께 커진다.
@@ -72,6 +83,11 @@ class _BootState extends State<_Boot> {
         // 에셋이 없으면 배지만 안 나온다. 앱이 멎을 이유는 아니다.
       }
     }
+    // 복습 알림은 **열 때마다 다시 건다.** 문항을 풀면 `due` 가 바뀌므로
+    // 예전 예약은 틀린 개수를 들고 있다. 실패해도 앱은 그대로 뜬다.
+    await Reminder.instance.init();
+    await Reminder.instance
+        .reschedule(allIds: Repo.instance.bank.items.map((i) => i.id));
   }
 
   @override

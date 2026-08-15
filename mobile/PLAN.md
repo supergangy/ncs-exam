@@ -253,12 +253,44 @@ PDF 한 쪽에 밑줄 몇 개를 그으면 획 좌표가 수십 KB다. 회차 �
 
 | 단계 | 새 의존성 | 건드리는 것 |
 |---|---|---|
-| 1 | `flutter_local_notifications` · `timezone` · `fl_chart` | `settings_screen` · `stats_screen` · 알림 모듈 1 |
+| 1 | `flutter_local_notifications` · `timezone` · `flutter_timezone` · `fl_chart` | `settings_screen` · `stats_screen` · 알림 모듈 1 |
 | 2 | `sqflite` | `store.dart` 안쪽 · 마이그레이션 · 테스트 |
 | 3 | `pdfx` | `layout.py` · `build.py` · `export_bank.py` · `exam_detail_screen` · 새 화면 1 · 검수 스크립트 |
 | 4 | `perfect_freehand` | 3단계 화면 · 필기 저장 |
 
 의존성 12 → **18개**. PSAT 앱의 246개와 견주면 여전히 얇다.
+
+### 1단계에서 드러난 것 — 의존성이 옛 판을 끌어내린다
+
+`flutter pub get` 이 이렇게 낮췄다.
+
+| 꾸러미 | 전 | 후 |
+|---|---|---|
+| `pdf` | 3.13.0 | 3.12.0 |
+| `printing` | 5.15.0 | 5.14.3 |
+| `xml` | 7.0.1 | 6.6.1 |
+| `image` | 4.9.1 | 4.8.0 |
+
+`flutter_local_notifications_windows` 가 `xml` 을 낮추고 그것이 `printing` 계열을
+끌어내린다. **오답노트 PDF 가 이 계열을 쓴다.** `tool/check_note_html.dart` 는
+통과했지만 그것은 HTML 까지만 보고 실제 PDF 변환은 보지 않는다.
+2단계 전에 폰에서 오답노트를 한 번 구워 봐야 한다.
+
+## 7-A. 이 PC 에서 직접 굽는다 — 2026-08-15 확인
+
+워크플로 주석은 개발 PC 에서 못 굽는 이유를 둘 든다. **이 PC 는 둘 다 해당이 없다.**
+
+| 주석의 이유 | 이 PC |
+|---|---|
+| Smart App Control 이 `impellerc.exe` 를 막는다 | **꺼져 있다**(`VerifiedAndReputablePolicyState = 0`) |
+| 사용자 이름에 한글이 들어 있다 | `jongwoo` — ASCII |
+
+그래서 CI 와 같은 **Flutter 3.44.9** 를 `C:\src\flutter` 에 두고 `flutter analyze` 와
+`dart run tool/check_*.dart` 를 여기서 돌린다. 태그를 밀 때까지 기다리지 않는다.
+
+주석이 가리키는 것은 **메인 PC** 다. 그쪽 사정은 그대로이므로 워크플로 주석은
+고치지 않았다. 대신 검사 job 을 떼어 **푸시·PR 마다** 돌게 했다 — 두 PC 어디서
+작업하든 잘못된 코드가 태그까지 살아 있지 않게.
 
 ## 8. 위험한 곳 셋
 

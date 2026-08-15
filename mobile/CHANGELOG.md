@@ -9,6 +9,96 @@ gh release create v1.2.0 <apk> --title "..." --notes-file <노트>
 
 ---
 
+## v1.6.0 — 2026-08-15
+
+**복습 알림과 통계 차트.** PSAT 앱(`com.psatpractice.app` v2.0.0)을 뜯어 보고
+가져올 것을 고른 첫 묶음이다. 무엇을 왜 골랐는지는 `PLAN.md` 에 있다.
+
+### 복습 알림
+
+SM-2 로 다음 복습 시각을 계산해 두고도 **앱을 열어야만 알 수 있었다.**
+설정에서 켜면 정한 시각(기본 21:00)에 「복습할 문항 N개가 기다리고 있습니다」가 온다.
+
+- **복습할 것이 없는 날은 보내지 않는다.** 매일 「없습니다」가 오면 알림을 꺼 버린다
+- 반복 알림 대신 **이레치를 하나씩 예약**한다. 반복은 본문이 고정이라 문항 수를
+  넣을 수 없다. 앱을 열 때마다 다시 계산해 덮어쓴다
+- **정확 알람(`SCHEDULE_EXACT_ALARM`)은 쓰지 않는다.** PSAT 앱은 넣었지만 스토어가
+  그 권한에 사유를 요구하고, 복습이 분 단위로 정확할 이유가 없다.
+  `inexactAllowWhileIdle` 로 걸어 몇 분 늦게 오는 것을 받아들인다
+- 시간대는 기기에서 읽는다(`flutter_timezone`). 서울로 박아 두면 다른 지역에서 어긋난다
+- 권한을 거절해도 설정은 켜 둔다 — 나중에 시스템에서 허용하면 바로 온다
+
+일정 계산은 `lib/reminder_plan.dart` 에 순수 Dart 로 뺐다. `backup.dart` 와 같은
+규율이다 — 화면 없이 `dart run tool/check_reminder.dart` 로 검증한다(35항목).
+
+### 통계 차트
+
+최근 30일 막대 그래프. 하루가 막대 하나이고 **진한 칸이 맞힌 몫**이다.
+
+- 빈 날도 0으로 그린다. 빼 버리면 선이 이어져 매일 푼 것처럼 보인다
+- `fl_chart` 하나만 넣었다. PSAT 앱이 함께 쓰는 Syncfusion 은 상용 라이선스다
+
+집계도 순수 Dart 로 뺐다 (`lib/stats_data.dart` · `tool/check_stats.dart` 24항목).
+
+### 안드로이드 빌드 설정 — core library desugaring
+
+`flutter_local_notifications` 를 넣으면 릴리즈 빌드가 `checkReleaseAarMetadata`
+에서 멎는다.
+
+```
+Dependency ':flutter_local_notifications' requires core library desugaring
+```
+
+`android/app/build.gradle.kts` 에 `isCoreLibraryDesugaringEnabled = true` 와
+`coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")` 를 넣어 풀었다.
+오래된 안드로이드에서도 최신 `java.time` 을 쓰게 바이트코드를 낮춰 다시 쓰는 것이고,
+알림이 시각을 다루므로 그 라이브러리를 탄다.
+
+**이것은 `flutter analyze` 로는 안 잡힌다.** 굽는 자리에서만 드러난다 —
+아래 「이 PC 에서 직접 굽는다」가 값을 한 첫 사례다. 예전 같으면 태그를 민 뒤에
+알았을 것이다.
+
+### 알림 수신기는 앱이 직접 적는다 — 더 조용한 함정
+
+`flutter_local_notifications` 의 매니페스트는 **권한 둘(`POST_NOTIFICATIONS`·
+`VIBRATE`)만** 선언한다. 예약 알림을 실제로 띄우는 수신기는 앱이 적어야 한다.
+
+```xml
+<receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" ... />
+<receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver" ... />
+```
+
+빠뜨리면 `zonedSchedule` 이 예약을 걸어도 **시각이 되었을 때 아무 일도 안 일어난다.**
+빌드가 통과하고 로그도 조용하다. 앞의 desugaring 은 빌드를 멈추기라도 하는데
+이것은 폰에 넣어 눌러 보기 전까지 모른다.
+
+구운 APK 의 매니페스트를 뜯어 보다 찾았다 — 분석한 PSAT 앱에는 그 수신기가 있는데
+우리 것에는 없었다. **남의 앱을 뜯어 본 것이 여기서 한 번 더 값을 했다.**
+
+### 이 PC 에서 직접 굽는다
+
+워크플로 주석이 개발 PC 에서 못 굽는 이유로 든 둘(Smart App Control 이
+`impellerc.exe` 를 막는다 · 사용자 이름에 한글)이 **이 PC 에는 해당이 없다.**
+CI 와 같은 Flutter 3.44.9 를 두고 `flutter analyze` 와 검증기를 여기서 돌린다.
+
+CI 도 고쳤다 — **검사 job 을 떼어 푸시·PR 마다 돌게** 했다. 예전에는 태그를 밀
+때까지 정적 검사가 돌지 않아 잘못된 코드가 릴리즈 직전까지 살아 있었다.
+APK 굽기는 그대로 태그·수동 실행에만.
+
+### 짚어 둘 것 — 의존성이 옛 판을 끌어내렸다
+
+`flutter_local_notifications_windows` 가 `xml` 을 낮추고 그것이 `printing` 계열을
+끌어내린다 — `pdf` 3.13.0 → 3.12.0 · `printing` 5.15.0 → 5.14.3 · `xml` 7.0.1 → 6.6.1.
+**오답노트 PDF 가 이 계열을 쓴다.** `check_note_html` 은 통과했지만 그것은 HTML 까지만
+보고 실제 PDF 변환은 보지 않는다. 폰에서 한 번 구워 봐야 한다.
+
+빌드가 이 경고도 낸다 — `file_picker` · `share_plus` · **`flutter_timezone`** 이
+Kotlin Gradle Plugin 을 얹는다. 「앞으로의 Flutter 는 이런 플러그인을 쓰면 빌드가
+실패한다」고 한다. 앞의 둘은 전부터 그랬고 이번에 하나가 늘었다. 당장 막히지는
+않지만 Flutter 를 올릴 때 걸릴 자리다.
+
+---
+
 ## v1.5.1 — 2026-08-12
 
 **41~45번의 가상 규정을 실제 법령으로 갈아끼웠다.** 사용자가 법제처 원문

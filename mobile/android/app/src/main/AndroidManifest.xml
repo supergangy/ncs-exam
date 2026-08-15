@@ -1,4 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 복습 알림. Android 13+ 는 런타임에 사용자에게 묻는다 (lib/reminder.dart).
+
+         SCHEDULE_EXACT_ALARM 은 **일부러 넣지 않았다.** 스토어가 그 권한에 사유를
+         요구하고, 복습이 분 단위로 정확할 이유가 없다. inexactAllowWhileIdle 로
+         걸어 몇 분 늦게 오는 것을 받아들인다. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- 재부팅 뒤에도 예약이 살아 있게 한다. 없으면 폰을 껐다 켠 사람에게는
+         다시 앱을 열 때까지 알림이 오지 않는다. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
     <application
         android:label="NCS 기출은행"
         android:name="${applicationName}"
@@ -26,6 +36,28 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- 예약 알림을 실제로 띄우는 수신기.
+
+             **플러그인이 넣어 주지 않는다.** flutter_local_notifications 의 매니페스트는
+             POST_NOTIFICATIONS·VIBRATE 두 권한만 선언하고 수신기는 앱이 직접 적어야 한다.
+             빠뜨리면 zonedSchedule 이 예약을 걸어도 시각이 되었을 때 아무 일도 안 일어난다
+             — 빌드도 통과하고 로그도 조용해서 폰에 넣어 보기 전에는 모른다. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false" />
+        <!-- 재부팅·앱 갱신 뒤에 예약을 되살린다. 없으면 폰을 껐다 켠 사람에게는
+             다시 앱을 열 때까지 알림이 오지 않는다. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
