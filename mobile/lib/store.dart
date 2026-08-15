@@ -32,6 +32,11 @@ class Store extends ChangeNotifier {
   bool admin = false;
   double textScale = 1.0;
 
+  /// 복습 알림 — 켬 여부와 시각(자정부터의 분).
+  /// 실제 예약은 [reminder.dart] 가 한다. 여기는 값만 들고 있는다.
+  bool remind = false;
+  int remindAt = defaultRemindAt;
+
   late SharedPreferences _prefs;
   bool _loaded = false;
   Timer? _flush;
@@ -64,11 +69,14 @@ class Store extends ChangeNotifier {
     solo = d.solo;
     admin = d.admin;
     textScale = d.textScale;
+    remind = d.remind;
+    remindAt = d.remindAt;
   }
 
   StoreData snapshot() => StoreData(
         att: att, srs: srs, exams: exams, mark: mark,
         sit: sit, solo: solo, admin: admin, textScale: textScale,
+        remind: remind, remindAt: remindAt,
       );
 
   /// 백업 파일에 담을 것.
@@ -252,8 +260,12 @@ class Store extends ChangeNotifier {
     return es.map((e) => e.key).toList();
   }
 
+  /// 기록만 지운다. **설정은 남긴다** — 글자 배율과 알림은 기록이 아니다.
   Future<void> reset() async {
-    _adopt(StoreData(att: {}, srs: {}, exams: {}, mark: {}, textScale: textScale));
+    _adopt(StoreData(
+      att: {}, srs: {}, exams: {}, mark: {},
+      textScale: textScale, remind: remind, remindAt: remindAt,
+    ));
     await save();
   }
 
@@ -279,6 +291,14 @@ class Store extends ChangeNotifier {
 
   Future<void> setTextScale(double v) async {
     textScale = clampScale(v);
+    await save();
+  }
+
+  /// 알림 설정. 예약을 다시 거는 것은 부른 쪽(설정 화면)이 [Reminder] 로 한다 —
+  /// 여기서 부르면 `store.dart` 가 플러그인에 묶여 Flutter 없이 검증할 수 없게 된다.
+  Future<void> setRemind({bool? on, int? minuteOfDay}) async {
+    if (on != null) remind = on;
+    if (minuteOfDay != null) remindAt = clampRemindAt(minuteOfDay);
     await save();
   }
 

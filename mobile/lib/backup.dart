@@ -160,10 +160,17 @@ class StoreData {
   final bool admin;
   final double textScale;
 
+  /// 복습 알림을 켰나. 기본은 **꺼짐** — 묻지 않고 알리지 않는다.
+  final bool remind;
+
+  /// 알릴 시각. 자정부터의 분(0~1439). 기본 21:00.
+  final int remindAt;
+
   StoreData({
     required this.att, required this.srs, required this.exams,
     required this.mark, this.sit, this.solo,
     this.admin = false, this.textScale = 1.0,
+    this.remind = false, this.remindAt = defaultRemindAt,
   });
 
   int get attCount => att.length;
@@ -180,7 +187,16 @@ Map<String, dynamic> encodeStore(StoreData d) => {
       'solo': d.solo?.toJson(),
       'admin': d.admin,
       'ts': d.textScale,
+      'rm': d.remind,
+      'rmAt': d.remindAt,
     };
+
+/// 저녁 9시. 기본값을 여기 한 곳에만 둔다.
+const defaultRemindAt = 21 * 60;
+
+/// 하루 밖으로 나간 값을 접는다. 옛 백업이나 손으로 고친 파일이 들어와도
+/// 시각이 성립하게 둔다 — 던지면 백업 전체를 못 읽는다.
+int clampRemindAt(int m) => m % 1440 < 0 ? (m % 1440) + 1440 : m % 1440;
 
 /// 통째로 읽는다. **하나라도 어긋나면 던진다** — 반만 읽어 들이면
 /// 다음 저장이 나머지를 영영 지운다.
@@ -212,6 +228,8 @@ StoreData decodeStore(Map<String, dynamic> j) {
         ? null : SoloSession.fromJson((j['solo'] as Map).cast<String, dynamic>()),
     admin: j['admin'] == true,
     textScale: clampScale((j['ts'] as num?)?.toDouble() ?? 1.0),
+    remind: j['rm'] == true,
+    remindAt: clampRemindAt((j['rmAt'] as num?)?.toInt() ?? defaultRemindAt),
   );
 }
 
