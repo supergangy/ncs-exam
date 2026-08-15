@@ -14,6 +14,9 @@ python tools/export_bank.py     # 문항 → data/bank.json · data/admin.json
 python -m http.server 8777 --directory app
 ```
 
+> 위 경로는 **원본 저장소(`ncs-exam`) 기준**이다. 배포 사본에서는 파일이 루트에 있으므로
+> `--directory .` 로 연다. 아래 「배포」 참고.
+
 ## 무엇이 어디에 있나
 
 | 파일 | 하는 일 |
@@ -21,8 +24,8 @@ python -m http.server 8777 --directory app
 | `index.html` | 껍데기. 상단 막대 · 본문 · 하단 탭 |
 | `app.js` | 전부. 저장소 · 데이터 · 해시 라우터 · 화면 17개 |
 | `app.css` | 모바일 우선. 다크 모드는 `prefers-color-scheme` 로 따라간다 |
-| `data/bank.json` | **학습자가 받는 것.** 292문항 · 554KB |
-| `data/admin.json` | **관리자 모드에서만 받는다.** 위험도 · 출제이유서 · 180KB |
+| `data/bank.json` | **학습자가 받는 것.** 529문항 · 985KB |
+| `data/admin.json` | **관리자 모드에서만 받는다.** 위험도 · 출제이유서 · 364KB |
 | `sw.js` | 서비스 워커. 껍데기와 `bank.json` 을 캐시에 넣어 오프라인으로 만든다 |
 
 ## 두 파일로 나눈 이유
@@ -53,9 +56,9 @@ python -c "import hashlib;print(hashlib.sha256(b'새암호').hexdigest())"
 ### 들어가는 길 네 갈래
 
 ```
-회차 ──── r1~r4 (140)   시간을 재고 실제 시험처럼
+회차 ──── r1~r5 (200)   시간을 재고 실제 시험처럼
 직렬 ─┬─ 전산직 (150)  ─ 8과목 ─ 유형 62종
-      └─ NCS   (142)  ─ 8영역 ─ 유형 83종
+      └─ NCS   (379)  ─ 8영역 ─ 유형 128종
 키워드 305개            과목을 가로질러 묶는다
 검색                    발문·선지·유형·키워드·자료·지문·해설·단평 전부
 ```
@@ -69,7 +72,7 @@ python -c "import hashlib;print(hashlib.sha256(b'새암호').hexdigest())"
 |---|---|---|
 | 채점 | 한 문항씩 즉시 | **제출해야** 한다 |
 | 정답 | 바로 보인다 | 푸는 동안 **안 보인다** |
-| 시간 | 없다 | 회차 사양대로 (1회 60분 · 2~4회 35분) |
+| 시간 | 없다 | 회차 사양대로 (1·5회 60분 · 2~4회 35분) |
 | 이동 | 앞으로만 | 이전·다음 + **OMR 답안지**로 점프 |
 | 표시 | — | **별표**(나중에 볼 문항) |
 
@@ -121,33 +124,38 @@ python -c "import hashlib;print(hashlib.sha256(b'새암호').hexdigest())"
 2. `sw.js` 의 `VERSION` 을 올린다 — 안 올리면 옛 캐시가 계속 나간다
 3. 배포
 
-## 아직 확인하지 못한 것 — 오프라인
+## 오프라인 — 확인했다
 
-**서비스 워커는 실제 기기에서 확인이 필요하다.**
+**서버를 내려도 526문항이 전부 뜬다.** 2026-08-14 데스크톱 크로미움에서 확인했다.
 
-만든 환경(Claude Code 내장 미리보기 브라우저)에서는 서비스 워커가 동작하지 않았다.
-`navigator.serviceWorker.ready` 가 `activated` 로 풀리는데도
+이전 판 문서는 「미리보기 브라우저가 서비스 워커를 막아 둔 것으로 보인다」고
+남겨 두었는데, 다시 재 보니 정상이었다. 넷 다 확인한 것이다.
 
-- `navigator.serviceWorker.controller` 가 계속 `null` 이고
-- `caches.keys()` 가 끝까지 비어 있고
-- 서버를 내리고 새로고침하면 **아무것도 뜨지 않는다**
+- `navigator.serviceWorker.controller` 가 `null` 이 아니다 — 페이지를 워커가 잡고 있다
+- 활성 워커 상태가 `activated`
+- `ncsbank-v8` 캐시에 **9개**가 다 들어왔다 — 껍데기 8개 + `bank.json`
+- 정적 서버를 **완전히 죽인 뒤** 전체 새로고침 → 부팅 화면이 걷히고 문항이 나온다
 
-같은 페이지에서 `caches.open()`·`cache.add()` 는 정상 동작하므로 Cache Storage 자체는
-살아 있다. 워커 쪽만 죽어 있다 — **그 브라우저가 서비스 워커를 막아 둔 것으로 보인다.**
+네트워크가 정말 끊긴 상태였는지도 갈라서 확인했다. 캐시에 없는 주소
+(`data/bank.json?nocache=…`)는 `Failed to fetch` 로 죽고, 같은 순간
+`data/bank.json` 은 200 으로 나온다 — 서버가 아니라 캐시가 내주고 있다는 뜻이다.
 
-`sw.js` 코드 자체는 표준 형태이고 캐시 대상 9개 주소가 모두 200 인 것까지 확인했다.
-다만 **「오프라인에서 된다」고 말하려면 진짜 기기에서 봐야 한다.**
+### 아직 남은 것 — 휴대폰 설치
 
-크롬(안드로이드 또는 데스크톱)에서 열고 이렇게 확인한다.
+확인한 것은 **데스크톱 브라우저의 오프라인 동작**이다.
+홈 화면에 설치한 뒤 비행기 모드에서 푸는 것은 안드로이드·iOS 실기기에서 따로 봐야 한다.
+iOS 사파리는 캐시 용량 정책이 달라 1MB 짜리 `bank.json` 이 밀려날 수 있다.
+
+다시 확인할 때는 이렇게 본다.
 
 ```
 개발자도구 → Application → Service Workers   : 상태가 activated and is running 인가
-개발자도구 → Application → Cache Storage     : ncsbank-v2 안에 9개가 들어왔나
+개발자도구 → Application → Cache Storage     : ncsbank-v8 안에 9개가 들어왔나
 개발자도구 → Network → Offline 체크 후 새로고침 : 화면이 그대로 뜨나
 ```
 
-셋 다 되면 홈 화면에 설치했을 때 비행기 모드에서도 292문항이 전부 풀린다.
 안 되면 이 문서 위쪽 「무엇이 어디에 있나」의 `sw.js` 부터 다시 본다.
+`VERSION` 을 올리고 배포했는데 옛것이 나오면 캐시 이름이 안 바뀐 것이다.
 
 ## 오답노트 PDF
 
@@ -162,7 +170,34 @@ python tools/wrongnote_pdf.py --risk high      # 검토용 — high 25건을 통
 파이프라인을 새로 만들지 않았다. `build.py` 를 불러 해설지 서식(`solution.html.j2`)
 그대로 굽는다. `marks-*.json` 도 같은 도구가 받는다.
 
+## 배포
+
+`supergangy/ncs-exam-app` 공개 저장소에서 GitHub Pages 로 나간다.
+
+```
+https://supergangy.github.io/ncs-exam-app/
+```
+
+**이 저장소는 `ncs-exam/app/` 의 사본이다.** 원본은 private 저장소 `supergangy/ncs-exam` 이고
+문항·빌드 도구(`tools/`·`config.py`·`build.py`)가 거기 있다. 여기 있는 것은
+Pages 가 루트를 서비스하도록 `app/` 안쪽만 떼어 올린 것이다 —
+그래서 위 명령들의 경로(`tools/export_bank.py`)는 **원본 저장소 기준**이다.
+
+고칠 때는 원본에서 고치고 이쪽으로 올린다. 이쪽만 고치면 다음 배포에 덮인다.
+
+## Flutter 판과의 관계
+
+이 화면은 **`mobile/` 의 Flutter 앱으로 이미 옮겨졌다** (v1.5.1 · 2026-08-12).
+APK 는 GitHub Releases 에 올라간다. 화면 16개·저장 형식·SM-2 간격·검색 로직을
+웹판과 1:1로 맞춰 둔 것이므로, **한쪽 로직을 고치면 다른 쪽도 같이 고친다.**
+v1.5.1 의 이중 이스케이프 수정이 `lib/text.dart` 와 `app/app.js` 양쪽에 들어간 것이 그 예다.
+
+`bank.json` 은 두 판이 그대로 공유한다. 판올림은 `mobile/CHANGELOG.md` 를 본다.
+
 ## 아직 없는 것
 
-- Flutter 앱 — 이 화면이 확정되면 옮긴다. `bank.json` 을 그대로 쓴다
-- 배포 — 저장소가 private 이라 따로 정해야 한다
+- 휴대폰 실기기 오프라인 확인 (위 「오프라인」 참고)
+- **`why` 의 `**굵게**` · `` `코드` `` 가 앱에서 문자 그대로 보인다.**
+  `build.py` 는 출제 이유서 PDF를 만들 때 이것을 HTML로 바꾸지만,
+  `app.js` 는 `esc()` 로 감싸 그대로 내보낸다. 524문항이 이 표기를 쓰고 있다.
+  고치려면 웹판과 Flutter 판을 **함께** 고쳐야 한다(아래 「Flutter 판과의 관계」)

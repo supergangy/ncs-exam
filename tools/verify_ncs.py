@@ -873,6 +873,91 @@ def v_contrapositive():
     return "대우", f"대우 참 · 후건 긍정 반례 {c1} · 전건 부정 반례 {c2}"
 
 
+# ── 서울교통공사 (bank/seoul_metro/ncs_math.py) ─────────────────────────
+#
+# 후기가 수치까지 적어 놓은 소재라 값을 지어내지 않았다. 오답 경로도 여기서
+# 함께 재현해, 선지 다섯 값이 서로 다른지까지 검증이 지킨다 (규칙 `4-14`).
+
+_SM_A = dict(qty=10_000, cost=10_000, price=20_000, defect=4, sell=98)
+_SM_B = dict(qty=15_000, cost=12_000, price=20_000, defect=5, sell=96)
+_SM_FIXED = 150_000_000
+
+
+def v_sm_profit() -> tuple[int, str]:
+    """순이익 = 매출 − 원가 − 고정비. **매출은 판매수량, 원가는 생산 전량**이다."""
+    P = (_SM_A, _SM_B)
+    good = lambda p: p["qty"] * F(100 - p["defect"], 100)
+    sold = lambda p: good(p) * F(p["sell"], 100)
+    rev = sum(sold(p) * p["price"] for p in P)
+    cost = sum(p["qty"] * p["cost"] for p in P)
+    net = rev - cost - _SM_FIXED
+    if net.denominator != 1:
+        raise AssertionError(f"순이익이 정수가 아니다: {net}")
+    # 오답 경로 재현
+    merged = sum(p["qty"] * F(100 - p["defect"] - (100 - p["sell"]), 100) * p["price"]
+                 for p in P) - cost - _SM_FIXED          # 두 비율을 합산 차감
+    no_sell = sum(good(p) * p["price"] for p in P) - cost - _SM_FIXED
+    cost_sold = rev - sum(sold(p) * p["cost"] for p in P) - _SM_FIXED
+    no_defect = sum(p["qty"] * F(p["sell"], 100) * p["price"]
+                    for p in P) - cost - _SM_FIXED
+    vals = [int(net), int(merged), int(no_sell), int(cost_sold), int(no_defect)]
+    if len(set(vals)) != 5:
+        raise AssertionError(f"선지 값이 겹친다: {vals}")
+    return int(net), (
+        f"매출 {int(rev):,} − 원가 {int(cost):,} − 고정비 {_SM_FIXED:,} = {int(net):,}원 · "
+        f"비율 합산 {int(merged):,}(오답①) · 판매율 미적용 {int(no_sell):,}(오답③) · "
+        f"원가를 판매분에만 {int(cost_sold):,}(오답④) · 불량률 미적용 {int(no_defect):,}(오답⑤)")
+
+
+def v_sm_commute() -> tuple[int, str]:
+    """도착 시각(분). 승강장에 닿은 시각이 아니라 **다음 배차 시각**에 떠난다."""
+    m = lambda h, mi: h * 60 + mi
+    lines = (dict(first=m(7, 2), gap=5, stops=9), dict(first=m(7, 5), gap=7, stops=4))
+    hm = lambda v: f"{v // 60:02d}:{v % 60:02d}"
+
+    def ride(wait=True, tr_walk=True, stops=(9, 4), full_gap=False):
+        t, w = m(7, 12) + 8, []
+        for i, ln in enumerate(lines):
+            if full_gap:
+                t += ln["gap"]
+            elif wait:
+                k = max(0, -(-(t - ln["first"]) // ln["gap"]))
+                dep = ln["first"] + k * ln["gap"]
+                w.append(dep - t)
+                t = dep
+            t += stops[i] * 2
+            if i == 0 and tr_walk:
+                t += 4
+        return t + 5, w
+
+    ans, waits = ride()
+    others = [ride(wait=False)[0], ride(tr_walk=False)[0],
+              ride(stops=(10, 5))[0], ride(full_gap=True)[0]]
+    if len({ans, *others}) != 5:
+        raise AssertionError(f"선지 시각이 겹친다: {[ans, *others]}")
+    return ans, (
+        f"대기 {waits[0]}분·{waits[1]}분 → {hm(ans)} · "
+        f"대기 무시 {hm(others[0])}(오답②) · 환승도보 누락 {hm(others[1])}(오답①) · "
+        f"역 개수로 셈 {hm(others[2])}(오답④) · 대기를 배차간격으로 {hm(others[3])}(오답⑤)")
+
+
+def v_sm_roles() -> tuple[int, str]:
+    """기획 1명 + 디자인 1명. 겸임 불가이므로 겹치는 인원을 뺀다. 전수로 센다."""
+    plan, design = ("김", "박", "이", "정", "최"), ("이", "정", "최", "한")
+    both, roster = set(plan) & set(design), set(plan) | set(design)
+    n = sum(1 for p in plan for d in design if p != d)
+    if n != len(plan) * len(design) - len(both):
+        raise AssertionError(f"식과 전수 결과가 다르다: {n}")
+    comb = len(roster) * (len(roster) - 1) // 2
+    if len({n, len(plan) * len(design), comb,
+            (len(plan) - len(both)) * len(design),
+            len(plan) * (len(design) - len(both))}) != 5:
+        raise AssertionError("선지 값이 겹친다")
+    return n, (f"{len(plan)}×{len(design)}−{len(both)} = {n}가지 (전수 일치) · "
+               f"겸임 무시 {len(plan) * len(design)}(오답⑤) · "
+               f"조합 C({len(roster)},2)={comb}(오답③)")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
     "ncs-math-common-001": (v_tunnel, lambda s: {52: 1, 56: 2, 60: 3, 64: 4, 68: 5}[int(s)]),
@@ -1150,6 +1235,15 @@ REGISTRY = {
     "ncs-rule-common-016": (v_rule_gift, lambda i: i),
     "ncs-rule-common-020": (v_rule_travel, lambda n: {285000: 1, 295000: 2, 305000: 3,
                                                       315000: 4, 325000: 5}[n]),
+
+    # ── 서울교통공사 수리 (bank/seoul_metro/) ────────────────────────
+    "ncs-math-seoulmetro-001": (v_sm_profit, lambda v: {31_000_000: 1, 31_760_000: 2,
+                                                        47_000_000: 3, 53_520_000: 4,
+                                                        54_000_000: 5}[v]),
+    # 도착 시각을 분으로 받는다 — 07:53 / 07:55 / 08:00 / 08:02 / 08:07
+    "ncs-math-seoulmetro-002": (v_sm_commute, lambda t: {473: 1, 475: 2, 480: 3,
+                                                         482: 4, 487: 5}[t]),
+    "ncs-math-seoulmetro-003": (v_sm_roles, lambda n: {5: 1, 8: 2, 15: 3, 17: 4, 20: 5}[n]),
 }
 
 

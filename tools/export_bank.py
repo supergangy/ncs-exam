@@ -27,7 +27,8 @@ from collections import Counter
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from bank import types as bank_types  # noqa: E402  — 경로를 넣은 뒤에 불러야 한다
+# `qtypes` 다 — `types` 로 두면 `bank/` 가 `sys.path[0]` 일 때 표준 라이브러리를 가린다
+from bank import qtypes as bank_types  # noqa: E402  — 경로를 넣은 뒤에 불러야 한다
 
 OUT = ROOT / "app" / "data" / "bank.json"
 OUT_ADMIN = ROOT / "app" / "data" / "admin.json"
@@ -412,7 +413,7 @@ def build(items: list[dict], rounds: list[dict]) -> tuple[dict, dict]:
     unknown = sorted({(i["sj"], i["ty"]) for i in out_items
                       if not bank_types.known(i["sj"], i["ty"])})
     if unknown:
-        print("\n[중단] 유형 사전(bank/types.py)에 없는 유형이 있습니다:")
+        print("\n[중단] 유형 사전(bank/qtypes.py)에 없는 유형이 있습니다:")
         for sj, ty in unknown:
             n = sum(1 for i in out_items if i["sj"] == sj and i["ty"] == ty)
             print(f"   {sj}/{ty}  ({n}문항)")

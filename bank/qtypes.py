@@ -149,7 +149,7 @@ def group_of(subject: str, type_: str) -> str:
     if g is None:
         raise KeyError(
             f"유형 사전에 없다: {subject}/{type_}\n"
-            f"  → 오타인지 먼저 보고, 정말 새 유형이면 bank/types.py 의 GROUPS 에 넣으십시오."
+            f"  → 오타인지 먼저 보고, 정말 새 유형이면 bank/qtypes.py 의 GROUPS 에 넣으십시오."
         )
     return g
 
