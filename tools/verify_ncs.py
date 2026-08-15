@@ -958,6 +958,113 @@ def v_sm_roles() -> tuple[int, str]:
                f"조합 C({len(roster)},2)={comb}(오답③)")
 
 
+def v_sm_liar() -> tuple[str, str]:
+    """다섯 진술 가운데 참이 하나뿐인 경우를 전수로 찾는다."""
+    P = ("김", "이", "박", "최", "정")
+    # (말한 사람 순서대로) eq = 「그 사람이 맡았다」 · ne = 「그 사람은 맡지 않았다」
+    S = (("eq", "이"), ("eq", "김"), ("eq", "최"), ("ne", "김"), ("ne", "박"))
+    holds = lambda k, t, last: (last == t) if k == "eq" else (last != t)
+    cnt = {l: sum(1 for k, t in S if holds(k, t, l)) for l in P}
+    sols = [l for l, n in cnt.items() if n == 1]
+    if len(sols) != 1:
+        raise AssertionError(f"참이 하나뿐인 해가 유일하지 않다: {sols}")
+    # 지목 빈도로 찍히지 않는지 — 정답이 최다 지목 대상이면 안 된다
+    named = {x: sum(1 for _, t in S if t == x) for x in P}
+    if named[sols[0]] == max(named.values()):
+        raise AssertionError("정답이 최다 지목 대상이라 빈도로 찍힌다")
+    return sols[0], (f"참인 진술 수 " + " · ".join(f"{l}{cnt[l]}" for l in P) +
+                     f" → {sols[0]} 하나뿐 · 최다 지목은 "
+                     f"{max(named, key=named.get)}({max(named.values())}회, 오답①)")
+
+
+def v_sm_triad() -> tuple[int, str]:
+    """적대 개수의 홀짝으로 안정·불안정. 불안정 가운데 적대 1개가 정답."""
+    CH = (("우호", "우호", "우호"), ("우호", "우호", "적대"),
+          ("우호", "적대", "적대"), ("적대", "적대", "적대"),
+          ("적대", "우호", "적대"))
+    host = [c.count("적대") for c in CH]
+    unstable = [i + 1 for i, h in enumerate(host) if h % 2 == 1]
+    worst = [i for i in unstable if host[i - 1] == 1]
+    if len(worst) != 1:
+        raise AssertionError(f"적대 1개인 불안정 조합이 유일하지 않다: {worst}")
+    return worst[0], (f"적대 개수 {host} · 홀수(불안정) {unstable} · "
+                      f"그 가운데 1개는 {worst[0]}번 · 적대 3개인 {unstable[-1]}번이 오답④")
+
+
+def v_sm_signal() -> tuple[str, str]:
+    """현시 한도 · 선행 열차 · 승강장 45km/h 세 규칙을 모두 통과하는 열차."""
+    SIG = {"정지": None, "경계": 25, "주의": 45, "감속": 65, "진행": None}
+    PLAT = 45
+    CASES = (("A", "정지", 20, False, False), ("B", "경계", 30, False, False),
+             ("C", "주의", 40, True, False), ("D", "감속", 60, False, True),
+             ("E", "진행", 40, False, True))
+    ok, blocked = [], []
+    for name, sig, spd, ahead, plat in CASES:
+        lim = SIG[sig]
+        why = []
+        if sig == "정지":
+            why.append("정지 현시")
+        if lim is not None and spd > lim:
+            why.append(f"{spd}>{lim}")
+        if ahead:
+            why.append("선행 열차")
+        if plat and spd > PLAT:
+            why.append(f"승강장 {spd}>{PLAT}")
+        (ok if not why else blocked).append(name if not why else f"{name} {'·'.join(why)}")
+    if len(ok) != 1:
+        raise AssertionError(f"진입 가능한 열차가 하나가 아니다: {ok}")
+    return ok[0], f"통과 {ok[0]} 하나 · 막힌 이유 " + " / ".join(blocked)
+
+
+def v_sm_passcode() -> tuple[str, str]:
+    """월2 + 일2 + 요일코드1. 기준일 요일에서 날짜 차이만큼 옮긴다."""
+    import datetime
+    KOR = "월화수목금토일"
+    base, target = datetime.date(2026, 7, 1), datetime.date(2026, 7, 18)
+    gap = (target - base).days
+    wd = (base.weekday() + gap) % 7
+    if wd != target.weekday():
+        raise AssertionError("요일 계산이 달력과 어긋난다")
+    pw = f"{target.month:02d}{target.day:02d}{wd + 1}"
+    others = {f"{target.month:02d}{target.day:02d}{base.weekday() + 1}",   # 기준일 요일
+              f"{target.month:02d}{target.day:02d}{wd}",                    # 코드 0부터
+              f"{target.month:02d}{target.day:02d}{(wd + 1) % 7 + 1}",      # 차이 18일
+              f"{target.day:02d}{target.month:02d}{wd + 1}"}                # 자리 바꿈
+    if len(others | {pw}) != 5:
+        raise AssertionError("선지 값이 겹친다")
+    return pw, (f"{base} {KOR[base.weekday()]} → {gap}일 뒤 · {gap} mod 7 = {gap % 7} → "
+                f"{KOR[wd]}(코드 {wd + 1}) → {pw}")
+
+
+def v_sm_ge() -> tuple[int, str]:
+    """GE 매트릭스 — 점수를 구간으로 옮긴 뒤 분류한다. 어긋난 선지 번호를 돌려준다."""
+    band = lambda v: "높음" if v >= 3.7 else ("낮음" if v <= 2.3 else "중간")
+    rule = {("높음", "높음"): "투자·성장", ("높음", "중간"): "투자·성장",
+            ("중간", "높음"): "투자·성장", ("높음", "낮음"): "선택적 유지",
+            ("낮음", "높음"): "선택적 유지", ("중간", "중간"): "선택적 유지",
+            ("낮음", "낮음"): "수확·철수", ("낮음", "중간"): "수확·철수",
+            ("중간", "낮음"): "수확·철수"}
+    S = {"A": (4.2, 3.9), "B": (4.0, 2.0), "C": (3.0, 3.2), "D": (2.1, 2.8)}
+    cls = {k: rule[(band(a), band(b))] for k, (a, b) in S.items()}
+    if cls["D"] != "수확·철수":
+        raise AssertionError(f"D 분류가 예상과 다르다: {cls['D']}")
+    if [k for k, v in cls.items() if v == "투자·성장"] != ["A"]:
+        raise AssertionError("투자·성장이 A 하나가 아니다")
+    return 4, ("분류 " + " · ".join(f"{k} {v}" for k, v in cls.items()) +
+               " · ④가 D를 선택적 유지라 했으나 낮음·중간이라 수확·철수")
+
+
+def v_sm_ushape() -> tuple[int, str]:
+    """U자형 배치 전후 지표. 어긋난 선지(자료에 없는 원인)를 돌려준다."""
+    move = (120 - 45) / 120 * 100
+    lead = (6.0 - 4.2) / 6.0 * 100
+    per = (12 / 8, 12 / 6)
+    if not (move > 60 and abs(lead - 30) < 1e-9 and per == (1.5, 2.0)):
+        raise AssertionError(f"지표가 예상과 다르다: {move} {lead} {per}")
+    return 4, (f"이동거리 {move:.1f}% 감소 · 리드타임 {lead:.1f}% 감소 · "
+               f"인원당 공정 {per[0]}→{per[1]} · ④의 6시그마는 자료에 없다")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
     "ncs-math-common-001": (v_tunnel, lambda s: {52: 1, 56: 2, 60: 3, 64: 4, 68: 5}[int(s)]),
@@ -1244,6 +1351,14 @@ REGISTRY = {
     "ncs-math-seoulmetro-002": (v_sm_commute, lambda t: {473: 1, 475: 2, 480: 3,
                                                          482: 4, 487: 5}[t]),
     "ncs-math-seoulmetro-003": (v_sm_roles, lambda n: {5: 1, 8: 2, 15: 3, 17: 4, 20: 5}[n]),
+    "ncs-prob-seoulmetro-001": (v_sm_liar, lambda w: "김이박최정".index(w) + 1),
+    "ncs-prob-seoulmetro-002": (v_sm_triad, lambda i: i),
+    "ncs-prob-seoulmetro-004": (v_sm_signal, lambda w: "ABCDE".index(w) + 1),
+    "ncs-info-seoulmetro-001": (v_sm_passcode, lambda p: {"07183": 1, "07185": 2,
+                                                          "07186": 3, "07187": 4,
+                                                          "18076": 5}[p]),
+    "ncs-org-seoulmetro-001": (v_sm_ge, lambda i: i),
+    "ncs-org-seoulmetro-003": (v_sm_ushape, lambda i: i),
 }
 
 

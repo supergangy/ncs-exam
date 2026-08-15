@@ -5,7 +5,7 @@
  *
  * 콘텐츠를 새로 배포할 때는 아래 VERSION 을 올린다. 옛 캐시는 activate 에서 지운다.
  */
-const VERSION = 'ncsbank-v8';
+const VERSION = 'ncsbank-v9';
 const SHELL = [
   './',
   './index.html',
