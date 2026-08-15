@@ -15,6 +15,7 @@ import datetime
 import html as htmlmod
 import importlib.util
 import io
+import json
 import re
 import shutil
 import subprocess
@@ -233,6 +234,44 @@ def apply_layout(blocks, dist):
     return ordered
 
 
+def write_page_map(pdf_path, blocks):
+    """문항 → PDF 면·사각형 표를 낸다. 앱의 「PDF로 풀기」가 이것으로 오려 낸다.
+
+    **PDF 에서 뽑는다.** 조판기의 누적 계산으로도 만들어 봤는데 블록 간격을
+    평균으로 쓰는 탓에 30문항 중 12문항이 어긋났다. 앱이 보는 것은 PDF 다.
+
+    함께 넣는 `stem` 은 **빌더가 의도한 발문**이다. PDF 에 찍힌 번호와
+    빌더의 번호가 어긋나면 여기서 드러난다 — 조판기가 블록 순서를 바꾸므로
+    번호는 빌드 시점에 정해지고, 그 결과가 PDF 와 맞는지 볼 자리가 필요하다.
+    """
+    sys.path.insert(0, str(ROOT / "tools"))
+    import pagemap as PM
+
+    want = {}
+    for b in blocks:
+        for q in b["questions"]:
+            want[q["no"]] = re.sub(r"<[^>]+>", "", q["stem"])
+    pmap, missing = PM.build_map(pdf_path, ROUND, len(want))
+    bad = PM.check(pmap, len(want))
+    if missing:
+        bad.insert(0, f"번호 표식을 못 찾은 문항: {missing}")
+
+    # 빌더가 아는 발문을 함께 실어 둔다. 검수기가 이것으로 대조한다.
+    for q in pmap["questions"]:
+        q["stem"] = want.get(q["no"], "")[:60]
+
+    path = OUT / "page_map.json"
+    path.write_text(json.dumps(pmap, ensure_ascii=False, indent=1),
+                    encoding="utf-8")
+    if bad:
+        log(f"[문항지도] ⚠ 지적 {len(bad)}건")
+        for line in bad[:8]:
+            log(f"    {line}")
+    else:
+        pages = {r["page"] for q in pmap["questions"] for r in q["bounds"]}
+        log(f"[문항지도] {len(pmap['questions'])}문항 · {len(pages)}면 → {path.name}")
+
+
 def find_chrome():
     for p in CHROME_CANDIDATES:
         if Path(p).exists():
@@ -411,6 +450,8 @@ def main():
         pages = stamp_page_numbers(pdf_path)
         log(f"[출력] {pdf_path.name}  ({pages}쪽)")
         outputs.append((pdf_path.name, pages))
+        if kind == "exam":
+            write_page_map(pdf_path, blocks)
 
     if args.html:
         log("[안내] 브라우저로 열어 확인하고, 쪽나눔은 Ctrl+P(A4·배율 100%·여백 없음)로 본다.")

@@ -1,8 +1,15 @@
 /// 기기 로컬 기록 — 웹앱의 `Store` 객체와 같은 역할·같은 알고리즘.
-/// SharedPreferences 에 JSON 문자열 하나로 저장한다(웹의 localStorage 한 칸과 동일).
+///
+/// **sqflite 에 테이블로 저장한다.** v1.6.0 까지는 `SharedPreferences` 한 칸에
+/// JSON 전체를 넣었고, 한 문항을 풀 때마다 기록 전부를 다시 직렬화해 덮어썼다.
+/// 지금은 바뀐 행만 쓴다. 옛 기록은 첫 실행에 옮기고 **원본은 지우지 않는다.**
+///
+/// 바깥에서 보이는 모양(`att`·`srs`·`exams`·`mark`)과 [backup.dart] 의 JSON 형식은
+/// **그대로다.** 웹판과 1:1로 맞춰 둔 것이라 논리는 안 바뀌고 눕는 자리만 바뀐다.
 ///
 /// 여기는 **상태를 들고 저장하고 알리는** 일만 한다.
-/// 클래스와 JSON 왕복은 [backup.dart] 에 있다 — Flutter 없이 검증하기 위해서다.
+/// 클래스와 JSON 왕복은 [backup.dart], 행 변환은 [db_rows.dart] 에 있다 —
+/// Flutter 없이 검증하기 위해서다.
 ///
 /// `ChangeNotifier` 인 이유 — 탭 다섯 개가 한 화면에 살아 있어서(`IndexedStack`),
 /// 오답 탭에서 문제를 풀면 홈 탭의 진도·오답 개수도 함께 바뀌어야 한다.
@@ -13,6 +20,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'backup.dart';
+import 'db.dart';
 
 export 'backup.dart';
 
@@ -22,6 +30,7 @@ class Store extends ChangeNotifier {
   static const _key = 'ncsbank.v1';
   static const _brokenKey = 'ncsbank.v1.broken';
   static const _prevKey = 'ncsbank.v1.prev';
+  static const _migratedKey = 'ncsbank.migrated.v1';
 
   final Map<String, List<Attempt>> att = {};
   final Map<String, Srs> srs = {};
@@ -42,18 +51,82 @@ class Store extends ChangeNotifier {
   Timer? _flush;
   bool _dirty = false;
 
+  /// DB 가 열리지 않으면 옛 경로(SharedPreferences)로 떨어진다.
+  /// 첫 배포는 두 길이 함께 산다 — DB 쪽이 잘못돼도 기록을 잃지 않게.
+  bool _useDb = false;
+
+  // 무엇이 바뀌었나. `_write` 가 이만큼만 쓴다.
+  final Set<String> _dAtt = {};
+  final Set<String> _dSrs = {};
+  final Set<String> _dMark = {};
+  final Set<String> _dExam = {};
+  bool _dKv = false;
+
   Future<void> load() async {
     if (_loaded) return;
     _prefs = await SharedPreferences.getInstance();
-    final raw = _prefs.getString(_key);
     _loaded = true;
+
+    try {
+      await Db.instance.open();
+      _useDb = true;
+    } catch (err) {
+      debugPrint('DB 를 열지 못했다 — 옛 경로로 간다: $err');
+      _useDb = false;
+    }
+
+    if (_useDb) {
+      try {
+        if (await Db.instance.isEmpty()) {
+          await _migrateFromPrefs();
+        } else {
+          _adopt(await Db.instance.readAll());
+        }
+        return;
+      } catch (err) {
+        // DB 가 깨졌으면 옛 경로로 떨어진다. 옛 칸은 지우지 않았으므로 살아 있다.
+        debugPrint('DB 에서 읽지 못했다 — 옛 경로로 간다: $err');
+        _useDb = false;
+      }
+    }
+    _loadFromPrefs();
+  }
+
+  /// 옛 한 칸을 읽어 테이블로 옮긴다. **원본은 지우지 않는다** — 되돌릴 자리다.
+  Future<void> _migrateFromPrefs() async {
+    final raw = _prefs.getString(_key);
+    if (raw == null) return; // 새로 깐 기기. 옮길 것이 없다
+    late StoreData old;
+    try {
+      old = decodeStore((jsonDecode(raw) as Map).cast<String, dynamic>());
+    } catch (err) {
+      debugPrint('옛 기록을 읽지 못해 옮기지 않는다: $err');
+      await _prefs.setString(_brokenKey, raw);
+      return;
+    }
+    await Db.instance.writeAll(old);
+    // 옮긴 것이 그대로인지 되읽어 대조한다. 어긋나면 옛 경로로 돌아간다.
+    final back = await Db.instance.readAll();
+    if (jsonEncode(encodeStore(back)) != jsonEncode(encodeStore(old))) {
+      debugPrint('옮긴 기록이 원본과 다르다 — 옛 경로로 간다');
+      await Db.instance.clearRecords();
+      _useDb = false;
+      _adopt(old);
+      return;
+    }
+    _adopt(back);
+    await _prefs.setBool(_migratedKey, true);
+  }
+
+  void _loadFromPrefs() {
+    final raw = _prefs.getString(_key);
     if (raw == null) return;
     try {
       _adopt(decodeStore((jsonDecode(raw) as Map).cast<String, dynamic>()));
     } catch (err) {
       // 못 읽은 원본은 따로 남긴다 — 덮어써 버리면 되살릴 길이 없다.
       debugPrint('기록을 읽지 못했다: $err');
-      await _prefs.setString(_brokenKey, raw);
+      _prefs.setString(_brokenKey, raw);
       _adopt(StoreData(att: {}, srs: {}, exams: {}, mark: {}));
     }
   }
@@ -85,10 +158,34 @@ class Store extends ChangeNotifier {
   /// 백업으로 **통째로 바꾼다.** 부르기 전에 [readBackup] 으로 검증돼 있어야 한다.
   /// 덮어쓰기 직전 지금 기록을 따로 남긴다 — 잘못 골랐을 때 되돌릴 여지.
   Future<void> importAll(StoreData d) async {
-    final now = _prefs.getString(_key);
-    if (now != null) await _prefs.setString(_prevKey, now);
+    // 덮어쓰기 직전 지금 기록을 옛 형식으로 따로 남긴다 — 잘못 골랐을 때 되돌릴 여지.
+    await _prefs.setString(_prevKey, jsonEncode(encodeStore(snapshot())));
     _adopt(d);
-    await save();
+    if (_useDb) {
+      await Db.instance.writeAll(d);
+      _clearDirty();
+      notifyListeners();
+    } else {
+      await save();
+    }
+  }
+
+  void _markDirty({String? att, String? srs, String? mark, String? exam,
+      bool kv = false}) {
+    if (att != null) _dAtt.add(att);
+    if (srs != null) _dSrs.add(srs);
+    if (mark != null) _dMark.add(mark);
+    if (exam != null) _dExam.add(exam);
+    if (kv) _dKv = true;
+  }
+
+  void _clearDirty() {
+    _dAtt.clear();
+    _dSrs.clear();
+    _dMark.clear();
+    _dExam.clear();
+    _dKv = false;
+    _dirty = false;
   }
 
   /// 바로 저장한다. 제출·설정처럼 잃으면 안 되는 순간에 쓴다.
@@ -116,6 +213,27 @@ class Store extends ChangeNotifier {
 
   Future<void> _write() async {
     if (!_loaded) return;
+    if (_useDb) {
+      final att = {..._dAtt}, srs = {..._dSrs}, mark = {..._dMark},
+          exam = {..._dExam};
+      final kv = _dKv;
+      _clearDirty();
+      try {
+        await Db.instance.writeDirty(snapshot(),
+            attIds: att, srsIds: srs, markIds: mark, examTags: exam, kv: kv);
+      } catch (err) {
+        // 못 쓴 것은 다시 더럽다고 표시해 다음 저장에 재시도한다.
+        debugPrint('DB 에 쓰지 못했다: $err');
+        _dAtt.addAll(att);
+        _dSrs.addAll(srs);
+        _dMark.addAll(mark);
+        _dExam.addAll(exam);
+        _dKv = _dKv || kv;
+        _dirty = true;
+      }
+      notifyListeners();
+      return;
+    }
     _dirty = false;
     final ok = await _prefs.setString(_key, jsonEncode(encodeStore(snapshot())));
     if (!ok) debugPrint('기록을 저장하지 못했다 — 저장 공간을 확인해 주세요');
@@ -148,6 +266,7 @@ class Store extends ChangeNotifier {
     // 한 문항을 수백 번 풀어도 기록이 무한정 늘지 않게 한다. 최근 것만 쓸모가 있다.
     if (list.length > 40) list.removeRange(0, list.length - 40);
     _schedule(id, ok);
+    _markDirty(att: id, srs: id);
   }
 
   /// SM-2 를 줄인 것. 틀리면 처음으로, 맞히면 간격이 벌어진다.
@@ -225,6 +344,7 @@ class Store extends ChangeNotifier {
     } else {
       mark[id] = m;
     }
+    _markDirty(mark: id);
     await save();
   }
 
@@ -238,6 +358,7 @@ class Store extends ChangeNotifier {
     } else {
       mark[id] = m;
     }
+    _markDirty(mark: id);
     await save();
   }
 
@@ -251,6 +372,7 @@ class Store extends ChangeNotifier {
     m.memo = '';
     m.at = _now();
     if (m.isEmpty) mark.remove(id);
+    _markDirty(mark: id);
     await save();
   }
 
@@ -261,36 +383,56 @@ class Store extends ChangeNotifier {
   }
 
   /// 기록만 지운다. **설정은 남긴다** — 글자 배율과 알림은 기록이 아니다.
+  ///
+  /// 부분 갱신으로는 지울 수 없다 — 지울 대상이 무엇이었는지 이미 잊었기 때문이다.
+  /// 테이블을 통째로 비운다.
   Future<void> reset() async {
     _adopt(StoreData(
       att: {}, srs: {}, exams: {}, mark: {},
       textScale: textScale, remind: remind, remindAt: remindAt,
     ));
+    if (_useDb) {
+      _clearDirty();
+      try {
+        await Db.instance.clearRecords();
+        // 응시 중 회차와 풀던 묶음도 함께 사라졌으므로 설정 칸을 다시 쓴다.
+        _markDirty(kv: true);
+        await _write();
+        return;
+      } catch (err) {
+        debugPrint('DB 를 비우지 못했다: $err');
+      }
+    }
     await save();
   }
 
   Future<void> setSit(SitState? s) async {
     sit = s;
+    _markDirty(kv: true);
     await save();
   }
 
   Future<void> setSolo(SoloSession? s) async {
     solo = s;
+    _markDirty(kv: true);
     await save();
   }
 
   Future<void> addExam(String tag, ExamRecord rec) async {
     (exams[tag] ??= []).add(rec);
+    _markDirty(exam: tag);
     await save();
   }
 
   Future<void> setAdmin(bool v) async {
     admin = v;
+    _markDirty(kv: true);
     await save();
   }
 
   Future<void> setTextScale(double v) async {
     textScale = clampScale(v);
+    _markDirty(kv: true);
     await save();
   }
 
@@ -299,6 +441,7 @@ class Store extends ChangeNotifier {
   Future<void> setRemind({bool? on, int? minuteOfDay}) async {
     if (on != null) remind = on;
     if (minuteOfDay != null) remindAt = clampRemindAt(minuteOfDay);
+    _markDirty(kv: true);
     await save();
   }
 

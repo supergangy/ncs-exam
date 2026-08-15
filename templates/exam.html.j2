@@ -186,7 +186,9 @@ table.omr-t td.n { font-weight: 700; background: #f7f7f7; width: 9mm; }
     {% endif %}
     <div class="qbody" data-blk="{{ b.blk }}q"{% if b.spread_break %} style="break-before:page"{% endif %}>
       {% for q in b.questions %}
-      <div class="question">
+      {# data-qno 는 조판기가 문항별 지면 좌표를 재려고 쓴다 (layout.py 의 _PROBE).
+         앱의 「PDF로 풀기」가 이 좌표로 문항만 오려 낸다. #}
+      <div class="question" data-qno="{{ q.no }}">
         <div class="stem"><span class="qno">{{ '%02d'|format(q.no) }}</span>{{ q.stem }}</div>
         {% if q.material %}<div class="material">{{ q.material }}</div>{% endif %}
         <ul class="choices{% if q.cols == 2 %} c2{% endif %}">

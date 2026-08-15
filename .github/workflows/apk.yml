@@ -75,6 +75,10 @@ jobs:
       - name: 통계 집계 검증
         run: dart run tool/check_stats.dart
 
+      # 여기서 값이 새면 사용자의 풀이 기록이 조용히 사라지고 되돌릴 수 없다.
+      - name: 기록 ↔ 테이블 행 왕복 검증
+        run: dart run tool/check_db_rows.dart
+
       - name: 아이콘 검증
         working-directory: .
         run: |

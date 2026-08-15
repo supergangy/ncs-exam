@@ -77,6 +77,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  # 기록 저장. SharedPreferences 한 칸에 JSON 전체를 넣던 것을 테이블로 옮겼다 —
+  # 한 문항 채점마다 기록 전부를 다시 직렬화하던 값이 사라진다 (lib/db.dart).
+  sqflite: ^2.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -103,6 +107,10 @@ flutter:
   assets:
     - assets/data/bank.json
     - assets/data/admin.json
+    # 회차 문제집 PDF 와 문항 지도(「PDF로 풀기」). 다섯 회차 합쳐 4.5MB 라
+    # 내려받게 하지 않고 그냥 싣는다 — 비행기 모드에서 풀리는 것이 이 앱의 성질이다.
+    # tools/export_bank.py 가 out/<회차>/ 에서 복사해 둔다.
+    - assets/exams/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

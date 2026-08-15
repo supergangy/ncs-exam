@@ -32,6 +32,49 @@ from bank import qtypes as bank_types  # noqa: E402  — 경로를 넣은 뒤에
 
 OUT = ROOT / "app" / "data" / "bank.json"
 OUT_ADMIN = ROOT / "app" / "data" / "admin.json"
+# Flutter 판도 같은 파일을 쓴다. **여기 함께 쓰지 않으면 조용히 어긋난다** —
+# 실제로 8월 12일부터 앱만 526문항에 멈춰 있었다(웹판은 540). 손으로 맞추는
+# 단계는 문서에도 없었고 빠뜨려도 아무도 알려 주지 않는다.
+OUT_MOBILE = ROOT / "mobile" / "assets" / "data"
+# Flutter 판의 「PDF로 풀기」가 쓰는 것. 웹판은 PDF 를 오려 낼 수단이 없어 안 쓴다.
+OUT_EXAMS = ROOT / "mobile" / "assets" / "exams"
+
+
+def export_exam_pdfs(tags):
+    """회차 문제집 PDF 와 문항 지도를 앱 자산으로 옮긴다.
+
+    다섯 회차를 합쳐 4.6MB 라 **APK 에 그냥 넣는다.** 분석한 PSAT 앱은 회차당
+    3~5MB 라 R2 에서 내려받지만, 우리는 그 값을 치르면서까지 「지하철에서
+    풀려야 한다」는 원칙을 깰 이유가 없다.
+
+    지도가 없는 회차는 건너뛴다 — `build.py` 를 아직 안 돌린 것이다.
+    """
+    import shutil
+    OUT_EXAMS.mkdir(parents=True, exist_ok=True)
+    kept, skipped, total = [], [], 0
+    for tag in tags:
+        d = ROOT / "out" / tag
+        pdfs = [p for p in d.glob("*문제*.pdf") if not p.name.startswith("_")]
+        pmap = d / "page_map.json"
+        if not pdfs or not pmap.exists():
+            skipped.append(tag)
+            continue
+        pdf = sorted(pdfs)[0]
+        shutil.copy2(pdf, OUT_EXAMS / f"{tag}.pdf")
+        shutil.copy2(pmap, OUT_EXAMS / f"{tag}.map.json")
+        total += pdf.stat().st_size + pmap.stat().st_size
+        kept.append(tag)
+
+    # 남은 찌꺼기를 치운다 — 회차 이름이 바뀌면 옛 파일이 APK 에 계속 실린다.
+    want = {f"{t}.pdf" for t in kept} | {f"{t}.map.json" for t in kept}
+    for p in OUT_EXAMS.iterdir():
+        if p.is_file() and p.name not in want:
+            p.unlink()
+
+    print(f"\n■ {OUT_EXAMS.relative_to(ROOT)}  {total / 1048576:,.1f}MB   "
+          f"(PDF로 풀기 — {len(kept)}회차)")
+    if skipped:
+        print(f"   건너뜀: {', '.join(skipped)} — build.py 를 먼저 돌린다")
 
 # ── 직렬 ────────────────────────────────────────────────────────────────
 # 전산 8과목은 직렬 문항이고, 나머지는 직렬을 가리지 않는 NCS 다.
@@ -473,10 +516,17 @@ def main() -> int:
                    encoding="utf-8")
     OUT_ADMIN.write_text(json.dumps(admin, ensure_ascii=False, separators=(",", ":")),
                          encoding="utf-8")
+    # Flutter 판에 그대로 복사한다. 웹판과 같은 파일을 써야 1:1 대응이 유지된다.
+    import shutil
+    OUT_MOBILE.mkdir(parents=True, exist_ok=True)
+    for src in (OUT, OUT_ADMIN):
+        shutil.copy2(src, OUT_MOBILE / src.name)
+
     kb = OUT.stat().st_size / 1024
     kb_a = OUT_ADMIN.stat().st_size / 1024
 
     print(f"■ {OUT.relative_to(ROOT)}  {kb:,.0f}KB   (학습자가 받는 것)")
+    print(f"■ {(OUT_MOBILE / OUT.name).relative_to(ROOT)}  같은 파일   (Flutter 판)")
     print(f"■ {OUT_ADMIN.relative_to(ROOT)}  {kb_a:,.0f}KB   "
           f"(위험도·출제이유서 {admin['n']}건 — 관리자 모드에서만 받는다)")
     print(f"   문항 {data['n']}건 · 지문 {len(data['passages'])}개 · "
@@ -492,6 +542,8 @@ def main() -> int:
     for r in data["rounds"]:
         cons = " · ".join(f"{a}{n}" for a, n in r["areas"])
         print(f"      {r['tag']:<12} {r['title']:<14} {r['n']:>2}문항/{r['min']}분   {cons}")
+
+    export_exam_pdfs([r["tag"] for r in data["rounds"]])
 
     top = ", ".join(f"{k['t']}({k['n']})" for k in data["keywords"][:12])
     print(f"\n   키워드 상위: {top}")

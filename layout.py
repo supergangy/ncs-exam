@@ -136,11 +136,14 @@ def plan(blocks, H, start_page, header_h=0, gap=8):
                 if f is not None:
                     g = pool.pop(f)
                     g["pagebreak"] = bool(used == 0 and out)
+                    g["_page"], g["_y"] = pno, used
                     out.append(g); cur.append(g); used += g["_h"]
                 close()
             b["pagebreak"] = True
             b["spread_break"] = True              # 지문 다음 면으로 문항을 넘긴다
             seen_area.add(b["area"])
+            b["_page"], b["_y"] = pno, hdr        # 지문 상자
+            b["_qpage"], b["_qy"] = pno + 1, 0    # 문항 상자는 다음 면 맨 위
             out.append(b)
             page_log.append((pno, b["_hp"] + hdr, [f"{b['blk']}지문"]))
             pno += 1
@@ -155,12 +158,15 @@ def plan(blocks, H, start_page, header_h=0, gap=8):
             f = _filler(pool, CAP - used - gap, b["area"], b["area"] if not first_of_area else None)
             if f is not None:
                 g = pool.pop(f)
+                g["_page"], g["_y"] = pno, used + gap
                 out.append(g); cur.append(g); used += g["_h"] + gap
                 pool.insert(0, b)                 # 원래 블록은 다음 차례로 되돌린다
                 continue
             close()
             b["pagebreak"] = True
         seen_area.add(b["area"])
+        b["_page"] = pno
+        b["_y"] = used + hdr + (gap if cur else 0)
         out.append(b)
         cur.append(b)
         used += need
