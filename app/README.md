@@ -24,8 +24,8 @@ python -m http.server 8777 --directory app
 | `index.html` | 껍데기. 상단 막대 · 본문 · 하단 탭 |
 | `app.js` | 전부. 저장소 · 데이터 · 해시 라우터 · 화면 17개 |
 | `app.css` | 모바일 우선. 다크 모드는 `prefers-color-scheme` 로 따라간다 |
-| `data/bank.json` | **학습자가 받는 것.** 529문항 · 985KB |
-| `data/admin.json` | **관리자 모드에서만 받는다.** 위험도 · 출제이유서 · 364KB |
+| `data/bank.json` | **학습자가 받는 것.** 540문항 · 1,013KB |
+| `data/admin.json` | **관리자 모드에서만 받는다.** 위험도 · 출제이유서 · 379KB |
 | `sw.js` | 서비스 워커. 껍데기와 `bank.json` 을 캐시에 넣어 오프라인으로 만든다 |
 
 ## 두 파일로 나눈 이유
@@ -58,7 +58,7 @@ python -c "import hashlib;print(hashlib.sha256(b'새암호').hexdigest())"
 ```
 회차 ──── r1~r5 (200)   시간을 재고 실제 시험처럼
 직렬 ─┬─ 전산직 (150)  ─ 8과목 ─ 유형 62종
-      └─ NCS   (379)  ─ 8영역 ─ 유형 128종
+      └─ NCS   (390)  ─ 8영역 ─ 유형 128종
 키워드 305개            과목을 가로질러 묶는다
 검색                    발문·선지·유형·키워드·자료·지문·해설·단평 전부
 ```
@@ -126,14 +126,14 @@ python -c "import hashlib;print(hashlib.sha256(b'새암호').hexdigest())"
 
 ## 오프라인 — 확인했다
 
-**서버를 내려도 526문항이 전부 뜬다.** 2026-08-14 데스크톱 크로미움에서 확인했다.
+**서버를 내려도 문항이 전부 뜬다.** 2026-08-14 데스크톱 크로미움에서 확인했다.
 
 이전 판 문서는 「미리보기 브라우저가 서비스 워커를 막아 둔 것으로 보인다」고
 남겨 두었는데, 다시 재 보니 정상이었다. 넷 다 확인한 것이다.
 
 - `navigator.serviceWorker.controller` 가 `null` 이 아니다 — 페이지를 워커가 잡고 있다
 - 활성 워커 상태가 `activated`
-- `ncsbank-v8` 캐시에 **9개**가 다 들어왔다 — 껍데기 8개 + `bank.json`
+- `ncsbank-v9` 캐시에 **9개**가 다 들어왔다 — 껍데기 8개 + `bank.json`
 - 정적 서버를 **완전히 죽인 뒤** 전체 새로고침 → 부팅 화면이 걷히고 문항이 나온다
 
 네트워크가 정말 끊긴 상태였는지도 갈라서 확인했다. 캐시에 없는 주소
@@ -150,7 +150,7 @@ iOS 사파리는 캐시 용량 정책이 달라 1MB 짜리 `bank.json` 이 밀�
 
 ```
 개발자도구 → Application → Service Workers   : 상태가 activated and is running 인가
-개발자도구 → Application → Cache Storage     : ncsbank-v8 안에 9개가 들어왔나
+개발자도구 → Application → Cache Storage     : ncsbank-v9 안에 9개가 들어왔나
 개발자도구 → Network → Offline 체크 후 새로고침 : 화면이 그대로 뜨나
 ```
 
@@ -199,5 +199,5 @@ v1.5.1 의 이중 이스케이프 수정이 `lib/text.dart` 와 `app/app.js` 양
 - 휴대폰 실기기 오프라인 확인 (위 「오프라인」 참고)
 - **`why` 의 `**굵게**` · `` `코드` `` 가 앱에서 문자 그대로 보인다.**
   `build.py` 는 출제 이유서 PDF를 만들 때 이것을 HTML로 바꾸지만,
-  `app.js` 는 `esc()` 로 감싸 그대로 내보낸다. 524문항이 이 표기를 쓰고 있다.
+  `app.js` 는 `esc()` 로 감싸 그대로 내보낸다. 535문항이 이 표기를 쓰고 있다.
   고치려면 웹판과 Flutter 판을 **함께** 고쳐야 한다(아래 「Flutter 판과의 관계」)
