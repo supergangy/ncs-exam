@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../exam_pdf.dart';
 import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -20,6 +21,12 @@ class SitScreen extends StatefulWidget {
 }
 
 class _SitScreenState extends State<SitScreen> {
+  // 「PDF로 풀기」 — 인쇄본과 같은 화면으로 본다. 회차에만 둔다.
+  // 낱개 풀이는 HTML 그대로다(글자 크기 조절·검색이 살아 있어야 한다).
+  ExamPdf? _pdf;
+  bool _pdfMode = false;
+  bool _pdfAvailable = false;
+
   Timer? _timer;
   /// 제출 대화상자가 떠 있다 — 그 위에 자동 제출을 겹쳐 띄우지 않기 위한 잠금.
   bool _submitting = false;
@@ -51,6 +58,35 @@ class _SitScreenState extends State<SitScreen> {
         _autoSubmit();
       }
     });
+    // 자산이 있는 회차에만 전환 버튼을 보여 준다. 문서는 켤 때 연다 —
+    // 안 쓸 사람에게 4.5MB 를 열게 할 이유가 없다.
+    ExamPdf.exists(widget.tag).then((yes) {
+      if (mounted && yes) setState(() => _pdfAvailable = true);
+    });
+  }
+
+  Future<void> _togglePdf() async {
+    if (_pdfMode) {
+      setState(() => _pdfMode = false);
+      return;
+    }
+    var doc = _pdf;
+    if (doc == null) {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        doc = await ExamPdf.open(widget.tag);
+      } catch (err) {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('PDF 를 열지 못했습니다.')));
+        return;
+      }
+      if (!mounted) {
+        await doc.close();
+        return;
+      }
+      _pdf = doc;
+    }
+    setState(() => _pdfMode = true);
   }
 
   @override
@@ -58,6 +94,7 @@ class _SitScreenState extends State<SitScreen> {
     _timer?.cancel();
     _pager?.dispose();
     _left.dispose();
+    _pdf?.close();
     super.dispose();
   }
 
@@ -240,6 +277,14 @@ class _SitScreenState extends State<SitScreen> {
                 ),
               ),
             ),
+            if (_pdfAvailable)
+              IconButton(
+                icon: Icon(_pdfMode
+                    ? Icons.article_outlined
+                    : Icons.picture_as_pdf_outlined),
+                tooltip: _pdfMode ? '앱 화면으로' : 'PDF로 풀기',
+                onPressed: _togglePdf,
+              ),
             IconButton(
                 icon: const Icon(Icons.grid_view_rounded),
                 tooltip: '답안지',
@@ -256,6 +301,7 @@ class _SitScreenState extends State<SitScreen> {
           onPageChanged: _onPage,
           itemBuilder: (ctx, i) => _SitBody(
             item: items[i],
+            pdf: _pdfMode ? _pdf : null,
             chosen: s.ans[items[i].no],
             flagged: s.flag[items[i].no] ?? false,
             onPick: (n) => _pick(i, n),
@@ -293,8 +339,10 @@ class _SitBody extends StatelessWidget {
   final bool flagged;
   final void Function(int n) onPick;
   final VoidCallback onFlag;
+  /// null 이면 평소대로 HTML 로 그린다.
+  final ExamPdf? pdf;
   const _SitBody({required this.item, required this.chosen, required this.flagged,
-      required this.onPick, required this.onFlag});
+      required this.onPick, required this.onFlag, this.pdf});
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +366,17 @@ class _SitBody extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 4),
-        if (item.pg != null && Repo.instance.passage(item.pg!) != null) ...[
+        if (pdf != null) ...[
+          // 종이 그대로 오려 낸 문항. 선지도 그림 안에 있고, 답은 아래에서 고른다.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              color: Colors.white,
+              child: QuestionPdfView(pdf: pdf!, no: item.no ?? 0),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ] else if (item.pg != null && Repo.instance.passage(item.pg!) != null) ...[
           if (Repo.instance.passage(item.pg!)!.lead != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
@@ -331,8 +389,8 @@ class _SitBody extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(item.ld!, style: TextStyle(color: c.dim, fontSize: 13.5)),
           ),
-        if (item.mt != null) HtmlBox(item.mt!),
-        Padding(
+        if (pdf == null && item.mt != null) HtmlBox(item.mt!),
+        if (pdf == null) Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: SelectionArea(
             child: HtmlText(item.st,
@@ -340,6 +398,35 @@ class _SitBody extends StatelessWidget {
                     color: c.ink, height: 1.5)),
           ),
         ),
+        // PDF 모드에서는 선지 글자를 다시 쓰지 않는다 — 그림 안에 이미 있다.
+        // 동그라미만 크게 늘어놓아 손가락으로 고르게 한다.
+        if (pdf != null)
+          Row(children: [
+            for (var n = 0; n < item.ch.length; n++)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: InkWell(
+                    onTap: () => onPick(n + 1),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 52,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: chosen == n + 1 ? c.brand : c.card,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: chosen == n + 1 ? c.brand : c.line, width: 1.4),
+                      ),
+                      child: Text(circ[n], style: TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w700,
+                          color: chosen == n + 1 ? Colors.white : c.dim)),
+                    ),
+                  ),
+                ),
+              ),
+          ])
+        else
         ...List.generate(item.ch.length, (n) {
           final sel = chosen == n + 1;
           return InkWell(

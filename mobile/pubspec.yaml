@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.6.0+8
+version: 1.7.0+9
 
 environment:
   sdk: ^3.12.2
@@ -80,6 +80,11 @@ dependencies:
   # 기록 저장. SharedPreferences 한 칸에 JSON 전체를 넣던 것을 테이블로 옮겼다 —
   # 한 문항 채점마다 기록 전부를 다시 직렬화하던 값이 사라진다 (lib/db.dart).
   sqflite: ^2.4.1
+
+  # 회차 PDF 렌더. flutter_pdfview(분석한 PSAT 앱이 쓰는 것)는 네이티브 뷰라
+  # 위에 캔버스를 얹기 어렵다. pdfx 는 페이지를 이미지로 렌더하고 cropRect 를
+  # 받아 문항만 오려 낼 수 있다 — 4단계 필기의 발판이기도 하다.
+  pdfx: ^2.9.0
 
 dev_dependencies:
   flutter_test:
