@@ -1476,8 +1476,184 @@ def v_tech_ppe() -> tuple[int, str]:
                f"보호구 {covers} → {n}번")
 
 
+# ── 직업윤리 013~024 — 강령 판정 · 예절 규칙 · 개념 구분 ────────────────
+#
+# 강령 문항은 **한도표와 조문을 여기 다시 세워** 판정한다. 자료의 숫자를
+# 고치면서 정답만 안 고치는 사고를 잡는다. 개념 문항은 정의를 표로 두고
+# `_only` 로 참인 것이 하나뿐인지 확인한다.
+
+def v_eth_013() -> tuple[int, str]:
+    """육촌은 6촌 — 「4촌 이내」 밖이라 제6조가 안 걸린다. 제7조는 남는다."""
+    degree = {"부모": 1, "형제": 2, "삼촌": 3, "사촌": 4, "오촌": 5, "육촌": 6}
+    limit = 6 - 2                      # 조문의 「4촌 이내」
+    kin = degree["육촌"]
+    must_report = kin <= limit
+    can_recuse = True                  # 제7조는 촌수를 따지지 않는다
+    if must_report:
+        raise AssertionError("육촌이 신고 대상으로 잡혀 문항이 성립하지 않는다")
+    opts = {1: (True, True), 2: (False, False), 3: (False, False),
+            4: (True, True), 5: (False, True)}
+    n = _only({k: v == (must_report, can_recuse) for k, v in opts.items()})
+    return n, (f"육촌 = {kin}촌 > 제6조 {limit}촌 → 신고 의무 없음 · "
+               f"제7조 회피 신청은 가능 → {n}번")
+
+
+def v_eth_014() -> tuple[int, str]:
+    """한도를 넘는 것이 정확히 하나여야 한다. 연간 합계도 함께 본다."""
+    cap = {"음식물": 30_000, "선물": 50_000, "화환": 100_000}
+    got = [("3월", "음식물", 25_000), ("6월", "선물", 40_000),
+           ("9월", "화환", 90_000), ("11월", "음식물", 32_000)]
+    over = [g for g in got if g[2] > cap[g[1]]]
+    year = sum(g[2] for g in got)
+    if len(over) != 1:
+        raise AssertionError(f"한도 초과가 하나가 아니다: {over}")
+    if year > 3_000_000:
+        raise AssertionError("연간 합계까지 걸려 근거가 둘이 된다")
+    n = [i for i, g in enumerate(got, 1) if g in over][0]
+    return n, (f"한도 {cap} · 초과 {over[0][0]} {over[0][2]:,}원 → {n}번 · "
+               f"화환 90,000 은 크지만 한도 안 · 연간 합계 {year:,}원")
+
+
+def v_eth_015() -> tuple[int, str]:
+    """허가가 필요한 조건은 「보수」와 「계속성」이 함께 설 때다."""
+    # (보수를 받나, 계속하나, 직무와 관련되나)
+    cases = {1: (False, True, False), 2: (True, True, False),
+             3: (True, True, False), 4: (True, True, True),
+             5: (True, True, False)}
+    free = {k: not (pay and keep) for k, (pay, keep, _) in cases.items()}
+    n = _only(free)
+    if cases[3][0] is False:
+        raise AssertionError("명의를 빌린 사업이 무보수로 잡혔다")
+    return n, (f"허가 필요 = 보수 ∧ 계속 · 허가 없이 되는 것 {n}번 "
+               f"(③은 명의만 남이라 실제 운영자 기준으로 걸린다)")
+
+
+def v_eth_016() -> tuple[int, str]:
+    """제20조는 내부 창구가 먼저다. 물증이 없다고 미루라는 말은 없다."""
+    inside_first = True
+    protected = True                   # 절차대로 신고하면 불이익 없음
+    needs_proof = False                # 조문에 물증 요건이 없다
+    ok = {1: needs_proof, 2: inside_first and protected,
+          3: False, 4: not inside_first, 5: False}
+    n = _only(ok)
+    return n, (f"조문 순서 내부→감독기관 · 물증 요건 {needs_proof} · "
+               f"신고자 보호 {protected} → {n}번")
+
+
+def v_eth_017() -> tuple[int, str]:
+    """발표 전이라는 것이 핵심 — 되돌릴 수 있을 때 되돌린다."""
+    # (발표 전에 알리나, 잘못을 그대로 밝히나)
+    acts = {1: (False, False), 2: (True, False), 3: (False, False),
+            4: (False, True), 5: (True, True)}
+    n = _only({k: v == (True, True) for k, v in acts.items()})
+    return n, (f"발표 전 · 실적이 높게 잡혔다 → 알리고 바로잡는다 {n}번 "
+               f"(②는 알리되 축소, ④는 고치되 안 알림)")
+
+
+def v_eth_018() -> tuple[int, str]:
+    """3년에 한 번 잡혔다는 것은 「쓸모없다」가 아니라 「쓸모 있었다」다."""
+    caught = 1                          # 최근 3년간 이중 확인이 잡아낸 건수
+    keep = caught > 0
+    # (절차를 지키나, 기록을 사실대로 남기나, 지연을 미리 알리나)
+    acts = {1: (True, True, True), 2: (False, True, False),
+            3: (False, True, False), 4: (False, False, False),
+            5: (True, True, False)}
+    n = _only({k: v == (keep, True, True) for k, v in acts.items()})
+    return n, (f"이중 확인이 3년간 {caught}건을 잡았다 → 유지 · "
+               f"공기 지연은 숨기지 말고 미리 알린다 → {n}번")
+
+
+def v_eth_019() -> tuple[int, str]:
+    """규칙 둘이 부딪히면 「우리 쪽 먼저」가 이긴다."""
+    # 소개 순서 규칙 — 뒤로 갈수록 우선한다
+    rules = [("나이가 적은 쪽을 먼저", "팀장"),      # 나이로 보면 대리 먼저
+             ("직위가 낮은 쪽을 먼저", "팀장"),      # 직위로 보면 대리 먼저
+             ("우리 쪽 사람을 먼저", "팀장")]        # 우리 쪽은 팀장
+    first = rules[-1][1]                            # 가장 센 규칙이 정한다
+    if first != "팀장":
+        raise AssertionError("우리 쪽 우선 규칙이 팀장을 고르지 못했다")
+    # (먼저 소개되는 사람, 그 근거) — ③도 팀장을 먼저 두지만 근거가 나이다
+    acts = {1: ("대리", "직위"), 2: ("팀장", "소속"), 3: ("팀장", "나이"),
+            4: ("대리", "직위"), 5: ("동시", "없음")}
+    n = _only({k: v == (first, "소속") for k, v in acts.items()})
+    return n, (f"규칙 우선순위 {[r[0] for r in rules]} → 먼저 소개될 사람 "
+               f"{first} · 근거는 나이가 아니라 소속 → {n}번")
+
+
+def v_eth_020() -> tuple[int, str]:
+    """참조는 넓힐수록 좋은 것이 아니다 — 읽을 사람을 늘리는 비용이 있다."""
+    good = {"용건과 기한을 제목에": True, "받는 사람은 회신 필요한 사람만": True,
+            "첨부는 본문에 설명": True, "늦어지면 먼저 알린다": True,
+            "참조는 되도록 많이": False}
+    order = list(good)
+    n = _only({i: not good[k] for i, k in enumerate(order, 1)})
+    return n, f"예절표 {good} → 어긋나는 것 {n}번"
+
+
+def v_eth_021() -> tuple[int, str]:
+    """혼자 고치고 나서 알리면, 알린 시점에는 이미 늦었을 수 있다."""
+    # (알리나, 제때 알리나)
+    minds = {1: (True, True), 2: (True, True), 3: (True, True),
+             4: (True, True), 5: (True, False)}
+    n = _only({k: not (v[0] and v[1]) for k, v in minds.items()})
+    return n, (f"실수는 「알리느냐」가 아니라 「제때 알리느냐」 · "
+               f"혼자 해결한 뒤 알리는 {n}번이 늦다")
+
+
+def v_eth_022() -> tuple[int, str]:
+    """정의표에서 진술의 표지를 찾는다."""
+    defs = {"소명의식": "하늘이 맡긴 일로 여긴다",
+            "천직의식": "자신의 적성에 맞고 이 일을 위해 태어났다고 여긴다",
+            "직분의식": "사회적 역할을 다한다고 여긴다",
+            "책임의식": "맡은 일을 끝까지 해낸다고 여긴다",
+            "봉사의식": "다른 사람을 위해 일한다고 여긴다"}
+    said = {"적성에 맞는다": True, "다른 일이 안 그려진다": True,
+            "하늘이 맡겼다": False, "사회적 역할": False, "남을 위해": False}
+    want = "천직의식" if said["적성에 맞는다"] and said["다른 일이 안 그려진다"]         else None
+    order = list(defs)
+    n = _only({i: k == want for i, k in enumerate(order, 1)})
+    return n, f"진술의 표지 = 적성 · 대체 불가 → {want} ({defs[want]}) → {n}번"
+
+
+def v_eth_023() -> tuple[int, str]:
+    """공고 전 가격을 흘리면 경쟁 자체가 기울어진다."""
+    facts = {"아직 공고하지 않았다": True, "가격 범위를 알려 줬다": True,
+             "특정 업체만 받았다": True}
+    tilts_bidding = all(facts.values())
+    order = ["객관성의 원칙", "고객중심의 원칙", "전문성의 원칙",
+             "정직과 신뢰의 원칙", "공정경쟁의 원칙"]
+    n = _only({i: (k == "공정경쟁의 원칙") and tilts_bidding
+               for i, k in enumerate(order, 1)})
+    return n, (f"{facts} → 경쟁 조건이 한쪽으로 기운다 → {order[n-1]} {n}번 "
+               f"(④도 걸리지만 기운 것은 경쟁이다)")
+
+
+def v_eth_024() -> tuple[int, str]:
+    """비공개 + 직무로 알게 됨 + 정당한 사유 없음, 셋이 다 서야 위반이다."""
+    # (비공개인가, 직무로 알게 됐나, 정당한 사유가 있나)
+    acts = {1: (True, True, False), 2: (False, True, False),
+            3: (False, True, False), 4: (True, True, True),
+            5: (True, True, True)}
+    bad = {k: sec and job and not ok for k, (sec, job, ok) in acts.items()}
+    n = _only(bad)
+    return n, (f"비밀유지 = 비공개 ∧ 직무 취득 ∧ 정당사유 없음 → {n}번 "
+               f"(③ 일반적 업무 능력은 비밀이 아니고, ④⑤는 법령상 사유)")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
+    "ncs-eth-common-013": (v_eth_013, lambda i: i),
+    "ncs-eth-common-014": (v_eth_014, lambda i: i),
+    "ncs-eth-common-015": (v_eth_015, lambda i: i),
+    "ncs-eth-common-016": (v_eth_016, lambda i: i),
+    "ncs-eth-common-017": (v_eth_017, lambda i: i),
+    "ncs-eth-common-018": (v_eth_018, lambda i: i),
+    "ncs-eth-common-019": (v_eth_019, lambda i: i),
+    "ncs-eth-common-020": (v_eth_020, lambda i: i),
+    "ncs-eth-common-021": (v_eth_021, lambda i: i),
+    "ncs-eth-common-022": (v_eth_022, lambda i: i),
+    "ncs-eth-common-023": (v_eth_023, lambda i: i),
+    "ncs-eth-common-024": (v_eth_024, lambda i: i),
     "ncs-tech-common-013": (v_tech_bandwidth, lambda n: {50: 1, 96: 2, 100: 3,
                                                         125: 4, 150: 5}[n]),
     "ncs-tech-common-014": (v_tech_ups, lambda n: {7: 1, 12: 2, 25: 3, 60: 4,
