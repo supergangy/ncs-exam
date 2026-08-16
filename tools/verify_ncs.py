@@ -1928,8 +1928,190 @@ def v_org_024() -> tuple[int, str]:
     return n, (f"「{act}」 → {want[0]} 역할 {n}번 · 목록 밖 {outside}")
 
 
+# ── 자원관리 021~028 — 공식 · 규정 적용 · 전수 탐색 ─────────────────────
+#
+# 계산 문항은 **자료의 숫자를 여기 다시 적고** 같은 식을 돌린다. 규정 문항은
+# 규정을 함수로 옮겨 경계까지 확인한다. 027 은 답을 넣어 맞추는 것이 아니라
+# **모든 조합을 굴려** 최솟값을 찾는다.
+
+def v_res_021() -> tuple[int, str]:
+    """EOQ = √(2DS/H). 2 를 빼먹으면 약 0.707배가 된다."""
+    import math
+    D, S, H = 3600, 20_000, 400
+    eoq = math.isqrt(2 * D * S // H)
+    if eoq * eoq != 2 * D * S // H:
+        raise AssertionError("EOQ 가 정수로 떨어지지 않아 선지가 지저분해진다")
+    no2 = round(math.sqrt(D * S / H))          # ③ 앞의 2 를 빼먹음
+    swap = round(math.sqrt(2 * D * H / S))     # ① 주문비와 보관비를 뒤바꿈
+    cand = [swap, D // 12, no2, eoq, D]
+    if cand != sorted(cand) or len(set(cand)) != 5:
+        raise AssertionError(f"선지가 오름차순이 아니거나 겹친다 {cand}")
+    return eoq, (f"√(2×{D}×{S:,}÷{H}) = {eoq} · 2 를 빼면 {no2}(③) · "
+                 f"주문비·보관비를 바꾸면 {swap}(①) · 월평균 {D // 12}(②)")
+
+
+def v_res_022() -> tuple[int, str]:
+    """정률법은 남은 장부가액에 곱한다. 013 의 정액법과 값이 갈려야 한다."""
+    cost, rate, life = 20_000_000, 0.40, 5
+    bv = [cost]
+    for _ in range(3):
+        bv.append(round(bv[-1] * (1 - rate)))
+    straight = cost - round(cost / life) * 3   # ③ 정액법 3년
+    if bv[2] == straight:
+        raise AssertionError("정률법과 정액법의 값이 같아 함정이 서지 않는다")
+    cand = [bv[3], bv[2], straight, bv[1], bv[0]]
+    if cand != sorted(cand) or len(set(cand)) != 5:
+        raise AssertionError(f"선지가 오름차순이 아니거나 겹친다 {cand}")
+    return bv[2], (f"정률 {[f'{v:,}' for v in bv]} → 2년 후 {bv[2]:,} · "
+                   f"정액법 3년은 {straight:,}(③)")
+
+
+def v_res_024() -> tuple[int, str]:
+    """지체일수에서 발주처 사유를 뺀다. 날짜 세기도 함께 본다."""
+    import datetime as dt
+    due, done = dt.date(2026, 6, 30), dt.date(2026, 7, 8)
+    late = (done - due).days                   # 7/1 ~ 7/8 = 8일
+    excused = 5
+    days = late - excused
+    if late != 8 or days != 3:
+        raise AssertionError(f"일수가 어긋난다 late={late} days={days}")
+    amount, daily = 120_000_000, 0.00075
+    def fee(d):
+        return round(amount * daily * d)
+    cand = [fee(d) for d in (3, 4, excused, 7, late)]
+    if cand != sorted(cand) or len(set(cand)) != 5:
+        raise AssertionError(f"선지가 오름차순이 아니거나 겹친다 {cand}")
+    return fee(days), (f"{due} → {done} 지체 {late}일 − 공제 {excused}일 = "
+                       f"{days}일 · {amount:,}×{daily}×{days} = "
+                       f"{fee(days):,}원 · 공제를 빼먹으면 {fee(late):,}(⑤)")
+
+
+def v_res_026() -> tuple[int, str]:
+    """「3년 이상부터」는 가산이 시작되는 시점이지 빼는 수가 아니다."""
+    def annual(years):
+        if years < 1:
+            return 0
+        add = 0 if years < 3 else (years - 1) // 2
+        return min(15 + add, 25)
+
+    ans = annual(7)
+    wrong = 15 + (7 - 3) // 2                  # ③ 3 을 빼는 수로 읽음
+    if ans == wrong:
+        raise AssertionError("두 해석의 값이 같아 함정이 서지 않는다")
+    if annual(2) != 15 or annual(3) != 16:
+        raise AssertionError("가산 시작 시점이 3년째가 아니다")
+    cap = max(annual(y) for y in range(1, 60))
+    cand = [15, 16, wrong, ans, cap]
+    if cand != sorted(cand) or len(set(cand)) != 5:
+        raise AssertionError(f"선지가 오름차순이 아니거나 겹친다 {cand}")
+    return ans, (f"기본 15 + 가산 (7−1)÷2 = {(7 - 1) // 2} → {ans}일 · "
+                 f"3 을 빼면 {wrong}(③) · 한도 {cap}(⑤) · "
+                 f"2년째 {annual(2)} · 3년째 {annual(3)}")
+
+
+def v_res_027() -> tuple[int, str]:
+    """답을 넣어 맞추지 않는다 — 모든 조합을 굴려 최솟값을 찾는다."""
+    need = 84
+    price = {30: 72_000, 10: 26_000, 1: 3_000}
+    best, plans = None, {}
+    for a in range(need // 30 + 2):
+        for b in range(need // 10 + 2):
+            for c in range(need + 1):
+                if a * 30 + b * 10 + c < need:
+                    continue
+                cost = a * price[30] + b * price[10] + c * price[1]
+                plans[(a, b, c)] = cost
+                if best is None or cost < best[1]:
+                    best = ((a, b, c), cost)
+    named = [plans[(2, 2, 4)], plans[(1, 5, 4)], plans[(3, 0, 0)],
+             plans[(0, 8, 4)], plans[(0, 0, 84)]]
+    if best[1] != named[0]:
+        raise AssertionError(f"전수 최솟값 {best} 이 선지 ①과 다르다")
+    if named != sorted(named) or len(set(named)) != 5:
+        raise AssertionError(f"선지가 오름차순이 아니거나 겹친다 {named}")
+    if plans[(3, 0, 0)] <= best[1]:
+        raise AssertionError("개당 값이 가장 싼 30묶음만으로도 최소가 된다")
+    return best[1], (f"전수 탐색 최솟값 {best[1]:,}원 (30×{best[0][0]} + "
+                     f"10×{best[0][1]} + 낱개{best[0][2]}) · "
+                     f"30묶음만 채우면 {plans[(3, 0, 0)]:,}원(③) — "
+                     f"개당은 가장 싸도 6개가 남아 진다")
+
+
+def _order_only(steps, must, opts):
+    """선후 조건을 모두 만족하는 순열이 하나뿐인지 확인하고 그 번호를 돌려준다."""
+    bad = [k for k, v in opts.items() if sorted(v) != sorted(steps)]
+    if bad:
+        raise AssertionError(f"선지 {bad} 에 단계가 빠졌거나 남는다")
+    ok = {k: all(v.index(x) < v.index(y) for x, y in must)
+          for k, v in opts.items()}
+    return _only(ok), ok
+
+
+def v_res_023() -> tuple[int, str]:
+    """네 요인 목록 밖의 이름(자원의 물리적 한계)을 섞었다."""
+    causes = {"비계획적 행동": "미리 세어 보지 않고 그때그때 쓴다",
+              "편리성 추구": "쉬운 쪽을 고른다",
+              "자원에 대한 인식 부재": "그것이 자원인 줄 모른다",
+              "노하우 부족": "아낄 줄 몰라서 못 아낀다"}
+    seen = "미리 세어 보지 않고 그때그때 쓴다"
+    hit = [k for k, v in causes.items() if v == seen]
+    if len(hit) != 1:
+        raise AssertionError(f"상황에 걸리는 요인이 하나가 아니다 {hit}")
+    opts = {1: "노하우 부족", 2: "편리성 추구", 3: "자원에 대한 인식 부재",
+            4: "자원의 물리적 한계", 5: "비계획적 행동"}
+    outside = [v for v in opts.values() if v not in causes]
+    if outside != ["자원의 물리적 한계"]:
+        raise AssertionError(f"목록 밖 선지가 하나가 아니다 {outside}")
+    n = _only({k: v == hit[0] for k, v in opts.items()})
+    return n, f"네 요인 {list(causes)} · 목록 밖 {outside} · 상황 → {hit[0]} {n}번"
+
+
+def v_res_025() -> tuple[int, str]:
+    """세 특성 목록 밖의 이름 둘을 섞었다."""
+    traits = {"능동성": "스스로 움직인다",
+              "개발가능성": "쓸수록 줄지 않고 교육·경험으로 늘어난다",
+              "전략적 자원": "다른 자원을 움직이는 것이 사람이다"}
+    seen = "쓸수록 줄지 않고 교육·경험으로 늘어난다"
+    hit = [k for k, v in traits.items() if v == seen]
+    if len(hit) != 1:
+        raise AssertionError(f"설명에 걸리는 특성이 하나가 아니다 {hit}")
+    opts = {1: "능동성", 2: "전략적 자원", 3: "희소성", 4: "대체 불가능성",
+            5: "개발가능성"}
+    outside = [v for v in opts.values() if v not in traits]
+    if len(outside) != 2:
+        raise AssertionError(f"목록 밖 선지가 둘이 아니다 {outside}")
+    n = _only({k: v == hit[0] for k, v in opts.items()})
+    return n, f"세 특성 {list(traits)} · 목록 밖 {outside} · 설명 → {hit[0]} {n}번"
+
+
+def v_res_028() -> tuple[int, str]:
+    """구분 → 분류 → 보관 장소. 선후 조건으로 다섯 순열을 걸러 낸다."""
+    A, B, C = "구분", "분류", "보관장소"
+    opts = {1: [B, A, C], 2: [C, A, B], 3: [A, C, B], 4: [B, C, A],
+            5: [A, B, C]}
+    n, ok = _order_only([A, B, C], [(A, B), (B, C)], opts)
+    return n, (f"조건 구분→분류→보관장소 · 만족 "
+               f"{[k for k, v in ok.items() if v]} → {n}번")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
+    "ncs-res-common-021": (v_res_021, lambda v: {12: 1, 300: 2, 424: 3,
+                                                 600: 4, 3600: 5}[v]),
+    "ncs-res-common-022": (v_res_022, lambda v: {4_320_000: 1, 7_200_000: 2,
+                                                 8_000_000: 3, 12_000_000: 4,
+                                                 20_000_000: 5}[v]),
+    "ncs-res-common-023": (v_res_023, lambda i: i),
+    "ncs-res-common-024": (v_res_024, lambda v: {270_000: 1, 360_000: 2,
+                                                 450_000: 3, 630_000: 4,
+                                                 720_000: 5}[v]),
+    "ncs-res-common-025": (v_res_025, lambda i: i),
+    "ncs-res-common-026": (v_res_026, lambda v: {15: 1, 16: 2, 17: 3, 18: 4,
+                                                 25: 5}[v]),
+    "ncs-res-common-027": (v_res_027, lambda v: {208_000: 1, 214_000: 2,
+                                                 216_000: 3, 220_000: 4,
+                                                 252_000: 5}[v]),
+    "ncs-res-common-028": (v_res_028, lambda i: i),
     "ncs-org-common-016": (v_org_016, lambda i: i),
     "ncs-org-common-017": (v_org_017, lambda i: i),
     "ncs-org-common-018": (v_org_018, lambda i: i),
