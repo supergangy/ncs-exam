@@ -1239,6 +1239,349 @@ def v_csdb_026() -> tuple[tuple, str]:
     return (u, ua), f"UNION {u}행(NULL 포함) · UNION ALL {ua}행"
 
 
+# ── 데이터베이스론 027~040 — 정규화·인덱스·트랜잭션·회복·최적화 ──────────
+#
+# 21~26 이 SQL 이었다면 여기는 **판정과 계산**이다. 개념을 글로 외웠는지가 아니라
+# 규칙을 실제로 적용했을 때 어떤 값이 나오는지를 코드로 확정한다.
+
+def _bcnf_violations(attrs: set[str], fds: list[tuple[set, set]]) -> list[tuple]:
+    """BCNF 위반 = 왼쪽이 초키가 아닌 비자명 종속."""
+    return [(l, r) for l, r in fds
+            if not r <= l and closure(attrs, fds, l) != attrs]
+
+
+def _lossless(attrs, fds, r1: set, r2: set) -> bool:
+    """무손실 = 두 조각의 공통 속성이 어느 한쪽의 초키."""
+    common = r1 & r2
+    if not common:
+        return False
+    cl = closure(attrs, fds, common)
+    return r1 <= cl or r2 <= cl
+
+
+def _lost_fds(fds, parts) -> list[tuple]:
+    """조각 하나 안에 담기지 못한 종속 — 종속성 보존이 깨진 자리."""
+    return [(l, r) for l, r in fds if not any((l | r) <= p for p in parts)]
+
+
+def _mem(script: str, sql: str):
+    """문항의 표를 그대로 세우고 질의를 돌린다."""
+    con = sqlite3.connect(":memory:")
+    con.executescript(script)
+    rows = con.execute(sql).fetchall()
+    con.close()
+    return rows
+
+
+def v_csdb_027() -> tuple[tuple, str]:
+    """수강(학생, 과목, 강사) — 3NF 이지만 BCNF 가 아닌 고전 사례."""
+    attrs = {"학", "과", "강"}                      # 학생 · 과목 · 강사
+    fds = [({"학", "과"}, {"강"}), ({"강"}, {"과"})]
+    keys = candidate_keys(attrs, fds)
+    prime = set().union(*keys) if keys else set()
+    nf = highest_normal_form(attrs, fds)
+    bad = _bcnf_violations(attrs, fds)
+    if prime != attrs:
+        raise AssertionError(f"비주요 속성이 있다 {sorted(attrs - prime)}")
+    key_s = " · ".join("".join(sorted(k)) for k in keys)
+    bad_s = " · ".join(f"{''.join(sorted(l))}→{''.join(sorted(r))}" for l, r in bad)
+    return (nf, not bad), (f"후보키 {key_s} · 비주요 속성 없음 → {nf}NF 만족 · "
+                           f"BCNF 위반 {bad_s or '없음'}")
+
+
+def v_csdb_028() -> tuple[int, str]:
+    """다치종속은 곱으로 채우고, 4NF 로 쪼개면 합이 된다."""
+    기술, 가족 = ["Java", "SQL"], ["배우자", "자녀1", "자녀2"]
+    before = [("E1", t, f) for t in 기술 for f in 가족]
+    a1 = [("E1", t) for t in 기술]
+    a2 = [("E1", f) for f in 가족]
+    rejoin = {(a, t, f) for a, t in a1 for b, f in a2 if a == b}
+    if rejoin != set(before):
+        raise AssertionError("분해 후 조인이 원본과 다르다 — 무손실이 아니다")
+    return len(a1) + len(a2), (f"분해 전 {len(기술)}×{len(가족)}={len(before)}행 → "
+                               f"분해 후 {len(a1)}+{len(a2)}={len(a1) + len(a2)}행 · "
+                               f"재조인 {len(rejoin)}행으로 복원")
+
+
+def v_csdb_029() -> tuple[tuple, str]:
+    """무손실과 종속성 보존은 따로 논다 — 넷 가운데 둘만 함께 만족한다."""
+    attrs = set("ABCD")
+    fds = [({"A"}, {"B"}), ({"B"}, {"C"}), ({"C"}, {"D"})]
+    cases = [("AB/BCD", set("AB"), set("BCD")),
+             ("AB/ACD", set("AB"), set("ACD")),
+             ("ABC/CD", set("ABC"), set("CD")),
+             ("AD/BCD", set("AD"), set("BCD"))]
+    ok, notes = [], []
+    for label, r1, r2 in cases:
+        ll = _lossless(attrs, fds, r1, r2)
+        lost = _lost_fds(fds, [r1, r2])
+        if ll and not lost:
+            ok.append(label)
+        notes.append(f"{label} {'무손실' if ll else '손실'}/"
+                     f"{'보존' if not lost else '깨짐'}")
+    return tuple(ok), " · ".join(notes)
+
+
+def _bplus(order: int, seq: list[int]) -> tuple[int, int]:
+    """차수 order 인 B+트리에 seq 를 차례로 넣고 (분할 횟수, 높이) 를 돌려준다."""
+    maxk = order - 1
+    stat = {"split": 0, "height": 1}
+
+    class N:
+        def __init__(self, leaf=True):
+            self.keys, self.kids, self.leaf = [], [], leaf
+
+    def split(parent, i):
+        node = parent.kids[i]
+        mid = len(node.keys) // 2
+        up = node.keys[mid]
+        right = N(node.leaf)
+        if node.leaf:
+            right.keys, node.keys = node.keys[mid:], node.keys[:mid]
+        else:
+            right.keys, right.kids = node.keys[mid + 1:], node.kids[mid + 1:]
+            node.keys, node.kids = node.keys[:mid], node.kids[:mid + 1]
+        parent.keys.insert(i, up)
+        parent.kids.insert(i + 1, right)
+        stat["split"] += 1
+
+    def ins(n, k):
+        if n.leaf:
+            n.keys.append(k)
+            n.keys.sort()
+            return
+        i = 0
+        while i < len(n.keys) and k >= n.keys[i]:
+            i += 1
+        ins(n.kids[i], k)
+        if len(n.kids[i].keys) > maxk:
+            split(n, i)
+
+    root = N()
+    for k in seq:
+        ins(root, k)
+        if len(root.keys) > maxk:               # 뿌리가 넘칠 때만 층이 는다
+            new = N(False)
+            new.kids = [root]
+            split(new, 0)
+            stat["height"] += 1
+            root = new
+    return stat["split"], stat["height"]
+
+
+def v_csdb_030() -> tuple[tuple, str]:
+    """오름차순 여덟 개 — 분할은 여러 번, 층이 느는 것은 뿌리가 나뉠 때뿐."""
+    seq = [10, 20, 30, 40, 50, 60, 70, 80]
+    splits, height = _bplus(4, seq)
+    return (splits, height), (f"차수 4 에 {seq} → 분할 {splits}회 · 높이 {height} "
+                              f"(층은 뿌리 분할 때만 는다)")
+
+
+def v_csdb_031() -> tuple[tuple, str]:
+    """해시는 범위를 못 쓴다 — 인덱스를 타느냐가 자리수를 가른다."""
+    rows, blk, hit, h = 1_000_000, 100, 10_000, 3
+    btree = h + hit // blk                       # 내려간 뒤 잎을 순차로 훑는다
+    hashio = rows // blk                         # 범위 미지원 → 전체 훑기
+    return (btree, hashio), (f"B+트리 높이 {h} + 잎 {hit // blk} = {btree}회 · "
+                             f"해시 전체훑기 {hashio}회 (약 {hashio // btree}배)")
+
+
+def v_csdb_032() -> tuple[tuple, str]:
+    """커버링인가와 인덱스를 탈 수 있는가는 별개다."""
+    idx = ["부서번호", "급여"]                    # 복합 인덱스 (부서번호, 급여)
+    cases = [("ㄱ", {"부서번호", "급여"}), ("ㄴ", {"부서번호"}),
+             ("ㄷ", {"부서번호", "이름"}), ("ㄹ", {"이름", "급여"})]
+    ok, notes = [], []
+    for label, need in cases:
+        covered = need <= set(idx)
+        usable = idx[0] in need                  # 선두 열이 조건에 있어야 탄다
+        if covered and usable:
+            ok.append(label)
+        notes.append(f"{label} {'커버' if covered else '표접근'}/"
+                     f"{'인덱스' if usable else '못탐'}")
+    return tuple(ok), " · ".join(notes)
+
+
+def v_csdb_033() -> tuple[tuple, str]:
+    """교착은 사이클 안에서만. 사이클 밖의 무한 대기와 가른다."""
+    wait = {"T1": ["T2"], "T2": ["T3"], "T3": ["T1", "T4"], "T4": [], "T5": ["T3"]}
+    seen, stack = set(), []
+
+    def dfs(u):
+        seen.add(u)
+        stack.append(u)
+        for v in wait.get(u, []):
+            if v in stack:
+                return stack[stack.index(v):] + [v]
+            if v not in seen:
+                r = dfs(v)
+                if r:
+                    return r
+        stack.pop()
+        return None
+
+    cyc = next((r for u in wait if u not in seen for r in [dfs(u)] if r), None)
+    members = tuple(sorted(set(cyc))) if cyc else ()
+    outside = sorted(set(wait) - set(members))
+    return members, (f"사이클 {' → '.join(cyc) if cyc else '없음'} · "
+                     f"밖 {outside}(T5 는 기다리기만 한다)")
+
+
+def v_csdb_034() -> tuple[tuple, str]:
+    """타임스탬프 순서 규약을 여섯 연산에 그대로 적용한다."""
+    ops = [("T1", "R", "A"), ("T2", "W", "A"), ("T1", "W", "A"),
+           ("T2", "R", "B"), ("T3", "W", "B"), ("T2", "W", "B")]
+    ts = {"T1": 1, "T2": 2, "T3": 3}
+    rts, wts, aborted = {}, {}, []
+    for t, op, x in ops:
+        if t in aborted:
+            continue                              # 되돌려진 뒤 연산은 없던 일
+        if op == "R":
+            if ts[t] < wts.get(x, 0):
+                aborted.append(t)
+                continue
+            rts[x] = max(rts.get(x, 0), ts[t])
+        else:
+            if ts[t] < rts.get(x, 0) or ts[t] < wts.get(x, 0):
+                aborted.append(t)
+                continue
+            wts[x] = ts[t]
+    alive = sorted(set(ts) - set(aborted))
+    return tuple(sorted(aborted)), f"되돌림 {sorted(aborted)} · 살아남음 {alive}"
+
+
+def v_csdb_035() -> tuple[str, str]:
+    """서로 다른 행을 고치므로 쓰기 충돌이 없다 — 그런데 제약이 깨진다."""
+    oncall = {"A": True, "B": True}
+    snap1, snap2 = dict(oncall), dict(oncall)     # 둘이 같은 스냅샷을 본다
+    wrote = []
+    if sum(snap1.values()) >= 2:                  # 「나 말고 또 있다」
+        oncall["A"] = False
+        wrote.append("A")
+    if sum(snap2.values()) >= 2:
+        oncall["B"] = False
+        wrote.append("B")
+    violated = sum(oncall.values()) < 1
+    ww = len(wrote) != len(set(wrote))            # 같은 행을 겹쳐 썼나
+    label = "쓰기편중" if violated and not ww else ("갱신손실" if ww else "정상")
+    return label, (f"각자 본 당직 2명 → 각각 자기를 뺌 · 최종 당직 "
+                   f"{sum(oncall.values())}명 · 제약 위반 {violated} · "
+                   f"쓰기-쓰기 충돌 {ww} (쓴 행 {wrote} 이 서로 다르다)")
+
+
+def v_csdb_036() -> tuple[tuple, str]:
+    """선택 조건이 한쪽 속성만 쓰면 그쪽으로 밀어도 결과가 같다."""
+    s = """
+    CREATE TABLE R(a TEXT, b TEXT);
+    CREATE TABLE S(b TEXT, c TEXT);
+    INSERT INTO R VALUES ('a1','b1'),('a2','b1'),('a3','b2'),('a4',NULL);
+    INSERT INTO S VALUES ('b1','c1'),('b1','c2'),('b2','c3'),('b3','c4');
+    """
+    base = "SELECT a,R.b,c FROM {} JOIN {} ON R.b=S.b {} ORDER BY 1,2,3"
+    pairs = [
+        ("ㄱ", base.format("R", "S", "WHERE a='a1'"),
+         base.format("(SELECT * FROM R WHERE a='a1') R", "S", "")),
+        ("ㄴ", base.format("R", "S", "WHERE c='c1'"),
+         base.format("R", "(SELECT * FROM S WHERE c='c1') S", "")),
+    ]
+    ok, notes = [], []
+    for label, q1, q2 in pairs:
+        r1, r2 = _mem(s, q1), _mem(s, q2)
+        if r1 == r2:
+            ok.append(label)
+        notes.append(f"{label} {len(r1)}행 vs {len(r2)}행 {'같음' if r1 == r2 else '다름'}")
+    notes.append("ㄷ 은 R 에 없는 c 로 R 을 걸러 식이 서지 않는다")
+    return tuple(ok), " · ".join(notes)
+
+
+def v_csdb_037() -> tuple[tuple, str]:
+    """세미조인은 행을 불리지 않는다. 내부조인은 짝마다 불어난다."""
+    s = """
+    CREATE TABLE 사원(사번 TEXT, 부서 TEXT);
+    CREATE TABLE 참여(사번 TEXT, 과제 TEXT);
+    INSERT INTO 사원 VALUES ('E1','D1'),('E2','D1'),('E3','D2'),('E4','D2'),('E5',NULL);
+    INSERT INTO 참여 VALUES ('E1','P1'),('E1','P2'),('E3','P1'),('E3','P3');
+    """
+    semi = _mem(s, "SELECT COUNT(*) FROM 사원 WHERE 사번 IN (SELECT 사번 FROM 참여)")[0][0]
+    anti = _mem(s, "SELECT COUNT(*) FROM 사원 WHERE 사번 NOT IN (SELECT 사번 FROM 참여)")[0][0]
+    inner = _mem(s, "SELECT COUNT(*) FROM 사원 JOIN 참여 USING(사번)")[0][0]
+    total = _mem(s, "SELECT COUNT(*) FROM 사원")[0][0]
+    if len({semi, anti, inner}) != 3:
+        raise AssertionError(f"세 값이 겹친다 {semi} {anti} {inner}")
+    if semi + anti != total:
+        raise AssertionError("세미 + 안티가 사원 수와 다르다")
+    return (semi, anti, inner), (f"세미 {semi} · 안티 {anti} · 내부 {inner} "
+                                 f"(세미+안티 = 사원 {total})")
+
+
+def v_csdb_038() -> tuple[tuple, str]:
+    """체크포인트 이전 커밋은 이미 반영되어 있다 — REDO 에서 뺀다."""
+    log = ["<T1 start>", "<T1, A, 100, 200>", "<T1 commit>",
+           "<T2 start>", "<T2, B, 50, 80>",
+           "<checkpoint {T2}>",
+           "<T3 start>", "<T3, C, 10, 30>", "<T3 commit>",
+           "<T2, D, 5, 15>",
+           "<T4 start>", "<T4, E, 1, 7>"]
+    undo, redo, before_ckpt = set(), set(), True
+    for line in log:
+        if line.startswith("<checkpoint"):
+            before_ckpt = False
+            redo -= {"T1"}                        # 이전 커밋은 디스크에 있다
+            undo |= {"T2"}                        # 명단의 활성 트랜잭션
+            continue
+        t = line.split()[0].strip("<")
+        if "start>" in line:
+            undo.add(t)
+        elif "commit>" in line:
+            undo.discard(t)
+            redo.add(t)
+    if before_ckpt:
+        raise AssertionError("로그에 체크포인트가 없다")
+    return (tuple(sorted(redo)), tuple(sorted(undo))), \
+        f"REDO {sorted(redo)} · UNDO {sorted(undo)} (T1 은 체크포인트 앞 커밋이라 제외)"
+
+
+def v_csdb_039() -> tuple[str, str]:
+    """WAL 은 로그와 데이터의 선후만 정한다. 커밋 내구성과 갈린다."""
+    scen = [("로그 flush → 데이터 flush → 커밋", ["log", "data", "commit"]),
+            ("로그 flush → 커밋 → 데이터 flush", ["log", "commit", "data"]),
+            ("커밋 → 로그 flush → 데이터 flush", ["commit", "log", "data"]),
+            ("데이터 flush → 로그 flush → 커밋", ["data", "log", "commit"])]
+    bad, notes = [], []
+    for label, seq in scen:
+        wal = seq.index("log") < seq.index("data")
+        force = seq.index("log") < seq.index("commit")
+        if not wal:
+            bad.append(label)
+        notes.append(f"{label.split(' →')[0]}… WAL {'○' if wal else '✗'}/"
+                     f"커밋시점 {'○' if force else '✗'}")
+    if len(bad) != 1:
+        raise AssertionError(f"WAL 위반이 하나가 아니다 {bad}")
+    return bad[0], " · ".join(notes) + " — WAL 위반은 하나뿐"
+
+
+def v_csdb_040() -> tuple[tuple, str]:
+    """조인 순서는 중간 결과를 바꾸고 최종 결과는 바꾸지 않는다."""
+    s = """
+    CREATE TABLE 부서(부서번호 TEXT, 부서명 TEXT);
+    CREATE TABLE 사원(사번 TEXT, 부서번호 TEXT);
+    CREATE TABLE 참여(사번 TEXT, 과제 TEXT);
+    INSERT INTO 부서 VALUES ('D1','전산'),('D2','보안'),('D3','데이터'),('D4','인프라');
+    INSERT INTO 사원 VALUES ('E1','D1'),('E2','D1'),('E3','D2'),('E4','D2'),
+                            ('E5','D2'),('E6','D3');
+    INSERT INTO 참여 VALUES ('E1','P1'),('E1','P2'),('E3','P1');
+    """
+    ds = _mem(s, "SELECT COUNT(*) FROM 부서 JOIN 사원 USING(부서번호)")[0][0]
+    sp = _mem(s, "SELECT COUNT(*) FROM 사원 JOIN 참여 USING(사번)")[0][0]
+    fin1 = _mem(s, "SELECT COUNT(*) FROM 부서 JOIN 사원 USING(부서번호) "
+                   "JOIN 참여 USING(사번)")[0][0]
+    fin2 = _mem(s, "SELECT COUNT(*) FROM 부서 JOIN (SELECT 사원.사번, 부서번호 "
+                   "FROM 사원 JOIN 참여 USING(사번)) USING(부서번호)")[0][0]
+    truth = (sp == 3, ds == 6, fin1 == fin2, min(ds, sp) < max(ds, sp), fin1 != fin2)
+    return truth, (f"부서⋈사원 {ds} · 사원⋈참여 {sp} · 최종 {fin1}/{fin2} "
+                   f"— 중간은 다르고 최종은 같다 · 선지 참거짓 {truth}")
+
+
 REGISTRY = {
     "major-csdb-common-001": (v_csdb_001, lambda nf: {1: 1, 2: 2, 3: 3}[nf]),
     "major-csdb-common-002": (v_csdb_002, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 7: 5}[n]),
@@ -1256,6 +1599,44 @@ REGISTRY = {
                                                      (7, 5): 4, (7, 7): 5}[t]),
     "major-csdb-common-026": (v_csdb_026, lambda t: {(3, 6): 1, (4, 4): 2, (4, 6): 3,
                                                      (6, 4): 4, (6, 6): 5}[t]),
+    "major-csdb-common-027": (v_csdb_027, lambda t: {(3, False): 1, (3, True): 4}[t]),
+    "major-csdb-common-028": (v_csdb_028, lambda n: {3: 1, 5: 2, 6: 3, 9: 4, 11: 5}[n]),
+    "major-csdb-common-029": (v_csdb_029, lambda t: {
+        ("AB/ACD",): 1, ("AD/BCD",): 2, ("ABC/CD",): 3, ("AB/BCD", "ABC/CD"): 4,
+        ("AB/BCD", "AB/ACD", "ABC/CD", "AD/BCD"): 5}[t]),
+    "major-csdb-common-030": (v_csdb_030, lambda t: {(2, 2): 1, (3, 2): 2, (3, 3): 3,
+                                                     (4, 2): 4, (4, 3): 5}[t]),
+    "major-csdb-common-031": (v_csdb_031, lambda t: {(3, 100): 1, (100, 3): 2,
+                                                     (103, 10_000): 3,
+                                                     (10_000, 103): 4,
+                                                     (10_000, 10_000): 5}[t]),
+    "major-csdb-common-032": (v_csdb_032, lambda t: {
+        ("ㄱ",): 1, ("ㄱ", "ㄴ"): 2, ("ㄱ", "ㄴ", "ㄷ"): 3, ("ㄴ", "ㄹ"): 4,
+        ("ㄱ", "ㄴ", "ㄹ"): 5}[t]),
+    "major-csdb-common-033": (v_csdb_033, lambda t: {
+        ("T1", "T2"): 1, ("T1", "T2", "T3"): 2, ("T1", "T2", "T3", "T5"): 3,
+        ("T1", "T2", "T3", "T4"): 4, ("T1", "T2", "T3", "T4", "T5"): 5}[t]),
+    "major-csdb-common-034": (v_csdb_034, lambda t: {
+        ("T1",): 1, ("T2",): 2, ("T1", "T2"): 3, ("T2", "T3"): 4,
+        ("T1", "T2", "T3"): 5}[t]),
+    "major-csdb-common-035": (v_csdb_035, lambda s: {"갱신손실": 1, "쓰기편중": 5}[s]),
+    "major-csdb-common-036": (v_csdb_036, lambda t: {
+        ("ㄱ",): 1, ("ㄴ",): 2, ("ㄱ", "ㄴ"): 3, ("ㄱ", "ㄷ"): 4,
+        ("ㄱ", "ㄴ", "ㄷ"): 5}[t]),
+    "major-csdb-common-037": (v_csdb_037, lambda t: {(2, 2, 4): 1, (2, 3, 2): 2,
+                                                     (2, 3, 4): 3, (4, 1, 4): 4,
+                                                     (4, 3, 4): 5}[t]),
+    "major-csdb-common-038": (v_csdb_038, lambda t: {
+        (("T1", "T2", "T3"), ("T4",)): 1, (("T1", "T3"), ("T4",)): 2,
+        (("T1", "T3"), ("T2", "T4")): 3, (("T3",), ("T4",)): 4,
+        (("T3",), ("T2", "T4")): 5}[t]),
+    "major-csdb-common-039": (v_csdb_039, lambda s: {
+        "로그 flush → 데이터 flush → 커밋": 1,
+        "로그 flush → 커밋 → 데이터 flush": 2,
+        "커밋 → 로그 flush → 데이터 flush": 3,
+        "데이터 flush → 로그 flush → 커밋": 4}[s]),
+    # 「옳지 않은 것」 — 거짓인 선지의 자리를 그대로 답으로 삼는다
+    "major-csdb-common-040": (v_csdb_040, lambda t: t.index(False) + 1),
     "major-csdb-common-008": (v_csdb_008, lambda n: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[n]),
     "major-csdb-common-009": (v_csdb_009, lambda r: {
         (1,): 1, (1, 2): 2, (1, 3): 3, (1, 2, 3, 4): 4, (2, 4): 5}[r]),
