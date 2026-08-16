@@ -2800,6 +2800,220 @@ def v_csdb_040() -> tuple[tuple, str]:
                    f"— 중간은 다르고 최종은 같다 · 선지 참거짓 {truth}")
 
 
+# ── 데이터통신 019~036 ──────────────────────────────────────────────────
+#
+# 전송률·대역폭 계산은 단위를 코드에서 맞춘다. 두 방식을 견주는 문항은
+# 양쪽 값을 다 구해, 오답 선지가 「다른 방식의 값」임을 함께 확인한다.
+
+def v_csdc_019() -> tuple[int, str]:
+    """실제 한계는 나이퀴스트와 섀넌 중 작은 쪽."""
+    import math
+    bw, levels, snr_db = 3000, 4, 30
+    nyq = int(2 * bw * math.log2(levels))
+    sh = round(bw * math.log2(1 + 10 ** (snr_db / 10)))
+    if abs(nyq - sh) < nyq * 0.5:
+        raise AssertionError("두 한계가 가까워 어느 쪽을 골랐는지 안 갈린다")
+    return min(nyq, sh) // 1000, (f"나이퀴스트 {nyq:,} · 섀넌 {sh:,} → "
+                                  f"작은 쪽 {min(nyq, sh):,}bps · 합 {(nyq+sh)//1000}k(오답③)")
+
+
+def v_csdc_020() -> tuple[int, str]:
+    """비트율 = 보드율 × log2(상태 수)."""
+    import math
+    baud, levels = 2000, 16
+    rate = int(baud * math.log2(levels))
+    other = {L: int(baud * math.log2(L)) for L in (2, 4, 8, 32)}
+    return rate, f"{levels}진 → {int(math.log2(levels))}비트/신호 → {rate}bps · 다른 진수 {other}"
+
+
+def v_csdc_021() -> tuple[int, str]:
+    """맨체스터 — 가운데 전이 + 같은 값이 이어지는 경계 전이."""
+    data = "1011001"
+    mid = len(data)
+    bound = sum(1 for a, b in zip(data, data[1:]) if a == b)
+    if bound == 0:
+        raise AssertionError("같은 값이 이어지는 곳이 없다 — 경계 전이가 안 드러난다")
+    changes = sum(1 for a, b in zip(data, data[1:]) if a != b)
+    return mid + bound, (f"가운데 {mid} + 경계 {bound} = {mid+bound}회 · "
+                         f"값이 바뀌는 자리만 {changes}(오답①) · 신호 요소 {2*mid}(오답⑤)")
+
+
+def v_csdc_022() -> tuple[tuple, str]:
+    """2차원 패리티 — 정상 격자를 만들고 한 비트만 뒤집는다."""
+    data = [[1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 0, 0], [0, 1, 1, 0]]
+    grid = [r + [sum(r) % 2] for r in data]
+    grid.append([sum(grid[i][c] for i in range(4)) % 2 for c in range(5)])
+    for r in grid:                                  # 보낼 때는 모두 짝수
+        if sum(r) % 2:
+            raise AssertionError("행 패리티가 어긋난 격자다")
+    grid[1][2] ^= 1                                 # 2행 3열을 뒤집는다
+    br = [i + 1 for i, r in enumerate(grid) if sum(r) % 2]
+    bc = [c + 1 for c in range(5) if sum(grid[i][c] for i in range(5)) % 2]
+    if len(br) != 1 or len(bc) != 1:
+        raise AssertionError(f"깨진 행 {br} · 열 {bc} 이 하나씩이 아니다")
+    return (br[0], bc[0]), f"깨진 행 {br} · 열 {bc} → 교차점 ({br[0]}행 {bc[0]}열)"
+
+
+def _mod2(bits: str, gen: str) -> str:
+    b, g = list(bits), list(gen)
+    for i in range(len(b) - len(g) + 1):
+        if b[i] == "1":
+            for j in range(len(g)):
+                b[i + j] = str(int(b[i + j]) ^ int(g[j]))
+    return "".join(b[-(len(g) - 1):])
+
+
+def v_csdc_023() -> tuple[str, str]:
+    """CRC 수신측 — 받은 프레임 전체를 나눠 나머지가 0 인지 본다."""
+    gen, data = "1101", "110101"
+    crc = _mod2(data + "0" * (len(gen) - 1), gen)
+    sent = data + crc
+    got = "111101101"
+    ok, bad = _mod2(sent, gen), _mod2(got, gen)
+    if ok != "0" * (len(gen) - 1) or bad == ok:
+        raise AssertionError(f"검증이 성립하지 않는다 정상 {ok} 오류 {bad}")
+    return bad, f"보낸 {sent}(CRC {crc}) 나머지 {ok} · 받은 {got} 나머지 {bad}"
+
+
+def v_csdc_024() -> tuple[int, str]:
+    """모든 쌍을 봐야 최소 거리가 나온다."""
+    codes = ["00000", "01011", "10101", "11110"]
+    ds = [(a, b, sum(x != y for x, y in zip(a, b)))
+          for i, a in enumerate(codes) for b in codes[i + 1:]]
+    dmin = min(d for _, _, d in ds)
+    first_only = min(d for a, _, d in ds if a == codes[0])
+    return dmin, (f"쌍별 거리 {[d for _, _, d in ds]} · 최소 {dmin} → "
+                  f"검출 {dmin-1} · 정정 {(dmin-1)//2} · 첫 부호어만 보면 {first_only}")
+
+
+def v_csdc_025() -> tuple[int, str]:
+    """보호 대역은 채널 사이에만 — 채널 수보다 하나 적다."""
+    ch, bw, guard = 5, 4000, 500
+    total = ch * bw + (ch - 1) * guard
+    return total, (f"{ch}×{bw} + {ch-1}×{guard} = {total:,} · "
+                   f"보호대역 {ch}개면 {ch*bw+ch*guard:,}(오답③) · "
+                   f"빼면 {ch*bw:,}(오답①)")
+
+
+def v_csdc_026() -> tuple[int, str]:
+    """통계적 TDM 은 평균 속도 기준."""
+    link, peak, duty = 1_000_000, 100_000, 0.10
+    stat = int(link / (peak * duty))
+    sync = link // peak
+    if stat <= sync:
+        raise AssertionError("통계적 방식의 이득이 없다")
+    return stat, f"동기식 {sync}대(오답①) · 통계적 {stat}대 (평균 {int(peak*duty/1000)}kbps)"
+
+
+def v_csdc_027() -> tuple[int, str]:
+    """최대 거리 = (슬롯 시간 ÷ 2) × 전파 속도."""
+    rate, minf, prop = 100e6, 512, 2e8
+    slot = minf / rate
+    dist = int(slot / 2 * prop)
+    return dist, (f"슬롯 {slot*1e6:.2f}μs · 편도 {slot/2*1e6:.2f}μs → {dist}m · "
+                  f"2 로 안 나누면 {int(slot*prop)}m(오답②)")
+
+
+def v_csdc_028() -> tuple[float, str]:
+    """토큰 링 순환 = 전파 지연 + 노드 지연."""
+    n, bitdelay, rate, length, prop = 8, 1, 4e6, 200, 2e8
+    tprop = length / prop * 1e6
+    tbit = n * bitdelay / rate * 1e6
+    if tprop == tbit:
+        raise AssertionError("두 몫이 같아 어느 쪽만 셌는지 안 갈린다")
+    return round(tprop + tbit, 1), (f"전파 {tprop}μs(오답①) + 노드 {tbit}μs(오답②) "
+                                    f"= {tprop+tbit}μs")
+
+
+def v_csdc_029() -> tuple[float, str]:
+    """오버헤드는 일정하므로 데이터가 클수록 효율이 좋다."""
+    over = 26
+    eff = {p: round(p / (p + over) * 100, 1) for p in (46, 500, 1500)}
+    return eff[1500], " · ".join(f"{p}B {v}%" for p, v in eff.items())
+
+
+def v_csdc_030() -> tuple[float, str]:
+    """패킷 교환 — 구간이 겹쳐 일한다."""
+    msg, rate, hops, pkt, setup = 1_000_000, 1e6, 3, 1000, 0.5
+    n = msg // pkt
+    ps = round((n + hops - 1) * pkt / rate, 3)
+    cs = round(setup + msg / rate, 3)
+    if ps >= cs:
+        raise AssertionError("패킷 교환이 빠르지 않다")
+    return ps, (f"패킷 {n}개 → ({n}+{hops}−1)×1ms = {ps}초 · "
+                f"회선 {cs}초(오답②) · 홉마다 전체면 {hops*msg/rate}초(오답④)")
+
+
+def v_csdc_031() -> tuple[int, str]:
+    """가상 회선과 데이터그램 — 네 축이 모두 반대다."""
+    vc = {"설정": True, "주소매번": False, "순서보장": True, "우회": False,
+          "대역독점": False}
+    dg = {"설정": False, "주소매번": True, "순서보장": False, "우회": True,
+          "대역독점": False}
+    claims = [("데이터그램은 연결 설정 필요", dg["설정"]),
+              ("가상 회선은 주소를 매번 싣는다", vc["주소매번"]),
+              ("데이터그램은 순서를 보장한다", dg["순서보장"]),
+              ("가상 회선은 대역을 통째로 차지", vc["대역독점"]),
+              ("데이터그램은 우회할 수 있다", dg["우회"])]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"가상회선 {vc} · 데이터그램 {dg} · 참인 진술 {right}"
+
+
+def v_csdc_032() -> tuple[int, str]:
+    """처리 이득 — 배수와 데시벨을 갈라야 한다."""
+    import math
+    ss, sig = 10e6, 100e3
+    ratio = ss / sig
+    db = int(10 * math.log10(ratio))
+    if db == ratio:
+        raise AssertionError("배수와 dB 가 같다 — 함정이 성립하지 않는다")
+    return db, f"{ss/1e6:.0f}MHz ÷ {sig/1e3:.0f}kHz = {ratio:.0f}배 → {db}dB(배수 그대로면 {ratio:.0f}, 오답③)"
+
+
+def v_csdc_033() -> tuple[int, str]:
+    """셀당 채널 = 전체 ÷ 클러스터 크기."""
+    total, cluster = 490, 7
+    per = total // cluster
+    return per, (f"{total} ÷ {cluster} = {per}개 · 클러스터 4 면 {total//4} · "
+                 f"12 면 {total//12}")
+
+
+def v_csdc_034() -> tuple[float, str]:
+    """동기식과 비동기식 — 오버헤드가 붙는 단위가 다르다."""
+    data, over = 800, 48
+    sync = round(data / (data + over) * 100, 1)
+    chars, cbits = 100, 8
+    asyn = round(chars * cbits / (chars * (cbits + 2)) * 100, 1)
+    if sync <= asyn:
+        raise AssertionError("동기식이 유리하지 않다")
+    return sync, f"동기 {data}/{data+over} = {sync}% · 비동기 {asyn}%(오답①)"
+
+
+def v_csdc_035() -> tuple[float, str]:
+    """데시벨은 더하고 뺀다 — 증폭이 섞여야 부호를 지키게 된다."""
+    segs = [-3, 10, -6, -4]
+    tot = sum(segs)
+    ratio = round(10 ** (tot / 10), 1)
+    loss_only = sum(v for v in segs if v < 0)
+    if all(v < 0 for v in segs):
+        raise AssertionError("증폭이 없어 부호를 지킬 필요가 없다")
+    return ratio, (f"{segs} 합 {tot:+d}dB → {ratio}배 · "
+                   f"감쇠만 {loss_only}dB = {10**(loss_only/10):.2f}배(오답①)")
+
+
+def v_csdc_036() -> tuple[float, str]:
+    """프레임 오류 확률 — 어림값과 정확값이 맞아야 한다."""
+    ber, n = 1e-6, 10_000
+    exact = (1 - (1 - ber) ** n) * 100
+    approx = ber * n * 100
+    if abs(exact - approx) > 0.05:
+        raise AssertionError(f"어림({approx})과 정확값({exact})이 벌어진다")
+    return round(approx, 0), (f"정확 {exact:.2f}% · 어림 {approx:.0f}% · "
+                              f"10만비트면 {(1-(1-ber)**100000)*100:.2f}%")
+
+
 REGISTRY = {
     "major-csdb-common-001": (v_csdb_001, lambda nf: {1: 1, 2: 2, 3: 3}[nf]),
     "major-csdb-common-002": (v_csdb_002, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 7: 5}[n]),
@@ -3347,6 +3561,39 @@ REGISTRY = {
     # 018 문자마다 부가 비트가 붙어 효율이 낮다 (선지 ④가 틀린 진술)
     "major-csdc-common-018": (lambda: (4, "8비트에 시작·정지 2비트 → 20%가 부가 정보"),
                               lambda i: i),
+    "major-csdc-common-019": (v_csdc_019, lambda n: {12: 1, 30: 2, 42: 3, 3000: 4,
+                                                     6000: 5}[n]),
+    "major-csdc-common-020": (v_csdc_020, lambda n: {2000: 1, 4000: 2, 6000: 3,
+                                                     8000: 4, 10000: 5}[n]),
+    "major-csdc-common-021": (v_csdc_021, lambda n: {4: 1, 7: 2, 9: 3, 11: 4,
+                                                     14: 5}[n]),
+    "major-csdc-common-022": (v_csdc_022, lambda t: {(2, 3): 1, (1, 3): 2, (2, 5): 3,
+                                                     (3, 2): 4, (5, 3): 5}[t]),
+    "major-csdc-common-023": (v_csdc_023, lambda s: {"000": 1, "101": 2, "110": 5}[s]),
+    "major-csdc-common-024": (v_csdc_024, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[n]),
+    "major-csdc-common-025": (v_csdc_025, lambda n: {20000: 1, 22000: 2, 22500: 3,
+                                                     24000: 4, 25000: 5}[n]),
+    "major-csdc-common-026": (v_csdc_026, lambda n: {10: 1, 20: 2, 50: 3, 80: 4,
+                                                     100: 5}[n]),
+    "major-csdc-common-027": (v_csdc_027, lambda n: {512: 1, 1024: 2, 2048: 3,
+                                                     5120: 4, 10240: 5}[n]),
+    "major-csdc-common-028": (v_csdc_028, lambda v: {1.0: 1, 2.0: 2, 2.5: 3, 3.0: 4,
+                                                     5.0: 5}[v]),
+    "major-csdc-common-029": (v_csdc_029, lambda v: {63.9: 1, 78.0: 2, 95.1: 3,
+                                                     96.5: 4, 98.3: 5}[v]),
+    "major-csdc-common-030": (v_csdc_030, lambda v: {1.002: 1, 1.5: 2, 2.0: 3,
+                                                     3.0: 4, 3.5: 5}[v]),
+    "major-csdc-common-031": (v_csdc_031, lambda i: i),
+    "major-csdc-common-032": (v_csdc_032, lambda n: {20: 1, 40: 2, 100: 3, 1000: 4,
+                                                     10000: 5}[n]),
+    "major-csdc-common-033": (v_csdc_033, lambda n: {49: 1, 70: 2, 98: 3, 122: 4,
+                                                     490: 5}[n]),
+    "major-csdc-common-034": (v_csdc_034, lambda v: {80.0: 1, 88.9: 2, 90.9: 3,
+                                                     94.3: 4, 96.2: 5}[v]),
+    "major-csdc-common-035": (v_csdc_035, lambda v: {0.05: 1, 0.1: 2, 0.2: 3, 0.5: 4,
+                                                     2.0: 5}[v]),
+    "major-csdc-common-036": (v_csdc_036, lambda v: {1.0: 1, 10.0: 2, 50.0: 3,
+                                                     90.0: 4, 99.0: 5}[v]),
 }
 
 
