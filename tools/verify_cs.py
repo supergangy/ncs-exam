@@ -2030,6 +2030,237 @@ def v_csca_017() -> tuple[str, str]:
     return ("NOT" if is_not else "?"), f"NAND(A,A) 진리표 {tt} · NOT A 와 일치 {is_not}"
 
 
+# ── 전자계산기구조 019~036 ──────────────────────────────────────────────
+#
+# 비트 조작은 struct 로 실제 패킹/언패킹해 확인하고, 성능식은 몫을 하나씩
+# 빼 보며 오답 선지의 값까지 함께 얻는다.
+
+def v_csca_019() -> tuple[float, str]:
+    """IEEE 754 비트 패턴 → 실수. 가수가 1.0 이 아니어야 숨은 비트가 드러난다."""
+    import struct
+    pat = 0x41200000
+    val = struct.unpack(">f", struct.pack(">I", pat))[0]
+    exp = (pat >> 23) & 0xFF
+    man = 1 + (pat & 0x7FFFFF) / 2 ** 23
+    if man == 1.0:
+        raise AssertionError("가수가 1.0 이라 숨은 비트가 드러나지 않는다")
+    return val, (f"지수 {exp}−127={exp-127} · 가수 {man} → {val} · "
+                 f"가수만 {man}(오답①) · 숨은1 빼면 {(man-1)*2**(exp-127)}(오답②) · "
+                 f"가수 1.0 으로 보면 {2.0**(exp-127)}(오답④)")
+
+
+def v_csca_020() -> tuple[str, str]:
+    """8진 → 2진 → 16진. 오른쪽부터 묶어야 한다."""
+    o = "754"
+    n = int(o, 8)
+    right = f"{n:X}"
+    bits = "".join(f"{int(d):03b}" for d in o)      # 111101100
+    left = f"{int(bits.ljust((len(bits) + 3) // 4 * 4, '0'), 2):X}"
+    if left == right:
+        raise AssertionError("왼쪽부터 묶어도 같다 — 오답 ⑤가 무너진다")
+    return right, f"8진 {o} = 10진 {n} = 2진 {bits} → 16진 {right} · 왼쪽부터 묶으면 {left}(오답⑤)"
+
+
+def v_csca_021() -> tuple[int, str]:
+    """세 부호 표현의 범위와 0 의 개수."""
+    ways = {"부호-절대값": (-127, 127, 2), "1의 보수": (-127, 127, 2),
+            "2의 보수": (-128, 127, 1)}
+    claims = [
+        ("2의 보수만 음수 하나 더 · 0 이 하나", ways["2의 보수"] == (-128, 127, 1)
+         and ways["1의 보수"][0] == -127),
+        ("셋 다 −128~127", all(v[0] == -128 for v in ways.values())),
+        ("부호-절대값의 0 이 하나", ways["부호-절대값"][2] == 1),
+        ("1의 보수가 양수 쪽이 더 넓다", ways["1의 보수"][1] > ways["2의 보수"][1]),
+        ("2의 보수 10000000 은 0", (0x80 - 256) == 0),
+    ]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"{ways} · 참인 진술 {right}"
+
+
+def v_csca_022() -> tuple[str, str]:
+    """카르노맵 — 후보 식이 덮는 최소항 집합을 실제로 구해 대조한다."""
+    target = {0, 1, 2, 3, 8, 9, 10, 11}
+    cands = {
+        "B'": lambda a, b, c, d: not b,
+        "A'B'": lambda a, b, c, d: not a and not b,
+        "B'D'": lambda a, b, c, d: not b and not d,
+        "B'C'": lambda a, b, c, d: not b and not c,
+        "A'B' + AB'": lambda a, b, c, d: (not a and not b) or (a and not b),
+    }
+    hit = [k for k, f in cands.items()
+           if {i for i in range(16)
+               if f(i >> 3 & 1, i >> 2 & 1, i >> 1 & 1, i & 1)} == target]
+    if hit != ["B'", "A'B' + AB'"]:
+        raise AssertionError(f"덮는 식이 예상과 다르다 {hit}")
+    return hit[0], f"Σm{sorted(target)} 를 덮는 식 {hit} · 가장 간소한 것 {hit[0]}"
+
+
+def v_csca_023() -> tuple[int, str]:
+    """자리올림과 오버플로를 가른다 — 자리올림만 난 것이 둘 있어야 한다."""
+    cases = [(3, 2), (-3, -2), (7, -1), (5, 3)]
+    ov, carry, note = [], [], []
+    for i, (a, b) in enumerate(cases, 1):
+        s = (a & 0xF) + (b & 0xF)
+        c = s >> 4
+        r = s & 0xF
+        v = r - 16 if r & 8 else r
+        o = (a >= 0) == (b >= 0) and (v >= 0) != (a >= 0)
+        if o:
+            ov.append(i)
+        if c:
+            carry.append(i)
+        note.append(f"{a}+{b}={v}(자리올림{c}/오버{'○' if o else '✗'})")
+    if len(ov) != 1 or len(carry) < 2:
+        raise AssertionError(f"오버플로 {ov} · 자리올림 {carry} 배치가 어긋난다")
+    return ov[0], " · ".join(note) + f" → 오버플로 {ov} · 자리올림만 {carry}"
+
+
+def v_csca_024() -> tuple[tuple, str]:
+    """JK 플립플롭 — 네 조합을 모두 지나고 마지막은 유지."""
+    q, changed, log = 0, 0, []
+    for j, k in [(1, 0), (1, 1), (1, 1), (0, 1), (1, 1), (0, 0)]:
+        nq = q if (j, k) == (0, 0) else 0 if (j, k) == (0, 1) \
+            else 1 if (j, k) == (1, 0) else 1 - q
+        changed += nq != q
+        q = nq
+        log.append(q)
+    if changed == len(log):
+        raise AssertionError("매 클럭 바뀌었다 — 「유지」가 드러나지 않는다")
+    return (q, changed), f"Q 변화 0→{'→'.join(map(str, log))} · 최종 {q} · 바뀐 횟수 {changed}"
+
+
+def v_csca_025() -> tuple[float, str]:
+    """파이프라인 속도 향상비 — 이론 상한(단계 수)에 못 미쳐야 한다."""
+    k, n = 5, 100
+    non, pipe = k * n, k + (n - 1)
+    sp = round(non / pipe, 2)
+    if sp >= k:
+        raise AssertionError("향상비가 단계 수 이상이다")
+    return sp, (f"비파이프 {non} · 파이프 {pipe} → {sp}배 · 상한 {k}(오답②) · "
+                f"차 {non-pipe}(오답⑤)")
+
+
+def v_csca_026() -> tuple[int, str]:
+    """분기 버블 — 기본 클럭과 버블을 각각 오답으로 둔다."""
+    k, n, br, pen = 5, 100, 20, 3
+    base = k + (n - 1)
+    stall = br * pen
+    return base + stall, (f"기본 {base}(오답②) + 버블 {stall}(오답①) = {base+stall} · "
+                          f"기본을 {n} 으로 보면 {n+stall}(오답④) · "
+                          f"버블 1클럭이면 {base+br}(오답③)")
+
+
+def v_csca_027() -> tuple[int, str]:
+    """직접 사상 — 블록 번호를 먼저 구해야 한다."""
+    cache, block, addr = 1024, 16, 0x1234
+    lines = cache // block
+    blk = addr // block
+    line = blk % lines
+    naive = addr % lines                         # 주소를 바로 나눈 경우
+    if naive == line:
+        raise AssertionError("잘못된 계산과 값이 같다 — 오답 ②가 무너진다")
+    return line, (f"라인 {lines}개 · 블록 {blk} · 라인 {line} · 태그 {blk//lines} · "
+                  f"주소를 바로 나누면 {naive}(오답②) · 10진 {addr}(오답⑤)")
+
+
+def v_csca_028() -> tuple[float, str]:
+    """2단계 AMAT — L2 실패율의 기준이 L1 실패분인지가 판정 지점."""
+    l1_t, l1_h, l2_t, l2_h, mem = 2, 0.95, 10, 0.80, 100
+    amat = round(l1_t + (1 - l1_h) * (l2_t + (1 - l2_h) * mem), 1)
+    flat = round(l1_t + (1 - l1_h) * l2_t + (1 - l2_h) * mem, 1)
+    no_l2 = round(l1_t + (1 - l1_h) * mem, 1)
+    return amat, (f"AMAT {amat}ns · L2 없으면 {no_l2}(오답③) · "
+                  f"실패율을 전체 기준으로 보면 {flat}(오답⑤)")
+
+
+def v_csca_029() -> tuple[int, str]:
+    """쓰기 정책 — 세 성질이 모두 두 정책에서 반대다."""
+    wt = {"주기억쓰기": "매번", "빠른가": False, "늘일치": True, "dirty": False}
+    wb = {"주기억쓰기": "쫓겨날때", "빠른가": True, "늘일치": False, "dirty": True}
+    claims = [
+        ("즉시 쓰기에 dirty 비트 필요", wt["dirty"]),
+        ("나중 쓰기는 여러 번 써도 주기억 쓰기 한 번", wb["주기억쓰기"] == "쫓겨날때"),
+        ("즉시 쓰기가 더 빠르다", wt["빠른가"] and not wb["빠른가"]),
+        ("나중 쓰기는 늘 일치", wb["늘일치"]),
+        ("둘 다 내보낼 때 반드시 주기억에 쓴다", wb["dirty"] is False),
+    ]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"즉시 {wt} · 나중 {wb} · 참인 진술 {right}"
+
+
+def v_csca_030() -> tuple[int, str]:
+    """명령어 형식 — 주소 필드 개수에 따라 연산 코드가 줄어든다."""
+    word, addr, fields = 16, 6, 2
+    left = word - addr * fields
+    ops = 2 ** left
+    one = 2 ** (word - addr)
+    return ops, (f"연산 코드 {left}비트 → {ops}가지 · "
+                 f"주소 1개면 {one}가지(오답④) · 2^{addr}={2**addr}(오답②) · "
+                 f"2^{addr*fields}={2**(addr*fields)}(오답⑤)")
+
+
+def v_csca_031() -> tuple[int, str]:
+    """상대 주소 — PC 를 더한다. IX 와 갈라야 한다."""
+    pc, ix, opr = 500, 200, 30
+    modes = {"직접": opr, "인덱스": ix + opr, "상대": pc + opr}
+    if len(set(modes.values())) != 3:
+        raise AssertionError("방식별 유효 주소가 겹친다")
+    return modes["상대"], (f"{modes} · PC−{opr}={pc-opr}(오답④) · "
+                           f"IX={ix}(오답②)")
+
+
+def v_csca_032() -> tuple[int, str]:
+    """기억장치 접근 — 명령어 인출을 세는지가 판정 지점."""
+    refs = {"즉시": 1, "직접": 2, "간접": 3, "이중간접": 4}
+    return refs["간접"], " · ".join(f"{k} {v}회" for k, v in refs.items())
+
+
+def v_csca_033() -> tuple[str, str]:
+    """데이지 체인 — 연결 순서가 알파벳 순이 아니어야 한다."""
+    chain = ["D", "C", "B", "A"]
+    reqs = {"B", "D"}
+    win = next(d for d in chain if d in reqs)
+    if win == min(reqs):
+        raise AssertionError("알파벳 순으로도 같은 답이 나온다")
+    return win, f"체인 {'—'.join(chain)} · 요청 {sorted(reqs)} → {win}"
+
+
+def v_csca_034() -> tuple[int, str]:
+    """버스 대역폭 — 비트→바이트와 전송 주기, 나누는 단계가 둘."""
+    width_bit, clk, per = 32, 200e6, 2
+    bw = int(width_bit / 8 * clk / per / 1e6)
+    every = int(width_bit / 8 * clk / 1e6)
+    return bw, (f"{width_bit//8}B × {clk/1e6:.0f}M ÷ {per} = {bw}MB/s · "
+                f"매 클럭이면 {every}(오답⑤) · 4클럭마다면 {bw//2}(오답②)")
+
+
+def v_csca_035() -> tuple[float, str]:
+    """암달의 법칙 — 상한과 답이 뚜렷이 갈려야 한다."""
+    p, s = 0.8, 4.0
+    sp = round(1 / ((1 - p) + p / s), 2)
+    cap = round(1 / (1 - p), 2)
+    if sp >= cap:
+        raise AssertionError("향상비가 상한 이상이다")
+    return sp, (f"1/({1-p:.1f}+{p}/{s:.0f}) = {sp}배 · 상한 {cap}(오답⑤) · "
+                f"P×S={round(p*s,2)}(오답③) · 1/P={round(1/p,2)}(오답①)")
+
+
+def v_csca_036() -> tuple[float, str]:
+    """CPU 시간 = 명령어 수 × CPI ÷ 클럭."""
+    instr, cpi, clk = 5e9, 1.5, 2.5e9
+    t = round(instr * cpi / clk, 2)
+    div = round(instr / cpi / clk, 2)
+    no_cpi = round(instr / clk, 2)
+    if len({t, div, no_cpi}) != 3:
+        raise AssertionError("오답 경로의 값이 겹친다")
+    return t, (f"{instr:.0e}×{cpi}÷{clk:.0e} = {t}초 · CPI 나누면 {div}(오답②) · "
+               f"CPI 빼면 {no_cpi}(오답③)")
+
+
 # ── 데이터통신 ──────────────────────────────────────────────────────────
 
 def v_csdc_001() -> tuple[int, str]:
@@ -3040,6 +3271,38 @@ REGISTRY = {
     # 018 결과를 누산기에 저장하는 것은 실행 주기 (선지 ⑤)
     "major-csca-common-018": (lambda: (5, "인출은 PC→MAR · 메모리→MBR · MBR→IR · PC 증가"),
                               lambda i: i),
+    "major-csca-common-019": (v_csca_019, lambda v: {1.25: 1, 2.0: 2, 5.0: 3,
+                                                     8.0: 4, 10.0: 5}[v]),
+    "major-csca-common-020": (v_csca_020, lambda s: {"EC": 1, "1EC": 2, "2F2": 3,
+                                                     "754": 4, "F60": 5}[s]),
+    "major-csca-common-021": (v_csca_021, lambda i: i),
+    "major-csca-common-022": (v_csca_022, lambda s: {"B'": 1, "A'B'": 2, "B'D'": 3,
+                                                     "B'C'": 4, "A'B' + AB'": 5}[s]),
+    "major-csca-common-023": (v_csca_023, lambda i: i),
+    "major-csca-common-024": (v_csca_024, lambda t: {(0, 4): 1, (0, 5): 2, (1, 4): 3,
+                                                     (1, 6): 4, (1, 5): 5}[t]),
+    "major-csca-common-025": (v_csca_025, lambda v: {4.81: 1, 5.0: 2, 20.0: 3,
+                                                     100.0: 4, 396.0: 5}[v]),
+    "major-csca-common-026": (v_csca_026, lambda n: {60: 1, 104: 2, 124: 3, 160: 4,
+                                                     164: 5}[n]),
+    "major-csca-common-027": (v_csca_027, lambda n: {35: 1, 52: 2, 64: 3, 291: 4,
+                                                     4660: 5}[n]),
+    "major-csca-common-028": (v_csca_028, lambda v: {2.0: 1, 3.5: 2, 7.0: 3, 12.0: 4,
+                                                     22.5: 5}[v]),
+    "major-csca-common-029": (v_csca_029, lambda i: i),
+    "major-csca-common-030": (v_csca_030, lambda n: {16: 1, 64: 2, 256: 3, 1024: 4,
+                                                     4096: 5}[n]),
+    "major-csca-common-031": (v_csca_031, lambda n: {30: 1, 200: 2, 230: 3, 470: 4,
+                                                     530: 5}[n]),
+    "major-csca-common-032": (v_csca_032, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[n]),
+    "major-csca-common-033": (v_csca_033, lambda s: {"A": 1, "B": 2, "C": 3,
+                                                     "D": 4}[s]),
+    "major-csca-common-034": (v_csca_034, lambda n: {50: 1, 100: 2, 200: 3, 400: 4,
+                                                     800: 5}[n]),
+    "major-csca-common-035": (v_csca_035, lambda v: {1.25: 1, 2.5: 2, 3.2: 3, 4.0: 4,
+                                                     5.0: 5}[v]),
+    "major-csca-common-036": (v_csca_036, lambda v: {0.75: 1, 1.33: 2, 2.0: 3, 2.5: 4,
+                                                     3.0: 5}[v]),
 
     "major-csdc-common-001": (v_csdc_001, lambda r: {3000: 1, 6000: 2, 12000: 3,
                                                      18000: 4, 24000: 5}[r]),
