@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.7.0+9
+version: 1.8.0+10
 
 environment:
   sdk: ^3.12.2
@@ -85,6 +85,11 @@ dependencies:
   # 위에 캔버스를 얹기 어렵다. pdfx 는 페이지를 이미지로 렌더하고 cropRect 를
   # 받아 문항만 오려 낼 수 있다 — 4단계 필기의 발판이기도 하다.
   pdfx: ^2.9.0
+  # 회차 PDF 위 필기. 손이 지나간 점들을 붓 모양 다각형으로 바꿔 준다 —
+  # 점을 그냥 이으면 굵기가 일정해 획이 뻣뻣하다. 필압이 없는 기기에서도
+  # 속도로 굵기를 흔들어 손글씨처럼 보이게 한다.
+  # 렌더링만 맡고 좌표·저장·지우개는 lib/ink.dart 가 순수 Dart 로 들고 있다.
+  perfect_freehand: ^2.3.4
 
 dev_dependencies:
   flutter_test:

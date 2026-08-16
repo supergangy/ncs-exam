@@ -445,5 +445,26 @@ class Store extends ChangeNotifier {
     await save();
   }
 
+  // ── 회차 필기 (4단계) ───────────────────────────────────────────────
+  //
+  // 다른 기록과 달리 메모리에 이고 다니지 않는다. 한 회차가 MB 라
+  // `snapshot()`·백업·마이그레이션 어디에도 끼우지 않는다 — DB 로 바로 간다.
+  // DB 로 못 넘어간 기기(마이그레이션 실패)에서는 필기가 없는 채로 돈다.
+
+  Future<Map<int, String>> readInk(String tag) async {
+    if (!_useDb) return const {};
+    return Db.instance.readInk(tag);
+  }
+
+  Future<void> writeInkPages(String tag, Map<int, String> pages) async {
+    if (!_useDb) return;
+    await Db.instance.writeInkPages(tag, pages);
+  }
+
+  Future<void> clearInk(String tag) async {
+    if (!_useDb) return;
+    await Db.instance.clearInk(tag);
+  }
+
   int _now() => DateTime.now().millisecondsSinceEpoch;
 }

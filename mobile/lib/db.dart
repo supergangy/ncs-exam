@@ -196,6 +196,54 @@ class Db {
         0;
   }
 
+  // ── 회차 필기 ──────────────────────────────────────────────────────
+  //
+  // 기록 테이블과 따로 논다. `readAll`/`writeAll` 은 회차를 열 때마다 필기
+  // 수백 KB 를 함께 끌고 다니게 되므로 섞지 않는다. 필기는 회차를 펼 때만 읽는다.
+
+  /// 회차 [tag] 의 필기를 쪽별로 읽는다.
+  Future<Map<int, String>> readInk(String tag) async {
+    final db = await open();
+    final rows = await db.query(tableInk,
+        columns: ['page', 'v'], where: 'tag = ?', whereArgs: [tag]);
+    return {
+      for (final r in rows) (r['page'] as int): (r['v'] as String? ?? ''),
+    };
+  }
+
+  /// 바뀐 쪽만 다시 쓴다. 값이 비면 그 행을 지운다 — 다 지운 쪽이 남아 있으면
+  /// 다음에 열 때 빈 배열을 읽느라 헛일을 한다.
+  Future<void> writeInkPages(String tag, Map<int, String> pages) async {
+    if (pages.isEmpty) return;
+    final db = await open();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.transaction((tx) async {
+      for (final e in pages.entries) {
+        if (e.value.trim().isEmpty) {
+          await tx.delete(tableInk,
+              where: 'tag = ? AND page = ?', whereArgs: [tag, e.key]);
+        } else {
+          await tx.insert(
+              tableInk,
+              {'tag': tag, 'page': e.key, 'v': e.value, 'at': now},
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+    });
+  }
+
+  Future<void> clearInk(String tag) async {
+    final db = await open();
+    await db.delete(tableInk, where: 'tag = ?', whereArgs: [tag]);
+  }
+
+  /// 필기가 있는 회차 태그 — 목록에 표시를 달 때 쓴다.
+  Future<Set<String>> inkTags() async {
+    final db = await open();
+    final rows = await db.rawQuery('SELECT DISTINCT tag FROM $tableInk');
+    return {for (final r in rows) r['tag'] as String};
+  }
+
   Future<void> deleteFile() async {
     final dir = await getDatabasesPath();
     await close();

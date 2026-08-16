@@ -160,10 +160,18 @@ void main() {
   eq('설정 행', tables[tableKv]!.length, 6);
 
   stdout.writeln('■ 스키마');
-  ok('테이블 다섯 + 인덱스 넷', createSql.length == 9);
+  // 기록 테이블 다섯 + 인덱스 넷 + 필기 테이블 하나 + 그 인덱스 하나.
+  ok('테이블 여섯 + 인덱스 다섯', createSql.length == 11);
   ok('판 번호가 1 이상', dbVersion >= 1);
   ok('올림 목록의 키가 모두 판 번호 이하',
       migrations.keys.every((k) => k <= dbVersion));
+  // 새로 깐 기기와 올린 기기의 스키마가 갈리면 한쪽에서만 나는 버그가 생긴다.
+  // 판 2 에서 더한 문장이 `createSql` 에도 **그대로** 들어 있어야 한다.
+  ok('판 2 의 문장이 createSql 에도 있다',
+      migrations[2]!.every(createSql.contains));
+  ok('필기 테이블이 판 2 에서 온다', migrations[2] == inkSql);
+  ok('필기는 기록 스냅숏에 안 섞인다',
+      !tables.containsKey(tableInk));
 
   stdout.writeln('\n통과 $_pass · 실패 $_fail');
   if (_fail > 0) exit(1);

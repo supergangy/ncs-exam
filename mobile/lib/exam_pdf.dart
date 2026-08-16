@@ -24,6 +24,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdfx/pdfx.dart';
 
+import 'ink.dart';
+import 'ink_canvas.dart';
+
 /// 문항 하나가 차지하는 사각형. 한 문항이 두 면에 걸치면 조각이 여럿이다.
 class QBound {
   final int page;
@@ -153,7 +156,20 @@ class ExamPdf {
 class QuestionPdfView extends StatelessWidget {
   final ExamPdf pdf;
   final int no;
-  const QuestionPdfView({super.key, required this.pdf, required this.no});
+
+  /// 필기층. 없으면(null) 종이만 보여 준다 — 결과 화면에서 그렇다.
+  final InkDoc? ink;
+  final InkSettings inkSettings;
+  final VoidCallback? onInkChanged;
+
+  const QuestionPdfView({
+    super.key,
+    required this.pdf,
+    required this.no,
+    this.ink,
+    this.inkSettings = const InkSettings(),
+    this.onInkChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +180,15 @@ class QuestionPdfView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < parts; i++) _Part(pdf: pdf, no: no, part: i),
+        for (var i = 0; i < parts; i++)
+          _Part(
+            pdf: pdf,
+            no: no,
+            part: i,
+            ink: ink,
+            inkSettings: inkSettings,
+            onInkChanged: onInkChanged,
+          ),
       ],
     );
   }
@@ -179,7 +203,17 @@ class QuestionPdfView extends StatelessWidget {
 class _Part extends StatelessWidget {
   final ExamPdf pdf;
   final int no, part;
-  const _Part({required this.pdf, required this.no, required this.part});
+  final InkDoc? ink;
+  final InkSettings inkSettings;
+  final VoidCallback? onInkChanged;
+  const _Part({
+    required this.pdf,
+    required this.no,
+    required this.part,
+    this.ink,
+    this.inkSettings = const InkSettings(),
+    this.onInkChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -203,8 +237,25 @@ class _Part extends StatelessWidget {
               return QuestionPdfView._note(ctx, 'PDF 를 그리지 못했습니다.');
             }
             // 종이 그대로다. 색을 입히지 않는다 — 다크 모드에서도 흰 종이로 둔다.
-            return Image.memory(bytes, fit: BoxFit.fitWidth,
+            final paper = Image.memory(bytes, fit: BoxFit.fitWidth,
                 filterQuality: FilterQuality.medium);
+            final doc = ink;
+            if (doc == null) return paper;
+            // 필기는 종이 **위에** 얹는다. 사각형이 곧 이 조각이 보여 주는
+            // PDF 영역이라, 획을 그 좌표로 바꿔 넣으면 화면 크기와 무관해진다.
+            final b = pdf.map.byNo[no]![part];
+            return Stack(fit: StackFit.expand, children: [
+              paper,
+              InkLayer(
+                doc: doc,
+                page: b.page,
+                bx: b.x,
+                by: b.y,
+                bw: b.w,
+                settings: inkSettings,
+                onChanged: onInkChanged ?? () {},
+              ),
+            ]);
           },
         ),
       );

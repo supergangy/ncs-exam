@@ -5,6 +5,7 @@ import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'ink_review_screen.dart';
 import 'question_screen.dart';
 import 'exam_detail_screen.dart' show pct;
 
@@ -59,6 +60,16 @@ class ExamResultScreen extends StatelessWidget {
               padding: const EdgeInsets.only(top: 10, left: 2),
               child: Text(trend, style: TextStyle(color: c.faint, fontSize: 13)),
             ),
+          // 필기는 회차를 내도 지우지 않는다. 다시 볼 자리가 여기다 (4단계).
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.draw_outlined, size: 18),
+              label: const Text('필기 다시 보기'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => InkReviewScreen(tag: tag, rec: rec))),
+            ),
+          ),
           const SectionTitle('영역별'),
           ...r.areas.map((a) {
             final sub = items.where((i) => i.sj == a.name).toList();

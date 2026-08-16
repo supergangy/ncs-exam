@@ -22,13 +22,20 @@ import 'dart:convert';
 import 'backup.dart';
 
 /// 스키마 판. 올릴 때는 [migrations] 에 한 줄 더한다.
-const dbVersion = 1;
+const dbVersion = 2;
 
 const tableAttempt = 'attempt';
 const tableSrs = 'srs';
 const tableExam = 'exam_result';
 const tableMark = 'mark';
 const tableKv = 'kv';
+
+/// 회차 필기. **페이지 단위 행**이라 한 쪽만 고쳐도 그 행만 다시 쓴다
+/// (`PLAN.md` §3 — 한 회차 필기가 MB 라 한 칸에 담으면 문항 로드까지 느려진다).
+///
+/// 백업 JSON 에는 넣지 않는다. 웹판에 필기가 없어 1:1 이 깨지고,
+/// 크기도 기록의 수십 배다. 기기에만 남는 것으로 둔다.
+const tableInk = 'ink';
 
 /// `kv` 에 들어가는 열쇠들. 한 건뿐이라 테이블을 따로 두지 않는다.
 const kvSit = 'sit';
@@ -91,11 +98,30 @@ const createSql = <String>[
   'CREATE INDEX idx_mark_flag ON $tableMark (flag)',
   'CREATE INDEX idx_mark_bookmark ON $tableMark (bookmark)',
   'CREATE INDEX idx_attempt_at ON $tableAttempt (at)',
+  ...inkSql,
+];
+
+/// 판 2 에서 더한 것. `createSql` 과 `migrations` 가 **같은 문장**을 쓰도록
+/// 따로 뽑아 둔다 — 새로 깐 기기와 올린 기기의 스키마가 갈리면
+/// 한쪽에서만 나는 버그가 생긴다.
+const inkSql = <String>[
+  '''
+  CREATE TABLE $tableInk (
+    tag  TEXT NOT NULL,
+    page INTEGER NOT NULL,
+    v    TEXT NOT NULL,
+    at   INTEGER NOT NULL,
+    PRIMARY KEY (tag, page)
+  )''',
+  'CREATE INDEX idx_ink_tag ON $tableInk (tag)',
 ];
 
 /// 판 올림. `dbVersion` 을 올릴 때 여기에 더한다.
 /// 키는 **올라가는 판 번호**다 — 2 를 넣으면 1 → 2 에서 돈다.
-const migrations = <int, List<String>>{};
+const migrations = <int, List<String>>{
+  // 2 — 회차 필기 (4단계)
+  2: inkSql,
+};
 
 // ─────────────────────────────────────────────────────── 펴기
 

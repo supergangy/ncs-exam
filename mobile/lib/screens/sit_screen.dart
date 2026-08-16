@@ -5,6 +5,8 @@ library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../exam_pdf.dart';
+import '../ink.dart';
+import '../ink_canvas.dart';
 import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -26,6 +28,11 @@ class _SitScreenState extends State<SitScreen> {
   ExamPdf? _pdf;
   bool _pdfMode = false;
   bool _pdfAvailable = false;
+
+  // 필기 (4단계). PDF 모드에서만 뜬다 — 앱 화면은 글자가 흐르므로 획이 어긋난다.
+  InkDoc? _ink;
+  InkSettings _inkSet = const InkSettings();
+  Timer? _inkSave;
 
   Timer? _timer;
   /// 제출 대화상자가 떠 있다 — 그 위에 자동 제출을 겹쳐 띄우지 않기 위한 잠금.
@@ -86,12 +93,64 @@ class _SitScreenState extends State<SitScreen> {
       }
       _pdf = doc;
     }
+    // 필기는 PDF 를 켤 때 한 번만 읽는다. 회차를 열 때마다 읽으면
+    // 안 쓸 사람에게도 수백 KB 를 붙인다.
+    if (_ink == null) {
+      try {
+        _ink = InkDoc.decode(await Store.instance.readInk(widget.tag));
+      } catch (err) {
+        debugPrint('필기를 읽지 못했다: $err');
+        _ink = InkDoc();
+      }
+    }
+    if (!mounted) return;
     setState(() => _pdfMode = true);
+  }
+
+  /// 획이 바뀔 때마다 쓰면 손이 멈출 때마다 디스크를 친다. 잠깐 모았다 쓴다.
+  void _inkChanged() {
+    setState(() {});
+    _inkSave?.cancel();
+    _inkSave = Timer(const Duration(milliseconds: 700), _flushInk);
+  }
+
+  Future<void> _flushInk() async {
+    final doc = _ink;
+    if (doc == null || doc.dirty.isEmpty) return;
+    final pages = {for (final p in doc.dirty) p: doc.encodePage(p)};
+    doc.clearDirty();
+    try {
+      await Store.instance.writeInkPages(widget.tag, pages);
+    } catch (err) {
+      // 저장에 실패해도 화면의 획은 남는다. 다음 저장 때 다시 시도된다.
+      debugPrint('필기를 쓰지 못했다: $err');
+      doc.dirty.addAll(pages.keys);
+    }
+  }
+
+  Future<void> _clearInk() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('필기를 모두 지울까요?'),
+        content: const Text('이 회차에 그린 것이 전부 사라집니다. 되돌릴 수 없습니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('그만두기')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('지우기')),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    setState(() => _ink = InkDoc());
+    await Store.instance.clearInk(widget.tag);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _inkSave?.cancel();
+    // 나가기 직전의 획도 남긴다 — 제출하고 나가도 복기 때 보인다.
+    unawaited(_flushInk());
     _pager?.dispose();
     _left.dispose();
     _pdf?.close();
@@ -297,18 +356,39 @@ class _SitScreenState extends State<SitScreen> {
         ),
         body: PageView.builder(
           controller: _pager,
+          // 그리는 중에는 옆으로 안 넘어간다. 획을 긋다 화면이 넘어가면
+          // 그 획이 통째로 날아간다.
+          physics: _inkSet.mode == InkMode.off
+              ? null
+              : const NeverScrollableScrollPhysics(),
           itemCount: items.length,
           onPageChanged: _onPage,
           itemBuilder: (ctx, i) => _SitBody(
             item: items[i],
             pdf: _pdfMode ? _pdf : null,
+            ink: _pdfMode ? _ink : null,
+            inkSettings: _inkSet,
+            onInkChanged: _inkChanged,
             chosen: s.ans[items[i].no],
             flagged: s.flag[items[i].no] ?? false,
             onPick: (n) => _pick(i, n),
             onFlag: () => _toggleFlag(i),
           ),
         ),
-        bottomNavigationBar: SafeArea(
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_pdfMode && _ink != null)
+              InkToolbar(
+                settings: _inkSet,
+                canUndo: _ink!.canUndo,
+                canRedo: _ink!.canRedo,
+                onChanged: (v) => setState(() => _inkSet = v),
+                onUndo: () { _ink!.undo(); _inkChanged(); },
+                onRedo: () { _ink!.redo(); _inkChanged(); },
+                onClear: _clearInk,
+              ),
+            SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
             child: Row(children: [
@@ -327,6 +407,8 @@ class _SitScreenState extends State<SitScreen> {
               ),
             ]),
           ),
+            ),
+          ],
         ),
       ),
     );
@@ -341,8 +423,12 @@ class _SitBody extends StatelessWidget {
   final VoidCallback onFlag;
   /// null 이면 평소대로 HTML 로 그린다.
   final ExamPdf? pdf;
+  final InkDoc? ink;
+  final InkSettings inkSettings;
+  final VoidCallback? onInkChanged;
   const _SitBody({required this.item, required this.chosen, required this.flagged,
-      required this.onPick, required this.onFlag, this.pdf});
+      required this.onPick, required this.onFlag, this.pdf,
+      this.ink, this.inkSettings = const InkSettings(), this.onInkChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -372,7 +458,13 @@ class _SitBody extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             child: Container(
               color: Colors.white,
-              child: QuestionPdfView(pdf: pdf!, no: item.no ?? 0),
+              child: QuestionPdfView(
+                pdf: pdf!,
+                no: item.no ?? 0,
+                ink: ink,
+                inkSettings: inkSettings,
+                onInkChanged: onInkChanged,
+              ),
             ),
           ),
           const SizedBox(height: 10),
