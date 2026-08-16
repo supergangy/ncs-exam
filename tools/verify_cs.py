@@ -1080,6 +1080,298 @@ def v_csnet_017() -> tuple[int, str]:
     return (out[0] if len(out) == 1 else 0), f"사설 아닌 것 {out} ({cand[out[0]-1]})"
 
 
+# ── 네트워크 021~040 ────────────────────────────────────────────────────
+#
+# 주소 계산은 표준 라이브러리(ipaddress)로 맞춘다 — 손으로 옮겨 적지 않는다.
+# 오답 선지 대부분이 「다른 방식으로 풀었을 때 나오는 값」이라, 그 값들도
+# 함께 구해 실제로 나오는지 확인한다.
+
+def v_csnet_021() -> tuple[int, str]:
+    """VLSM — 큰 것부터 배정하고 남는 주소를 센다."""
+    import ipaddress
+    block = ipaddress.ip_network("192.168.1.0/24")
+    need = [("A", 100), ("B", 50), ("C", 25), ("D", 10)]
+    cur, used, log = int(block.network_address), 0, []
+    for name, n in need:
+        bits = 32
+        while 2 ** (32 - bits) - 2 < n:           # 필요 + 2 를 담는 최소 블록
+            bits -= 1
+        size = 2 ** (32 - bits)
+        log.append(f"{name} /{bits}({size - 2}대)")
+        cur += size
+        used += size
+    left = block.num_addresses - used
+    return left, f"{' · '.join(log)} · 쓴 주소 {used} · 남는 주소 {left}"
+
+
+def v_csnet_022() -> tuple[int, str]:
+    """같은 서브넷인 쌍은 하나뿐이어야 한다."""
+    import ipaddress
+    pairs = [("10.0.0.30", "10.0.0.35"), ("10.0.0.126", "10.0.0.130"),
+             ("10.0.0.1", "10.0.0.33"), ("10.0.0.200", "10.0.0.230"),
+             ("10.0.0.65", "10.0.0.90")]
+    same = [i for i, (a, b) in enumerate(pairs, 1)
+            if ipaddress.ip_network(f"{a}/27", strict=False)
+            == ipaddress.ip_network(f"{b}/27", strict=False)]
+    if len(same) != 1:
+        raise AssertionError(f"같은 서브넷인 쌍이 하나가 아니다 {same}")
+    return same[0], f"/27 경계 32단위 · 같은 쌍 {same} {pairs[same[0]-1]}"
+
+
+def v_csnet_023() -> tuple[str, str]:
+    """호스트 범위 — /22 는 세 번째 옥텟 네 칸을 덮는다."""
+    import ipaddress
+    n = ipaddress.ip_network("172.16.20.100/22", strict=False)
+    rng = f"{n[1]} ~ {n[-2]}"
+    wrong = {p: str(ipaddress.ip_network(f"172.16.20.100/{p}", strict=False)[-2])
+             for p in (23, 24)}
+    return rng, (f"네트워크 {n.network_address} · 브로드캐스트 "
+                 f"{n.broadcast_address} · 호스트 {n.num_addresses - 2}대 · "
+                 f"/23 끝 {wrong[23]}(오답④) · /24 끝 {wrong[24]}(오답②)")
+
+
+def v_csnet_024() -> tuple[int, str]:
+    """IPv6 축약 — 유효하면서 같은 주소인 표기는 하나뿐이어야 한다."""
+    import ipaddress
+    target = ipaddress.ip_address("2001:0db8:0000:0000:0000:ff00:0042:8329")
+    cands = ["2001:db8:0:0:0:ff:42:8329", "2001::db8::ff00:42:8329",
+             "2001:0db8::ff00:42:83:29", "2001:db8::ff00:42:8329",
+             "2001:db8::42:8329"]
+    ok, notes = [], []
+    for i, c in enumerate(cands, 1):
+        try:
+            same = ipaddress.ip_address(c) == target
+        except ValueError:
+            notes.append(f"{i} 형식오류")
+            continue
+        notes.append(f"{i} {'일치' if same else '다른 주소'}")
+        if same:
+            ok.append(i)
+    if len(ok) != 1:
+        raise AssertionError(f"같은 주소인 표기가 하나가 아니다 {ok}")
+    return ok[0], " · ".join(notes)
+
+
+def v_csnet_025() -> tuple[tuple, str]:
+    """거리 벡터 — 이웃 링크 비용을 더한 값과 비교해 갱신한다."""
+    cost = {"B": 2, "C": 5}
+    cur = {"B": 2, "C": 5, "D": 9, "E": 12}
+    recv = {"B": {"C": 1, "D": 4, "E": 7}, "C": {"B": 1, "D": 2, "E": 4}}
+    new = {}
+    for dest in ("B", "C", "D", "E"):
+        via = [cost[nb] + v[dest] for nb, v in recv.items() if dest in v]
+        new[dest] = min([cur[dest]] + via)
+    if new["C"] >= cur["C"]:
+        raise AssertionError("직접 이웃 C 가 줄지 않는다 — 함정이 성립하지 않는다")
+    return tuple(new[d] for d in ("B", "C", "D", "E")), \
+        f"기존 {cur} → 갱신 {new} (C 가 5 → {new['C']} 로 줄어든다)"
+
+
+def v_csnet_026() -> tuple[str, str]:
+    """최장 접두사 일치 — 다섯 항목에 모두 맞아야 규칙을 쓰게 된다."""
+    import ipaddress
+    table = [("10.0.0.0/8", "E0"), ("10.1.0.0/16", "E1"),
+             ("10.1.2.0/24", "E2"), ("10.1.2.128/25", "E3"),
+             ("0.0.0.0/0", "E4")]
+
+    def pick(dst):
+        ip = ipaddress.ip_address(dst)
+        hit = [(ipaddress.ip_network(n), i) for n, i in table
+               if ip in ipaddress.ip_network(n)]
+        return max(hit, key=lambda x: x[0].prefixlen), len(hit)
+
+    (net, iface), n = pick("10.1.2.200")
+    (net2, iface2), _ = pick("10.1.2.50")
+    if n != len(table):
+        raise AssertionError(f"다섯 항목에 다 맞지 않는다 ({n}개)")
+    return iface, (f"10.1.2.200 → {iface} ({net}) · 다섯 항목 모두 일치 · "
+                   f"10.1.2.50 이면 {iface2}({net2})")
+
+
+def v_csnet_027() -> tuple[int, str]:
+    """무한 계수 — 값이 실제로 발산하는지 굴려 보고, 진술 표에서 답을 뽑는다."""
+    a, log = 2, []
+    for _ in range(3):
+        b = a + 1                                 # B 가 A 를 보고 올린다
+        a = b + 1                                 # A 가 B 를 보고 올린다
+        log.append((b, a))
+    if a <= 4:
+        raise AssertionError("값이 발산하지 않는다")
+    claims = [
+        ("무한 계수 · 스플릿 호라이즌", True),
+        ("브로드캐스트 폭풍 · STP", False),
+        ("라우팅 루프 · TTL 0", False),
+        ("블랙홀 · 링크상태 전환", False),
+        ("비대칭 경로 · 경로 고정", False),
+    ]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"B→C·A→C 값 {log} 로 발산 · 참인 진술 {right}"
+
+
+def v_csnet_028() -> tuple[tuple, str]:
+    """Reno — 3중 중복 ACK 면 임계값을 절반(버림)으로 내리고 윈도도 그 값."""
+    cwnd, ssthresh = 1, 8
+    for _ in range(6):                            # 1 → 7번째 왕복까지
+        cwnd = cwnd * 2 if cwnd < ssthresh else cwnd + 1
+    if cwnd % 2 == 0:
+        raise AssertionError("손실 시점 윈도가 짝수다 — 버림이 드러나지 않는다")
+    new_ss = cwnd // 2
+    return (new_ss, new_ss), (f"7번째 왕복 윈도 {cwnd} → 임계값 {new_ss}(버림) · "
+                              f"윈도 {new_ss} · 타임아웃이면 ({new_ss}, 1)(오답①)")
+
+
+def v_csnet_029() -> tuple[int, str]:
+    """SYN 이 순서번호 1 을 쓴다 — 1500 과 1501 이 여기서 갈린다."""
+    c_isn, data = 1000, 500
+    first = c_isn + 1                             # SYN 이 1000 을 소비
+    ack = first + data
+    return ack, (f"SYN seq {c_isn} → 데이터 시작 {first} · {data}B 뒤 ACK {ack} · "
+                 f"SYN 을 안 세면 {c_isn + data}(오답③)")
+
+
+def v_csnet_030() -> tuple[int, str]:
+    """GBN 은 윈도만큼, SR 은 손실분만."""
+    w, frames, lost = 4, list(range(1, 9)), 3
+    gbn = [f for f in frames if lost <= f < lost + w]
+    rest = [f for f in frames if f >= lost]
+    return len(gbn) - 1, (f"GBN {gbn} {len(gbn)}개 · SR [{lost}] 1개 · "
+                          f"차이 {len(gbn) - 1} · 남은 전부면 {len(rest)}개"
+                          f"(차이 {len(rest) - 1}, 오답⑤)")
+
+
+def v_csnet_031() -> tuple[int, str]:
+    """대역폭-지연 곱 — 비트를 바이트로 바꾸는 단계가 판정 지점."""
+    bw, rtt_ms, seg = 100e6, 40, 1000
+    bits = bw * rtt_ms / 1000
+    segs = int(bits / 8 / seg)
+    return segs, (f"{bits:,.0f}bit = {bits/8:,.0f}B → {segs}개 · "
+                  f"편도로 보면 {segs//2}(오답②) · 바이트 변환 빠뜨리면 "
+                  f"{int(bits/seg)}(오답⑤)")
+
+
+def v_csnet_032() -> tuple[int, str]:
+    """해밍(7,4) — 세 검사가 모두 걸리는 자리를 답으로 둔다."""
+    recv = {1: 0, 2: 1, 3: 1, 4: 0, 5: 0, 6: 1, 7: 0}
+    syn, detail = 0, []
+    for p in (1, 2, 4):
+        cov = [i for i in range(1, 8) if i & p]
+        s = sum(recv[i] for i in cov) % 2
+        syn += p * s
+        detail.append(f"P{p}{cov}={s}")
+    if syn != 7:
+        raise AssertionError(f"증후군이 7 이 아니다 ({syn})")
+    fixed = dict(recv)
+    fixed[syn] ^= 1
+    for p in (1, 2, 4):                           # 정정하면 다 맞아야 한다
+        if sum(fixed[i] for i in range(1, 8) if i & p) % 2:
+            raise AssertionError("정정 후에도 패리티가 안 맞는다")
+    return syn, (" · ".join(detail) + f" → 증후군 {syn} · "
+                 f"정정 후 {[fixed[i] for i in range(1, 8)]}")
+
+
+def v_csnet_033() -> tuple[int, str]:
+    """인터넷 체크섬 — 자리올림을 되돌려 더한 뒤 1의 보수."""
+    words = [0x4500, 0x003C, 0x1C46, 0x4000, 0x4006,
+             0xAC10, 0x0A63, 0xAC10, 0x0A0C]
+    s = 0
+    for w in words:
+        s += w
+        s = (s & 0xFFFF) + (s >> 16)
+    ck = (~s) & 0xFFFF
+    v = 0
+    for w in words + [ck]:                        # 검산 — 다 더하면 0xFFFF
+        v += w
+        v = (v & 0xFFFF) + (v >> 16)
+    if v != 0xFFFF:
+        raise AssertionError(f"검산 실패 0x{v:04X}")
+    return ck, f"합 0x{s:04X}(오답①) → 체크섬 0x{ck:04X} · 검산 0x{v:04X}"
+
+
+def v_csnet_034() -> tuple[float, str]:
+    """정지-대기 이용률 — 전파는 왕복으로 센다."""
+    frame, bw, prop = 1000, 1e6, 20
+    tf = frame / bw * 1000
+    u = round(tf / (tf + 2 * prop) * 100, 2)
+    half = round(tf / (tf + prop) * 100, 2)
+    w8 = round(min(1.0, 8 * tf / (tf + 2 * prop)) * 100, 2)
+    return u, (f"전송 {tf}ms · 왕복 {2*prop}ms → {u}% · "
+               f"편도로만 보면 {half}%(오답②) · 윈도 8 이면 {w8}%(오답③)")
+
+
+def v_csnet_035() -> tuple[float, str]:
+    """저장-후-전달 — 구간이 겹쳐 일한다. (패킷 + 구간 − 1) × 구간시간."""
+    length, rate, hops, n = 1000, 1e6, 3, 3
+    one = length / rate * 1000
+    total = round((n + hops - 1) * one, 1)
+    return total, (f"구간시간 {one}ms · ({n} + {hops} − 1) × {one} = {total}ms · "
+                   f"곱으로 보면 {n*hops*one}ms(오답④) · "
+                   f"패킷 하나면 {hops*one}ms(오답②)")
+
+
+def v_csnet_036() -> tuple[int, str]:
+    """반복 질의 — 로컬이 낸 3쌍 + 호스트와의 1쌍."""
+    outer_pairs, host_pairs = 3, 1                # 루트·TLD·권한 / 호스트–로컬
+    total = (outer_pairs + host_pairs) * 2
+    return total, (f"로컬이 낸 질의 {outer_pairs}쌍 + 호스트와 {host_pairs}쌍 = "
+                   f"{total}개 · 호스트 구간을 빼면 {outer_pairs*2}(오답③)")
+
+
+def v_csnet_037() -> tuple[int, str]:
+    """비지속은 객체마다 2 RTT. 기본 문서를 세는가가 판정 지점."""
+    n = 5
+    nonp, pers = 2 * (n + 1), 2 + n
+    return nonp, (f"비지속 2×({n}+1) = {nonp} · 지속 2+{n} = {pers}(오답②) · "
+                  f"기본 문서를 빼면 {2*n}(오답③)")
+
+
+def v_csnet_038() -> tuple[tuple, str]:
+    """스위치는 보내는 쪽으로 배우고 받는 쪽으로 찾는다."""
+    table, flooded, log = {}, [], []
+    events = [("ㄱ", "A", "B", 1), ("ㄴ", "B", "A", 2),
+              ("ㄷ", "C", "A", 3), ("ㄹ", "A", "C", 1)]
+    for tag, src, dst, port in events:
+        table[src] = port
+        if dst in table:
+            log.append(f"{tag} 포트{table[dst]}")
+        else:
+            flooded.append(tag)
+            log.append(f"{tag} 플러딩")
+    return tuple(flooded), " · ".join(log) + f" · 플러딩 {flooded}"
+
+
+def v_csnet_039() -> tuple[int, str]:
+    """IP 단편화 — 오프셋은 8바이트 단위."""
+    total, hdr, mtu = 4000, 20, 1500
+    per = (mtu - hdr) // 8 * 8
+    left, off, frags = total - hdr, 0, []
+    while left > 0:
+        take = min(per, left)
+        frags.append((take, off))
+        off += take // 8
+        left -= take
+    last = frags[-1][1]
+    return last, (f"조각 {len(frags)}개 {[n for n, _ in frags]} · "
+                  f"오프셋 {[o for _, o in frags]} · "
+                  f"마지막 {last} · 8로 안 나누면 {last*8}(오답⑤)")
+
+
+def v_csnet_040() -> tuple[int, str]:
+    """TIME_WAIT — 능동 종료 쪽에 생기고 포트가 2 MSL 동안 묶인다."""
+    facts = [
+        ("마지막 ACK 유실 대비", True),
+        ("수동 종료 쪽에서 발생", False),          # 능동 종료 쪽이다
+        ("송신 버퍼 비우기용", False),             # FIN 이전에 끝난다
+        ("포트가 곧바로 풀린다", False),           # 2 MSL 동안 묶인다
+        ("서버 쪽에 오래 머무는 것이 정상", False),  # 보통 클라이언트다
+    ]
+    right = [i for i, (_, t) in enumerate(facts, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"참인 진술 {right} ({facts[right[0]-1][0]}) · 2 MSL = 왕복 최대 수명"
+
+
 # ── 정보보안 ────────────────────────────────────────────────────────────
 
 def v_cssec_001() -> tuple[int, str]:
@@ -2178,6 +2470,47 @@ REGISTRY = {
     # 020 포트까지 변환해 N:1 을 만드는 것은 PAT (선지 ③)
     "major-csnet-common-020": (lambda: (3, "정적 1:1 고정 · 동적 1:1 임시 · PAT N:1"),
                                lambda i: i),
+    "major-csnet-common-021": (v_csnet_021, lambda n: {2: 1, 6: 2, 8: 3, 14: 4,
+                                                       16: 5}[n]),
+    "major-csnet-common-022": (v_csnet_022, lambda i: i),
+    "major-csnet-common-023": (v_csnet_023, lambda r: {
+        "172.16.20.1 ~ 172.16.23.254": 1, "172.16.20.1 ~ 172.16.20.254": 2,
+        "172.16.20.0 ~ 172.16.23.255": 3, "172.16.20.1 ~ 172.16.21.254": 4,
+        "172.16.16.1 ~ 172.16.19.254": 5}[r]),
+    "major-csnet-common-024": (v_csnet_024, lambda i: i),
+    "major-csnet-common-025": (v_csnet_025, lambda t: {
+        (2, 5, 9, 12): 1, (2, 3, 6, 7): 2, (2, 5, 7, 9): 3, (3, 3, 6, 9): 4,
+        (2, 3, 6, 9): 5}[t]),
+    "major-csnet-common-026": (v_csnet_026, lambda s: {"E0": 1, "E1": 2, "E2": 3,
+                                                       "E3": 4, "E4": 5}[s]),
+    "major-csnet-common-027": (v_csnet_027, lambda i: i),
+    "major-csnet-common-028": (v_csnet_028, lambda t: {
+        (5, 1): 1, (5, 5): 2, (5, 6): 3, (8, 5): 4, (11, 5): 5}[t]),
+    "major-csnet-common-029": (v_csnet_029, lambda n: {1000: 1, 1001: 2, 1500: 3,
+                                                       1501: 4, 5001: 5}[n]),
+    "major-csnet-common-030": (v_csnet_030, lambda n: {0: 1, 1: 2, 2: 3, 3: 4,
+                                                       5: 5}[n]),
+    "major-csnet-common-031": (v_csnet_031, lambda n: {125: 1, 250: 2, 500: 3,
+                                                       1000: 4, 4000: 5}[n]),
+    "major-csnet-common-032": (v_csnet_032, lambda n: {3: 1, 4: 2, 5: 3, 6: 4,
+                                                       7: 5}[n]),
+    "major-csnet-common-033": (v_csnet_033, lambda n: {0x4E19: 1, 0x4E1A: 2,
+                                                       0xB1E6: 3, 0xB1E7: 4,
+                                                       0xFFFF: 5}[n]),
+    "major-csnet-common-034": (v_csnet_034, lambda n: {2.44: 1, 4.76: 2, 19.51: 3,
+                                                       50.0: 4, 97.56: 5}[n]),
+    "major-csnet-common-035": (v_csnet_035, lambda n: {1.0: 1, 3.0: 2, 5.0: 3,
+                                                       9.0: 4, 15.0: 5}[n]),
+    "major-csnet-common-036": (v_csnet_036, lambda n: {2: 1, 4: 2, 6: 3, 8: 4,
+                                                       10: 5}[n]),
+    "major-csnet-common-037": (v_csnet_037, lambda n: {6: 1, 7: 2, 10: 3, 11: 4,
+                                                       12: 5}[n]),
+    "major-csnet-common-038": (v_csnet_038, lambda t: {
+        ("ㄱ",): 1, ("ㄱ", "ㄴ"): 2, ("ㄱ", "ㄷ"): 3, ("ㄴ", "ㄹ"): 4,
+        ("ㄱ", "ㄴ", "ㄷ"): 5}[t]),
+    "major-csnet-common-039": (v_csnet_039, lambda n: {185: 1, 296: 2, 370: 3,
+                                                       1480: 4, 2960: 5}[n]),
+    "major-csnet-common-040": (v_csnet_040, lambda i: i),
 
     "major-cssec-common-001": (v_cssec_001, lambda d: {
         13: 1, 37: 2, 43: 3, 53: 4, 60: 5}[d]),
