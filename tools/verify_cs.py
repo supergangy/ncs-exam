@@ -1729,6 +1729,256 @@ def v_csse_017() -> tuple[int, str]:
     return (len(ce), f"조건⊅결정 반례 {len(ce)}개 · 최소 예 {show} · 강도 {m}")
 
 
+# ── 소프트웨어공학 019~036 ──────────────────────────────────────────────
+#
+# 산정식은 앞 문항의 결과를 재료로 쓰는 것이 많아, 중간값도 함께 돌려
+# 오답 선지가 실제 계산 경로에서 나오는지 확인한다.
+
+def v_csse_019() -> tuple[int, str]:
+    """COCOMO 기간 — 노력을 먼저 구하고 그 값을 다시 넣는다."""
+    k = 50
+    e = 2.4 * k ** 1.05
+    d = 2.5 * e ** 0.38
+    if round(d) == round(e):
+        raise AssertionError("노력과 기간이 같아 오답 ⑤가 안 선다")
+    return round(d), (f"노력 {e:.1f} 인월 → 기간 {d:.1f} ≈ {round(d)}개월 · "
+                      f"노력 그대로 {round(e)}(오답⑤) · 지수 0.32 면 "
+                      f"{2.5 * e ** 0.32:.1f}(오답②) · E/12 = {e/12:.1f}(오답①)")
+
+
+def v_csse_020() -> tuple[int, str]:
+    """기능점수 — 보정 계수를 곱하는 단계까지."""
+    rows = [(12, 4), (6, 5), (5, 4), (4, 10), (3, 7)]
+    ufp = sum(c * w for c, w in rows)
+    tdi = 50
+    vaf = round(0.65 + 0.01 * tdi, 2)
+    if vaf == 1.0:
+        raise AssertionError("보정 계수가 1.00 이라 보정 전후가 같다")
+    return round(ufp * vaf), (f"UFP {ufp}(오답③) × VAF {vaf} = {ufp*vaf:.1f} · "
+                              f"TDI 0 이면 {round(ufp*0.65)}(오답①)")
+
+
+def v_csse_021() -> tuple[tuple, str]:
+    """CPM — 여유가 있는 작업은 임계경로 밖에 있다."""
+    t = {"A": 3, "B": 4, "C": 2, "D": 5, "E": 6, "F": 2, "G": 1}
+    pre = {"A": [], "B": ["A"], "C": ["A"], "D": ["B"], "E": ["C"],
+           "F": ["D"], "G": ["E"]}
+    suc = {k: [] for k in t}
+    for k, v in pre.items():
+        for p in v:
+            suc[p].append(k)
+    es = {}
+
+    def early(x):
+        if x not in es:
+            es[x] = max([early(p) + t[p] for p in pre[x]], default=0)
+        return es[x]
+
+    for k in t:
+        early(k)
+    proj = max(es[k] + t[k] for k in t)
+    lf = {}
+
+    def late(x):
+        if x not in lf:
+            lf[x] = min([late(s) - t[s] for s in suc[x]], default=proj)
+        return lf[x]
+
+    for k in t:
+        late(k)
+    slack = {k: lf[k] - t[k] - es[k] for k in t}
+    loose = tuple(sorted(k for k in t if slack[k] > 0))
+    crit = tuple(sorted(k for k in t if slack[k] == 0))
+    if not loose or not crit:
+        raise AssertionError("임계경로 또는 여유 작업이 없다")
+    return loose, f"전체 {proj}일 · 임계경로 {crit}(오답①) · 여유 {loose} {[slack[k] for k in loose]}"
+
+
+def v_csse_022() -> tuple[int, str]:
+    """인월 ÷ 개월 = 사람 수."""
+    effort, months = 146, 17
+    return round(effort / months), (f"{effort} ÷ {months} = {effort/months:.1f} → "
+                                    f"{round(effort/months)}명 · 12개월이면 "
+                                    f"{round(effort/12)}명(오답③)")
+
+
+def v_csse_023() -> tuple[float, str]:
+    """EVM — SPI 와 CPI 가 갈려야 어느 것을 물었는지 드러난다."""
+    pv, ev, ac = 1000, 800, 1250
+    spi, cpi = round(ev / pv, 2), round(ev / ac, 2)
+    if spi == cpi:
+        raise AssertionError("SPI 와 CPI 가 같다")
+    return cpi, (f"SPI {spi}(오답②) · CPI {cpi} · PV/EV {pv/ev:.2f}(오답④) · "
+                 f"AC/EV {ac/ev:.2f}(오답⑤)")
+
+
+def v_csse_024() -> tuple[int, str]:
+    """MC/DC — 각 조건이 홀로 결과를 바꾸는 짝이 있어야 한다."""
+    from itertools import combinations, product
+    cases = list(product([True, False], repeat=2))
+
+    def ok(ts):
+        for i in (0, 1):
+            pairs = [(a, b) for a in ts for b in ts
+                     if a[1 - i] == b[1 - i] and a[i] != b[i]
+                     and (a[0] and a[1]) != (b[0] and b[1])]
+            if not pairs:
+                return False
+        return True
+
+    n = next(k for k in range(1, 5)
+             if any(ok(ts) for ts in combinations(cases, k)))
+    if n != 3:
+        raise AssertionError(f"MC/DC 최소가 3 이 아니다 ({n})")
+    return n, f"MC/DC 최소 {n}개 · 결정 2개(오답②) · 다중조건 {2**2}개(오답④)"
+
+
+def v_csse_025() -> tuple[int, str]:
+    """없는 쪽을 대신한다 — 하향식은 스텁, 상향식은 드라이버."""
+    way = {"하향식": {"먼저": "상위", "없는쪽": "하위", "대역": "스텁"},
+           "상향식": {"먼저": "하위", "없는쪽": "상위", "대역": "드라이버"}}
+    claims = [("하향식은 스텁", way["하향식"]["대역"] == "스텁"),
+              ("하향식 드라이버 · 상향식 스텁", way["하향식"]["대역"] == "드라이버"),
+              ("상향식이 상위를 먼저 검증", way["상향식"]["먼저"] == "상위"),
+              ("하향식은 대역 모듈 불필요", False),
+              ("둘 다 스텁·드라이버 함께", False)]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"{way} · 참인 진술 {right}"
+
+
+def v_csse_026() -> tuple[int, str]:
+    """경계값 분석 — 경계 2개 × 세 값."""
+    lo, hi = 1, 100
+    vals = sorted({lo - 1, lo, lo + 1, hi - 1, hi, hi + 1})
+    short = sorted({lo - 1, lo, hi, hi + 1})
+    return len(vals), f"{vals} → {len(vals)}개 · 축약형 {short} {len(short)}개(오답③)"
+
+
+def v_csse_027() -> tuple[int, str]:
+    """모든 조합은 곱, 약결합은 최댓값."""
+    age, grade = 3, 4
+    full, weak = age * grade, max(age, grade)
+    if full == weak:
+        raise AssertionError("곱과 최댓값이 같다")
+    return full, f"{age} × {grade} = {full} · 약결합 max = {weak}(오답②) · 합 {age+grade}(오답③)"
+
+
+def v_csse_028() -> tuple[int, str]:
+    """응집도 — 강할수록 좋다. 016(결합도)과 방향이 반대."""
+    order = ["우연적", "논리적", "시간적", "절차적", "교환적", "순차적", "기능적"]
+    opts = ["우연적", "논리적", "절차적", "교환적", "기능적"]
+    best = max(opts, key=order.index)
+    if best != "기능적":
+        raise AssertionError("가장 강한 것이 기능적이 아니다")
+    return opts.index(best) + 1, f"약→강 {order} · 선지 중 가장 강한 것 {best}"
+
+
+def v_csse_029() -> tuple[int, str]:
+    """옵서버 — 세 단서(자동 통지 · 실행 중 등록 · 구체 은닉)를 모두 만족."""
+    pat = {"싱글턴": set(), "팩토리 메서드": set(), "어댑터": set(),
+           "옵서버": {"자동통지", "동적등록", "구체은닉"},
+           "데코레이터": {"동적등록"}}
+    need = {"자동통지", "동적등록", "구체은닉"}
+    hit = [i for i, (_, f) in enumerate(pat.items(), 1) if need <= f]
+    if len(hit) != 1:
+        raise AssertionError(f"세 단서를 모두 만족하는 것이 하나가 아니다 {hit}")
+    return hit[0], f"단서 {sorted(need)} → {list(pat)[hit[0]-1]}"
+
+
+def v_csse_030() -> tuple[int, str]:
+    """확장할 때마다 기존 코드를 고친다 → 개방-폐쇄 원칙 위반."""
+    signs = {"개방-폐쇄": {"확장시 기존 코드 수정"},
+             "단일 책임": {"바뀔 이유가 둘 이상"},
+             "리스코프 치환": {"자식이 부모 자리에서 깨짐"},
+             "인터페이스 분리": {"쓰지 않는 기능에 의존"},
+             "의존 역전": {"구체 클래스에 직접 의존"}}
+    seen = {"확장시 기존 코드 수정"}
+    hit = [i for i, (_, s) in enumerate(signs.items(), 1) if seen <= s]
+    if len(hit) != 1:
+        raise AssertionError(f"맞는 원칙이 하나가 아니다 {hit}")
+    return hit[0], f"신호 {sorted(seen)} → {list(signs)[hit[0]-1]}"
+
+
+def v_csse_031() -> tuple[int, str]:
+    """속도를 평균으로 잡는지, 최근·최저로 잡는지에 따라 갈린다."""
+    import math
+    done, remain = [22, 26, 30], 200
+    avg = sum(done) / len(done)
+    n = math.ceil(remain / avg)
+    alt = {"최근": math.ceil(remain / done[-1]), "최저": math.ceil(remain / min(done))}
+    if n in alt.values():
+        raise AssertionError(f"평균과 다른 기준의 답이 겹친다 {n} {alt}")
+    return n, f"평균 {avg:.0f} → {remain/avg:.2f} → {n}회 · 다른 기준 {alt}"
+
+
+def v_csse_032() -> tuple[int, str]:
+    """네 조건이 폭포수 하나만 남기는지 본다."""
+    fit = {"애자일": {"요구변동"}, "프로토타입": {"요구불명확"},
+           "나선형": {"고위험"}, "폭포수": {"요구고정", "사전승인", "문서중심"},
+           "진화적": {"요구변동"}}
+    cond = {"요구고정", "사전승인", "문서중심"}
+    hit = [i for i, (_, f) in enumerate(fit.items(), 1) if cond <= f]
+    if len(hit) != 1:
+        raise AssertionError(f"맞는 모형이 하나가 아니다 {hit}")
+    return hit[0], f"조건 {sorted(cond)} → {list(fit)[hit[0]-1]}"
+
+
+def v_csse_033() -> tuple[int, str]:
+    """MoSCoW — Won't 는 미정이 아니라 「이번엔 안 함」이다."""
+    rank = {"Must": 1, "Should": 2, "Could": 3}
+    claims = [("Must 없으면 성립 불가", rank["Must"] == 1),
+              ("Should 가 가장 낮다", rank["Should"] == max(rank.values())),
+              ("Could 는 반드시 넣되 미룬다", False),
+              ("Won't 는 미정", False),
+              ("네 등급 개수를 같게", False)]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"우선순위 {rank} · Won't = 이번 범위 제외 · 참인 진술 {right}"
+
+
+def v_csse_034() -> tuple[int, str]:
+    """가용성 = MTBF ÷ (MTBF + MTTR)."""
+    mtbf, mttr = 950, 50
+    a = round(mtbf / (mtbf + mttr) * 100)
+    ratio = round(mtbf / mttr)
+    if a == ratio:
+        raise AssertionError("올바른 값과 잘못 나눈 값이 같다")
+    return a, (f"{mtbf}/({mtbf}+{mttr}) = {a}% · MTBF/MTTR = {ratio}(오답②) · "
+               f"MTTR/MTBF = {round(mttr/mtbf*100)}%(오답①)")
+
+
+def v_csse_035() -> tuple[int, str]:
+    """세 단서가 수정·적응·완전을 모두 배제한다."""
+    kinds = ["수정", "적응", "완전", "예방", "긴급"]
+    trigger = {"수정": "결함", "적응": "환경변화", "완전": "요구변화",
+               "예방": "장래문제", "긴급": None}
+    seen = "장래문제"
+    hit = [i for i, k in enumerate(kinds, 1) if trigger[k] == seen]
+    if len(hit) != 1:
+        raise AssertionError(f"맞는 유형이 하나가 아니다 {hit}")
+    if trigger["긴급"] is not None:
+        raise AssertionError("긴급은 표준 분류가 아니어야 한다")
+    return hit[0], f"{trigger} · 단서 {seen} → {kinds[hit[0]-1]}"
+
+
+def v_csse_036() -> tuple[str, str]:
+    """MINOR 를 올리면 PATCH 는 0 으로 되돌린다."""
+    def bump(v, kind):
+        a, b, c = (int(x) for x in v.split("."))
+        return {"major": f"{a+1}.0.0", "minor": f"{a}.{b+1}.0",
+                "patch": f"{a}.{b}.{c+1}"}[kind]
+
+    cur = "1.4.2"
+    nxt = bump(cur, "minor")
+    if nxt.endswith(cur.split(".")[-1]):
+        raise AssertionError("PATCH 가 되돌려지지 않았다")
+    return nxt, (f"{cur} → patch {bump(cur,'patch')}(오답②) · "
+                 f"minor {nxt} · major {bump(cur,'major')}(오답⑤)")
+
+
 # ── 프로그래밍언어 ──────────────────────────────────────────────────────
 
 def _swap_sim(mode: str) -> tuple[int, int]:
@@ -3612,6 +3862,35 @@ REGISTRY = {
     # 018 요구가 불분명할 때 → 프로토타입 (선지 ②)
     "major-csse-common-018": (lambda: (2, "시제품은 버려지는 비용 — 일정이 빠듯하면 불리"),
                               lambda i: i),
+    "major-csse-common-019": (v_csse_019, lambda n: {12: 1, 13: 2, 17: 3, 21: 4,
+                                                     146: 5}[n]),
+    "major-csse-common-020": (v_csse_020, lambda n: {103: 1, 130: 2, 159: 3,
+                                                     175: 4, 183: 5}[n]),
+    "major-csse-common-021": (v_csse_021, lambda t: {
+        ("A", "B", "D", "F"): 1, ("B", "D", "F"): 2, ("C", "E"): 3,
+        ("C", "E", "G"): 4}[t]),
+    "major-csse-common-022": (v_csse_022, lambda n: {5: 1, 9: 2, 12: 3, 17: 4,
+                                                     146: 5}[n]),
+    "major-csse-common-023": (v_csse_023, lambda v: {0.64: 1, 0.8: 2, 1.0: 3,
+                                                     1.25: 4, 1.56: 5}[v]),
+    "major-csse-common-024": (v_csse_024, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[n]),
+    "major-csse-common-025": (v_csse_025, lambda i: i),
+    "major-csse-common-026": (v_csse_026, lambda n: {2: 1, 3: 2, 4: 3, 6: 4, 8: 5}[n]),
+    "major-csse-common-027": (v_csse_027, lambda n: {3: 1, 4: 2, 7: 3, 12: 4,
+                                                     16: 5}[n]),
+    "major-csse-common-028": (v_csse_028, lambda i: i),
+    "major-csse-common-029": (v_csse_029, lambda i: i),
+    "major-csse-common-030": (v_csse_030, lambda i: i),
+    "major-csse-common-031": (v_csse_031, lambda n: {6: 1, 7: 2, 8: 3, 9: 4,
+                                                     10: 5}[n]),
+    "major-csse-common-032": (v_csse_032, lambda i: i),
+    "major-csse-common-033": (v_csse_033, lambda i: i),
+    "major-csse-common-034": (v_csse_034, lambda n: {5: 1, 19: 2, 90: 3, 95: 4,
+                                                     99: 5}[n]),
+    "major-csse-common-035": (v_csse_035, lambda i: i),
+    "major-csse-common-036": (v_csse_036, lambda s: {"1.4.2": 1, "1.4.3": 2,
+                                                     "1.5.0": 3, "1.5.2": 4,
+                                                     "2.0.0": 5}[s]),
 
     "major-cspl-common-001": (v_cspl_001, lambda s: {
         "10 20": 1, "20 10": 2, "10 10": 3, "20 20": 4}[s]),
