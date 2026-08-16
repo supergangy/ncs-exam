@@ -1404,6 +1404,241 @@ def v_cssec_012() -> tuple[int, str]:
     return int(ale), (f"SLE {int(sle):,}(오답③) × ARO {aro} = ALE {int(ale):,}")
 
 
+# ── 정보보안 019~036 ────────────────────────────────────────────────────
+#
+# 암호 연산은 실제로 돌려 복호까지 확인하고, 개념형은 정의를 표로 두고
+# 참인 진술이 하나뿐인지 본다.
+
+def v_cssec_019() -> tuple[int, str]:
+    """RSA — 암호화한 뒤 복호해 원문이 돌아오는지까지 본다."""
+    p, q, e, m = 5, 11, 3, 9
+    n, phi = p * q, (p - 1) * (q - 1)
+    d = pow(e, -1, phi)
+    c = pow(m, e, n)
+    if pow(c, d, n) != m:
+        raise AssertionError("복호가 원문으로 돌아오지 않는다")
+    wrong = {"mod 전": m ** e, "φ로 나눔": pow(m, e, phi), "d로 암호화": pow(m, d, n),
+             "d 자체": d}
+    if c in wrong.values():
+        raise AssertionError(f"정답이 오답 경로와 겹친다 {c} {wrong}")
+    return c, f"n={n} φ={phi} d={d} · {m}^{e} mod {n} = {c} · 오답 경로 {wrong}"
+
+
+def v_cssec_020() -> tuple[str, str]:
+    """비제네르 — 복호한 뒤 다시 암호화해 원래 암호문으로 돌아오는지 본다."""
+    ct, key = "LXFOPV", "LEMON"
+    pt = "".join(chr((ord(c) - ord(key[i % len(key)])) % 26 + 65)
+                 for i, c in enumerate(ct))
+    back = "".join(chr((ord(c) - 65 + ord(key[i % len(key)]) - 65) % 26 + 65)
+                   for i, c in enumerate(pt))
+    if back != ct:
+        raise AssertionError("다시 암호화해도 원래 암호문이 아니다")
+    caesar = "".join(chr((ord(c) - 65 - 3) % 26 + 65) for c in ct)
+    return pt, f"복호 {pt} · 재암호화 {back} · 시저(−3)면 {caesar}(오답⑤)"
+
+
+def v_cssec_021() -> tuple[str, str]:
+    """XOR — AND · OR · 덧셈과 결과가 모두 달라야 오답이 선다."""
+    p, k = 0b10110011, 0b01101010
+    c = p ^ k
+    others = {"AND": p & k, "OR": p | k, "덧셈": (p + k) & 0xFF, "평문": p}
+    if c in others.values():
+        raise AssertionError(f"XOR 결과가 다른 연산과 겹친다 {c} {others}")
+    if c ^ k != p:
+        raise AssertionError("한 번 더 XOR 해도 평문이 안 돌아온다")
+    return f"{c:08b}", (f"{p:08b} ⊕ {k:08b} = {c:08b} · "
+                        + " · ".join(f"{n} {v:08b}" for n, v in others.items()))
+
+
+def v_cssec_022() -> tuple[int, str]:
+    """공개키는 사람당 두 개 — 대칭키의 제곱 증가와 대비된다."""
+    n = 100
+    pub = 2 * n
+    sym = n * (n - 1) // 2
+    return pub, (f"{n}명 — 공개키 {pub}개 · 대칭키 {sym}개(오답③) · "
+                 f"방향별이면 {n*(n-1)}(오답④)")
+
+
+def v_cssec_023() -> tuple[int, str]:
+    """전수조사 — 자릿수를 정확히 세는지가 판정 지점."""
+    bits, per_sec = 56, 1e12
+    sec = 2 ** bits / per_sec
+    rounded = round(sec, -3)                       # 72,058 → 72,000
+    return int(rounded), (f"2^{bits} = {2**bits:.2g} ÷ {per_sec:.0e} = "
+                          f"{sec:,.0f}초 ≈ {int(rounded):,}초 = {sec/3600:.1f}시간")
+
+
+def v_cssec_024() -> tuple[int, str]:
+    """충돌 저항은 출력의 절반 — 생일 역설."""
+    bits = 160
+    collision = bits // 2
+    return collision, (f"{bits}비트 — 역상 2^{bits}(오답④) · "
+                       f"충돌 2^{collision} · 256비트 충돌은 2^128(오답③)")
+
+
+def v_cssec_025() -> tuple[int, str]:
+    """솔트 — 같은 비밀번호라도 저장값이 달라지는지 실제로 해시해 본다."""
+    import hashlib
+    pw = "password"
+    h = [hashlib.sha256((s + pw).encode()).hexdigest() for s in ("a1b2", "c3d4")]
+    if h[0] == h[1]:
+        raise AssertionError("솔트가 달라도 해시가 같다")
+    claims = [("출력 길이를 늘린다", len(h[0]) != len(hashlib.sha256(pw.encode()).hexdigest())),
+              ("솔트를 비밀로 유지한다", False),      # 함께 저장한다
+              ("같은 비밀번호도 저장값이 달라진다", h[0] != h[1]),
+              ("해시 계산을 느리게 한다", False),     # 키 스트레칭의 몫
+              ("복호할 수 있게 한다", False)]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"솔트별 해시 {h[0][:12]}… / {h[1][:12]}… · 참인 진술 {right}"
+
+
+def v_cssec_026() -> tuple[int, str]:
+    """서명은 보내는 쪽 키 쌍, 암호화는 받는 쪽 키 쌍."""
+    rule = {"서명생성": ("갑", "개인"), "서명검증": ("갑", "공개"),
+            "기밀암호": ("을", "공개"), "기밀복호": ("을", "개인")}
+    pairs = [(("갑", "개인"), ("갑", "공개")), (("갑", "공개"), ("갑", "개인")),
+             (("을", "공개"), ("을", "개인")), (("갑", "개인"), ("을", "공개")),
+             (("을", "개인"), ("갑", "공개"))]
+    right = [i for i, (s, v) in enumerate(pairs, 1)
+             if s == rule["서명생성"] and v == rule["서명검증"]]
+    if len(right) != 1:
+        raise AssertionError(f"맞는 짝이 하나가 아니다 {right}")
+    return right[0], f"{rule} · 맞는 짝 {right}"
+
+
+def v_cssec_027() -> tuple[int, str]:
+    """2요소는 서로 다른 요소 둘 — 같은 요소를 두 번 쓰면 1요소다."""
+    kind = {"비밀번호": "지식", "PIN": "지식", "보안질문": "지식",
+            "OTP": "소유", "지문": "존재", "홍채": "존재"}
+    combos = [("비밀번호", "PIN"), ("비밀번호", "보안질문"), ("지문", "홍채"),
+              ("비밀번호", "OTP"), ("PIN", "보안질문")]
+    two = [i for i, (a, b) in enumerate(combos, 1) if kind[a] != kind[b]]
+    if len(two) != 1:
+        raise AssertionError(f"2요소가 하나가 아니다 {two}")
+    return two[0], (" · ".join(f"{a}+{b}={kind[a]}/{kind[b]}" for a, b in combos)
+                    + f" → 2요소 {two}")
+
+
+def v_cssec_028() -> tuple[int, str]:
+    """접근 제어 행렬을 열 기준으로 자르면 ACL."""
+    mat = {"철수": {"파일A": "rw", "파일B": "r"}, "영희": {"파일A": "r"},
+           "민수": {"파일B": "rw"}}
+    acl = {}
+    for s, v in mat.items():
+        for o, p in v.items():
+            acl.setdefault(o, []).append((s, p))
+    want = {"파일A": [("철수", "rw"), ("영희", "r")],
+            "파일B": [("철수", "r"), ("민수", "rw")]}
+    if acl != want:
+        raise AssertionError(f"ACL 이 예상과 다르다 {acl}")
+    cap = {s: [(o, p) for o, p in v.items()] for s, v in mat.items()}
+    return 5, f"ACL {acl} · 능력목록 {cap}(오답①)"
+
+
+def v_cssec_029() -> tuple[int, str]:
+    """비바는 벨-라파듈라와 정확히 반대다."""
+    blp = {"read": "up 금지", "write": "down 금지"}
+    biba = {"read": "down 금지", "write": "up 금지"}
+    if blp == biba:
+        raise AssertionError("두 모델이 같다")
+    rules = [("높은 읽기 금지 · 낮은 쓰기 금지", blp),
+             ("낮은 읽기 금지 · 높은 쓰기 금지", biba),
+             ("높은 읽기 금지 · 높은 쓰기 금지", None),
+             ("낮은 읽기 금지 · 낮은 쓰기 금지", None),
+             ("제한 없음", None)]
+    right = [i for i, (_, m) in enumerate(rules, 1) if m == biba]
+    if len(right) != 1:
+        raise AssertionError(f"비바에 맞는 것이 하나가 아니다 {right}")
+    return right[0], f"벨-라파듈라 {blp} · 비바 {biba} · 맞는 선지 {right}"
+
+
+def v_cssec_030() -> tuple[int, str]:
+    """저장형 XSS — 「저장」과 「모든 이용자」 두 단서."""
+    kinds = [("반사형 XSS", {"저장": False, "모두": False}),
+             ("저장형 XSS", {"저장": True, "모두": True}),
+             ("DOM 기반 XSS", {"저장": False, "모두": False}),
+             ("CSRF", {"저장": False, "모두": False}),
+             ("SQL 인젝션", {"저장": False, "모두": False})]
+    hit = [i for i, (_, f) in enumerate(kinds, 1) if f["저장"] and f["모두"]]
+    if len(hit) != 1:
+        raise AssertionError(f"두 단서에 맞는 것이 하나가 아니다 {hit}")
+    return hit[0], f"단서 저장·전체이용자 → {kinds[hit[0]-1][0]}"
+
+
+def v_cssec_031() -> tuple[int, str]:
+    """방화벽 — 위에서부터 처음 맞는 규칙에서 멈춘다."""
+    import ipaddress
+    rules = [(1, "허용", "10.0.0.0/8", "80"), (2, "차단", "10.0.5.0/24", "any"),
+             (3, "허용", "any", "443"), (4, "차단", "any", "any")]
+
+    def apply(src, port):
+        for no, act, s, p in rules:
+            if (s == "any" or ipaddress.ip_address(src) in ipaddress.ip_network(s)) \
+                    and (p == "any" or p == port):
+                return no, act
+        return 0, "차단"
+
+    hit80 = apply("10.0.5.7", "80")
+    hit443 = apply("10.0.5.7", "443")
+    if hit80[0] >= hit443[0]:
+        raise AssertionError("포트에 따라 규칙이 갈리지 않는다")
+    return hit80[0], (f"10.0.5.7:80 → 규칙 {hit80[0]} {hit80[1]} · "
+                      f":443 → 규칙 {hit443[0]} {hit443[1]}")
+
+
+def v_cssec_032() -> tuple[int, str]:
+    """TLS — 세 가지 키가 각각 어디 쓰이는가."""
+    facts = [("세션 키를 서버 공개키로 암호화", True),
+             ("실제 데이터도 공개키로", False),        # 대칭키다
+             ("인증서에 개인키가 들어 있다", False),    # 공개키다
+             ("세션 키를 서버가 만든다", False),        # 클라이언트가 만든다
+             ("인증서 검증에 클라이언트 공개키", False)]  # CA 공개키다
+    right = [i for i, (_, t) in enumerate(facts, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"참인 진술 {right} ({facts[right[0]-1][0]})"
+
+
+def v_cssec_033() -> tuple[int, str]:
+    """보험은 손해를 넘기는 것 — 가능성은 그대로다."""
+    strat = {"회피": "그만둔다", "감소": "가능성·피해를 줄인다",
+             "전가": "손해를 남에게 넘긴다", "수용": "감수한다"}
+    opts = ["회피", "감소", "전가", "수용", "분석"]
+    ans = opts.index("전가") + 1
+    if "분석" in strat:
+        raise AssertionError("분석은 대응 전략이 아니어야 한다")
+    return ans, f"{strat} · 보험 = 전가 → 선지 {ans} · 분석은 대응 전략이 아니다"
+
+
+def v_cssec_034() -> tuple[int, str]:
+    """대책 전후 ALE 의 차이 — 양쪽을 다 구해야 한다."""
+    asset, ef, before, after = 100_000_000, 0.4, 0.5, 0.1
+    a1 = int(asset * ef * before)
+    a2 = int(asset * ef * after)
+    return (a1 - a2) // 10_000, (f"대책 전 ALE {a1:,}(오답④) · 후 {a2:,}(오답①) · "
+                                 f"차이 {a1-a2:,}원")
+
+
+def v_cssec_035() -> tuple[int, str]:
+    """RPO 는 백업 주기가 정한다 — 나머지는 RTO 쪽."""
+    opts = [("복구 절차", "RTO"), ("예비 시스템", "RTO"), ("장애 감지", "RTO"),
+            ("백업 보관 기간", "무관"), ("백업 주기", "RPO")]
+    rpo = [i for i, (_, k) in enumerate(opts, 1) if k == "RPO"]
+    if len(rpo) != 1:
+        raise AssertionError(f"RPO 쪽이 하나가 아니다 {rpo}")
+    return rpo[0], " · ".join(f"{n}={k}" for n, k in opts) + f" → RPO {rpo}"
+
+
+def v_cssec_036() -> tuple[float, str]:
+    """가용성 — 9 가 하나 늘 때마다 중단이 10분의 1."""
+    year_h = 365 * 24
+    tbl = {a: round(year_h * (1 - a), 2) for a in (0.99, 0.999, 0.9999)}
+    return tbl[0.999], (f"연간 {year_h}시간 · " +
+                        " · ".join(f"{a*100:g}% → {v}시간" for a, v in tbl.items()))
+
+
 # ── 소프트웨어공학 ──────────────────────────────────────────────────────
 
 def v_csse_001() -> tuple[int, str]:
@@ -3305,6 +3540,35 @@ REGISTRY = {
                                lambda i: i),
     # 018 PDCA — 계획 → 수행 → 점검 → 조치 (선지 ②)
     "major-cssec-common-018": (lambda: (2, "Plan Do Check Act"), lambda i: i),
+    "major-cssec-common-019": (v_cssec_019, lambda n: {4: 1, 9: 2, 14: 3, 27: 4,
+                                                       729: 5}[n]),
+    "major-cssec-common-020": (v_cssec_020, lambda s: {"ATTACK": 1, "RETURN": 2,
+                                                       "SECURE": 3, "CIPHER": 4,
+                                                       "IUCLMS": 5}[s]),
+    "major-cssec-common-021": (v_cssec_021, lambda s: {"00011101": 1, "00100010": 2,
+                                                       "10110011": 3, "11011001": 4,
+                                                       "11111011": 5}[s]),
+    "major-cssec-common-022": (v_cssec_022, lambda n: {100: 1, 200: 2, 4950: 3,
+                                                       9900: 4, 10000: 5}[n]),
+    "major-cssec-common-023": (v_cssec_023, lambda n: {72: 1, 720: 2, 7200: 3,
+                                                       72000: 4, 720000: 5}[n]),
+    "major-cssec-common-024": (v_cssec_024, lambda n: {40: 1, 80: 2, 128: 3, 160: 4,
+                                                       320: 5}[n]),
+    "major-cssec-common-025": (v_cssec_025, lambda i: i),
+    "major-cssec-common-026": (v_cssec_026, lambda i: i),
+    "major-cssec-common-027": (v_cssec_027, lambda i: i),
+    "major-cssec-common-028": (v_cssec_028, lambda i: i),
+    "major-cssec-common-029": (v_cssec_029, lambda i: i),
+    "major-cssec-common-030": (v_cssec_030, lambda i: i),
+    "major-cssec-common-031": (v_cssec_031, lambda i: i),
+    "major-cssec-common-032": (v_cssec_032, lambda i: i),
+    "major-cssec-common-033": (v_cssec_033, lambda i: i),
+    # 034 단위는 만 원 — 1,600만 원
+    "major-cssec-common-034": (v_cssec_034, lambda n: {400: 1, 1400: 2, 1600: 3,
+                                                       2000: 4, 2400: 5}[n]),
+    "major-cssec-common-035": (v_cssec_035, lambda i: i),
+    "major-cssec-common-036": (v_cssec_036, lambda v: {8.76: 1, 26.3: 2, 87.6: 3,
+                                                       876.0: 4, 8760.0: 5}[v]),
 
     "major-csse-common-001": (v_csse_001, lambda e: {85: 1, 120: 2, 146: 3,
                                                      210: 4, 302: 5}[e]),
