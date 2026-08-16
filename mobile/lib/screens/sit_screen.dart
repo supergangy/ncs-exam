@@ -356,9 +356,13 @@ class _SitScreenState extends State<SitScreen> {
         ),
         body: PageView.builder(
           controller: _pager,
-          // 그리는 중에는 옆으로 안 넘어간다. 획을 긋다 화면이 넘어가면
-          // 그 획이 통째로 날아간다.
-          physics: _inkSet.mode == InkMode.off
+          // 펜을 쓰는 기기에서는 **손가락으로 넘길 수 있어야** 한다 — 펜으로
+          // 쓰면서 손가락으로 넘기는 것이 태블릿에서 자연스럽다. 팜 리젝션이
+          // 손가락을 그리기에서 빼 주므로 잠글 이유가 없다.
+          //
+          // 펜이 없는 기기에서는 손가락이 곧 붓이라, 도구를 켠 동안은 잠근다.
+          // 안 그러면 획을 긋다 화면이 넘어가 그 획이 통째로 날아간다.
+          physics: _inkSet.mode == InkMode.off || InkInput.stylusSeen
               ? null
               : const NeverScrollableScrollPhysics(),
           itemCount: items.length,
@@ -454,7 +458,11 @@ class _SitBody extends StatelessWidget {
         const SizedBox(height: 4),
         if (pdf != null) ...[
           // 종이 그대로 오려 낸 문항. 선지도 그림 안에 있고, 답은 아래에서 고른다.
-          ClipRRect(
+          Center(
+            child: ConstrainedBox(
+              constraints:
+                  const BoxConstraints(maxWidth: examPaperMaxWidth),
+              child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Container(
               color: Colors.white,
@@ -465,6 +473,8 @@ class _SitBody extends StatelessWidget {
                 inkSettings: inkSettings,
                 onInkChanged: onInkChanged,
               ),
+            ),
+          ),
             ),
           ),
           const SizedBox(height: 10),

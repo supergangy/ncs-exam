@@ -29,6 +29,51 @@ const Map<String, double> inkOpacity = {toolPen: 1.0, toolMarker: 0.32};
 /// 지우개가 획을 집는 반경 (PDF 점). 손가락 끝이 굵으니 넉넉히 잡는다.
 const double eraserRadius = 7.0;
 
+// ── 무엇으로 그리는가 ─────────────────────────────────────────────────
+//
+// 펜 달린 태블릿이 주 무대다. 거기서는 **손바닥이 화면에 닿는다** — 아무 포인터나
+// 받으면 글씨를 쓸 때마다 손바닥 자국이 그려진다. 그래서 펜을 한 번이라도 본
+// 기기에서는 손가락을 그리기에서 빼고, 손가락은 화면을 넘기는 데만 쓴다.
+//
+// 펜이 없는 폰에서는 손가락으로 그려야 하므로 그때만 손가락을 받는다.
+
+/// 포인터 종류 — Flutter 의 `PointerDeviceKind` 를 여기 값으로 옮겨 받는다.
+/// `ink.dart` 를 순수하게 두려고 dart:ui 를 안 끌어온다.
+enum InkPointer { stylus, invertedStylus, touch, other }
+
+/// 이 포인터로 무엇을 할 것인가.
+enum InkAction { draw, erase, ignore }
+
+/// 펜을 본 적이 있는가. 기기의 성질이라 화면마다 따로 두지 않는다.
+///
+/// 한 번 펜이 닿으면 그 뒤로 손가락은 그리지 않는다. 되돌리지 않는 이유는,
+/// 펜을 놓고 손가락으로 이어 그리려는 사람보다 **손바닥이 닿는 사람**이
+/// 훨씬 많기 때문이다.
+class InkInput {
+  static bool stylusSeen = false;
+
+  /// 시험용 — 검사 사이에 상태가 새지 않게 되돌린다.
+  static void reset() => stylusSeen = false;
+
+  /// [drawing] 은 지금 도구가 연필·형광펜인가. 아니면 지우개다.
+  static InkAction actionFor(InkPointer kind, {required bool drawing}) {
+    switch (kind) {
+      // 펜을 뒤집으면 도구와 상관없이 지우개다. S펜·서피스펜이 그렇게 동작한다.
+      case InkPointer.invertedStylus:
+        return InkAction.erase;
+      case InkPointer.stylus:
+        return drawing ? InkAction.draw : InkAction.erase;
+      case InkPointer.touch:
+        // 펜을 쓰는 기기라면 손가락은 손바닥일 가능성이 크다.
+        if (stylusSeen) return InkAction.ignore;
+        return drawing ? InkAction.draw : InkAction.erase;
+      case InkPointer.other:
+        // 마우스·트랙패드. 데스크톱에서 확인할 때 쓴다.
+        return drawing ? InkAction.draw : InkAction.erase;
+    }
+  }
+}
+
 /// 획의 한 점. [p] 는 필압 0~1 — 기기가 안 주면 0.5 로 둔다.
 class InkPoint {
   final double x, y, p;
@@ -90,6 +135,19 @@ class Stroke {
             InkPoint.fromJson(Map<String, dynamic>.from(e as Map))
         ],
       );
+
+  /// 필압이 진짜인가 — 값이 다 같으면 기기가 안 준 것이다.
+  ///
+  /// 형식에 표를 따로 두지 않는다. 옛 기록도 그대로 읽히고, 필압을 주는 기기와
+  /// 안 주는 기기가 같은 회차에 섞여도 획마다 알아서 갈린다.
+  bool get hasRealPressure {
+    if (pts.length < 2) return false;
+    final first = pts.first.p;
+    for (final q in pts) {
+      if ((q.p - first).abs() > 0.02) return true;
+    }
+    return false;
+  }
 
   /// 획을 감싸는 사각형 — 굵기의 절반만큼 넓힌다.
   /// 지우개가 먼 획을 건너뛸 때 쓴다.

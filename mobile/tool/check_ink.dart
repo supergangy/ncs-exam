@@ -224,6 +224,59 @@ void main() {
     eq('빈 획은 버린다', empty.count, 0);
   }
 
+  stdout.writeln('■ 펜 태블릿 — 팜 리젝션');
+  {
+    InkInput.reset();
+    // 펜을 보기 전: 손가락으로도 그린다 (펜 없는 폰).
+    eq('펜 전 · 손가락 → 그린다',
+        InkInput.actionFor(InkPointer.touch, drawing: true), InkAction.draw);
+    eq('펜 전 · 손가락 + 지우개 → 지운다',
+        InkInput.actionFor(InkPointer.touch, drawing: false), InkAction.erase);
+
+    // 펜이 한 번 닿으면 그 뒤로 손가락은 그리지 않는다 — 손바닥이다.
+    eq('펜 → 그린다',
+        InkInput.actionFor(InkPointer.stylus, drawing: true), InkAction.draw);
+    InkInput.stylusSeen = true;
+    eq('펜 본 뒤 · 손가락 → 무시',
+        InkInput.actionFor(InkPointer.touch, drawing: true), InkAction.ignore);
+    eq('펜 본 뒤 · 손가락 + 지우개도 무시',
+        InkInput.actionFor(InkPointer.touch, drawing: false), InkAction.ignore);
+    eq('펜 본 뒤에도 펜은 그린다',
+        InkInput.actionFor(InkPointer.stylus, drawing: true), InkAction.draw);
+
+    // 펜을 뒤집으면 도구와 상관없이 지우개다 (S펜·서피스펜).
+    eq('뒤집은 펜 → 지운다 (연필 도구여도)',
+        InkInput.actionFor(InkPointer.invertedStylus, drawing: true),
+        InkAction.erase);
+    eq('뒤집은 펜 → 지운다 (지우개 도구여도)',
+        InkInput.actionFor(InkPointer.invertedStylus, drawing: false),
+        InkAction.erase);
+
+    // 마우스는 데스크톱 확인용이라 팜 리젝션과 무관하게 받는다.
+    eq('마우스는 펜 본 뒤에도 그린다',
+        InkInput.actionFor(InkPointer.other, drawing: true), InkAction.draw);
+    InkInput.reset();
+    ok('되돌리면 손가락이 다시 그린다',
+        InkInput.actionFor(InkPointer.touch, drawing: true) == InkAction.draw);
+  }
+
+  stdout.writeln('■ 필압이 진짜인가');
+  {
+    Stroke withP(List<double> ps) => Stroke(
+        page: 1, tool: toolPen, color: 0, width: 1.6,
+        pts: [for (var i = 0; i < ps.length; i++) InkPoint(i * 10, 0, ps[i])]);
+    ok('값이 다 같으면 흉내다', !withP([0.5, 0.5, 0.5]).hasRealPressure);
+    ok('값이 흔들리면 진짜다', withP([0.2, 0.6, 0.9]).hasRealPressure);
+    ok('아주 작은 차이는 흉내로 본다', !withP([0.50, 0.51, 0.50]).hasRealPressure);
+    ok('점 하나는 알 수 없으니 흉내', !withP([0.7]).hasRealPressure);
+    // 저장했다 읽어도 판정이 그대로여야 한다 — 소수점 둘째 자리로 줄이므로
+    // 차이가 그 아래로 깎이면 진짜가 흉내로 바뀐다.
+    final real = withP([0.20, 0.65, 0.95]);
+    final back = InkDoc.decodePage(
+        jsonEncode([real.toJson()])).first;
+    ok('왕복해도 진짜 필압으로 남는다', back.hasRealPressure);
+  }
+
   stdout.writeln('■ 선분 거리');
   {
     near('선분 위', segmentDistance(150, 100, 100, 100, 200, 100), 0);

@@ -164,7 +164,11 @@ class _InkReviewScreenState extends State<InkReviewScreen> {
               ),
             ]),
             const SizedBox(height: 6),
-            ClipRRect(
+          Center(
+            child: ConstrainedBox(
+              constraints:
+                  const BoxConstraints(maxWidth: examPaperMaxWidth),
+              child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: Container(
                 color: Colors.white,
@@ -176,6 +180,8 @@ class _InkReviewScreenState extends State<InkReviewScreen> {
                 ),
               ),
             ),
+            ),
+          ),
           ],
         );
       },
