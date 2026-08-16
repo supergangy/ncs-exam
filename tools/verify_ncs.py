@@ -1784,8 +1784,165 @@ def v_privacy_purge() -> tuple[int, str]:
                f"(④는 근거가 있고 분리했다)")
 
 
+# ── 조직이해 016~024 — 분류표 · 순서 · 시차 계산 ────────────────────────
+#
+# 분류 문항은 **정의표를 여기 다시 세우고** `_only` 로 참인 선지가 하나뿐인지
+# 확인한다. 표를 고치면서 정답만 안 고치는 사고를 잡는다. 순서 문항은 선후
+# 조건을 걸어 다섯 순열을 걸러 낸다.
+
+def v_org_016() -> tuple[int, str]:
+    """참가의 「유형」 셋과 「경로」 둘을 섞어 놓았다."""
+    kinds = {"의사결정 참가": "경영 방침", "이윤참가": "이익",
+             "자본참가": "소유(주식)"}
+    routes = {"노사협의회", "단체교섭"}          # 축이 다르다 — 유형이 아니다
+    gave = "소유(주식)"                          # 우리사주조합으로 나눠 준 것
+    match = [k for k, v in kinds.items() if v == gave]
+    if len(match) != 1:
+        raise AssertionError(f"「{gave}」 에 걸리는 유형이 하나가 아니다 {match}")
+    want = match[0]
+    opts = {1: "의사결정 참가", 2: "이윤참가", 3: "노사협의회",
+            4: "단체교섭", 5: "자본참가"}
+    if not routes <= set(opts.values()):
+        raise AssertionError("경로 오답이 선지에서 빠졌다")
+    n = _only({k: v == want for k, v in opts.items()})
+    return n, (f"유형 {kinds} · 경로 {sorted(routes)} · "
+               f"나눠 준 것은 {gave} → {want} {n}번")
+
+
+def v_org_017() -> tuple[int, str]:
+    """7S — 하드 3 · 소프트 4. 「시스템」이 하드 쪽이다."""
+    hard = {"전략", "구조", "시스템"}
+    soft = {"공유 가치", "리더십 스타일", "구성원", "관리 기술"}
+    if len(hard) + len(soft) != 7 or hard & soft:
+        raise AssertionError("7S 가 셋·넷으로 갈리지 않는다")
+    opts = {1: "시스템", 2: "공유 가치", 3: "리더십 스타일", 4: "구성원",
+            5: "관리 기술"}
+    n = _only({k: v in hard for k, v in opts.items()})
+    return n, f"하드 {sorted(hard)} · 소프트 {sorted(soft)} → 하드인 것 {n}번"
+
+
+def v_org_018() -> tuple[int, str]:
+    """세 축(모이나·익명인가·되풀이하나)이 모두 맞는 것은 하나뿐이다."""
+    # (한자리에 모이나, 익명인가, 여러 번 도나)
+    ways = {"브레인스토밍": (True, False, False),
+            "명목집단법": (True, False, False),
+            "브레인라이팅": (True, False, True),
+            "델파이법": (False, True, True),
+            "지명반론자법": (True, False, False)}
+    seen = (False, True, True)                   # 상황이 말한 세 가지
+    hit = [k for k, v in ways.items() if v == seen]
+    if len(hit) != 1:
+        raise AssertionError(f"세 축으로도 하나로 좁혀지지 않는다 {hit}")
+    order = list(ways)
+    n = _only({i: k == hit[0] for i, k in enumerate(order, 1)})
+    return n, (f"상황 = 모이지 않음·익명·되풀이 → {hit[0]} {n}번 · "
+               f"명목집단법은 {ways['명목집단법'][0]} 라서 갈린다")
+
+
+def v_org_019() -> tuple[int, str]:
+    """두 축이 모두 높은 것이 협력이다. 타협은 가운데다."""
+    # (내 관심, 상대 관심) — 2 높음 · 1 중간 · 0 낮음
+    ways = {"협력형": (2, 2), "타협형": (1, 1), "회피형": (0, 0),
+            "수용형": (0, 2), "경쟁형": (2, 0)}
+    gave_up = False                     # 두 처 모두 포기한 것이 없다
+    both_got = True                     # 원하던 것을 모두 얻었다
+    want = (2, 2) if both_got and not gave_up else (1, 1)
+    order = list(ways)
+    n = _only({i: ways[k] == want for i, k in enumerate(order, 1)})
+    return n, (f"두 축 {ways} · 포기 {gave_up} · 둘 다 얻음 {both_got} "
+               f"→ {order[n - 1]} {n}번")
+
+
+def v_org_020() -> tuple[int, str]:
+    """「도형의 모양으로 성격을 나눈다」가 하나뿐이어야 한다."""
+    # (흐름을 그리나, 도형의 모양에 뜻이 있나)
+    sheets = {"간트 차트": (False, False), "체크리스트": (False, False),
+              "일일 업무 계획표": (False, False), "업무 분장표": (False, False),
+              "워크 플로 시트": (True, True)}
+    order = list(sheets)
+    n = _only({i: sheets[k] == (True, True) for i, k in enumerate(order, 1)})
+    if sheets["간트 차트"][1]:
+        raise AssertionError("간트 차트가 모양에 뜻을 담는 것으로 잡혔다")
+    return n, (f"흐름·모양 {sheets} → 둘 다 참인 것 {n}번 "
+               f"(간트는 길이에 뜻이 있다)")
+
+
+def v_org_021() -> tuple[str, str]:
+    """UTC 로 옮겨 계산한다. 서머타임을 빼먹으면 한 시간 이르다."""
+    import datetime as dt
+    dep = dt.datetime(2026, 4, 8, 10, 30)        # 인천 현지
+    utc = dep - dt.timedelta(hours=9)
+    arr = utc + dt.timedelta(hours=13, minutes=20)
+    dst = arr + dt.timedelta(hours=1)            # 런던 서머타임 UTC+1
+    # 4월 8일이 서머타임(3월 마지막 일요일 ~ 10월 마지막 일요일) 안인지 본다
+    mar = dt.date(2026, 3, 31)
+    while mar.weekday() != 6:
+        mar -= dt.timedelta(days=1)
+    if not (mar <= dep.date()):
+        raise AssertionError(f"4월 8일이 서머타임 시작 {mar} 보다 이르다")
+    naive = dep + dt.timedelta(hours=13, minutes=20)   # 시차를 아예 안 뺌
+    cand = [arr, dst, arr + dt.timedelta(hours=2), naive,
+            naive + dt.timedelta(hours=1)]
+    if cand != sorted(cand) or len(set(cand)) != 5:
+        raise AssertionError(f"선지가 시간순이 아니거나 겹친다 {cand}")
+    return dst.strftime("%m-%d %H:%M"), (
+        f"출발 {utc:%m-%d %H:%M} UTC + 13:20 = {arr:%m-%d %H:%M} UTC · "
+        f"서머타임 시작 {mar} 이후라 +1 → {dst:%m-%d %H:%M} · "
+        f"서머타임 빼먹으면 {arr:%H:%M}(①) · 시차 안 빼면 {naive:%H:%M}(④)")
+
+
+def v_org_022() -> tuple[int, str]:
+    """네 요인 목록 밖의 것이 하나뿐이어야 한다."""
+    factors = {"전략", "규모", "기술", "환경"}
+    opts = {1: "전략", 2: "규모", 3: "기술", 4: "근속 연수", 5: "환경"}
+    n = _only({k: v not in factors for k, v in opts.items()})
+    return n, f"결정 요인 {sorted(factors)} · 목록 밖 {opts[n]} → {n}번"
+
+
+def v_org_023() -> tuple[int, str]:
+    """선후 조건을 걸어 다섯 순열을 걸러 낸다."""
+    A, B, C, D = "인지", "방향", "실행", "평가"
+    must = [(A, B), (B, C), (C, D)]              # 앞이 있어야 뒤가 된다
+    opts = {1: [B, A, C, D], 2: [A, C, B, D], 3: [A, B, D, C],
+            4: [B, C, A, D], 5: [A, B, C, D]}
+    ok = {k: all(v.index(x) < v.index(y) for x, y in must)
+          for k, v in opts.items()}
+    n = _only(ok)
+    return n, (f"조건 {must} · 만족 {[k for k, v in ok.items() if v]} → {n}번")
+
+
+def v_org_024() -> tuple[int, str]:
+    """세 역할 안에서 「협상」이 어디에 붙는가. ④⑤는 목록 밖이다."""
+    roles = {"대인적": {"행사 참석", "부하 지도", "조직 대표"},
+             "정보적": {"언론 대응", "정보 수집", "정보 전달"},
+             "의사결정적": {"협상", "자원 배분", "위기 수습", "새 사업"}}
+    act = "협상"
+    want = [k for k, v in roles.items() if act in v]
+    if len(want) != 1:
+        raise AssertionError(f"「{act}」 가 여러 역할에 걸린다 {want}")
+    opts = {1: "의사결정적", 2: "대인적", 3: "정보적", 4: "통제적", 5: "조정적"}
+    outside = [v for v in opts.values() if v not in roles]
+    if len(outside) != 2:
+        raise AssertionError(f"목록 밖 선지가 둘이 아니다 {outside}")
+    n = _only({k: v == want[0] for k, v in opts.items()})
+    return n, (f"「{act}」 → {want[0]} 역할 {n}번 · 목록 밖 {outside}")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
+    "ncs-org-common-016": (v_org_016, lambda i: i),
+    "ncs-org-common-017": (v_org_017, lambda i: i),
+    "ncs-org-common-018": (v_org_018, lambda i: i),
+    "ncs-org-common-019": (v_org_019, lambda i: i),
+    "ncs-org-common-020": (v_org_020, lambda i: i),
+    "ncs-org-common-022": (v_org_022, lambda i: i),
+    "ncs-org-common-023": (v_org_023, lambda i: i),
+    "ncs-org-common-024": (v_org_024, lambda i: i),
+    "ncs-org-common-021": (v_org_021, lambda t: {"04-08 14:50": 1,
+                                                 "04-08 15:50": 2,
+                                                 "04-08 16:50": 3,
+                                                 "04-08 23:50": 4,
+                                                 "04-09 00:50": 5}[t]),
     "ncs-info-common-016": (v_sumproduct, lambda v: {2: 1, 100: 2, 120: 3,
                                                      200: 4, 350: 5}[v]),
     "ncs-info-common-017": (v_index_match, lambda t: {"4": 1, "박서준": 2,
