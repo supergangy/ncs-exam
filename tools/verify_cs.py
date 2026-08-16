@@ -1650,6 +1650,309 @@ def v_cspl_017() -> tuple[int, str]:
     return mem["a"], f"a: 10 → {mem['a']} · 정수를 값으로 넘겼다면 10(오답①)"
 
 
+# ── 프로그래밍언어 019~036 ──────────────────────────────────────────────
+#
+# 자료구조·알고리즘은 실제로 굴려서 확정한다. 개념형(034~036)은 정의를
+# 표로 두고 참인 진술이 하나뿐인지 확인한다.
+
+def v_cspl_019() -> tuple[tuple, str]:
+    """원형 큐 — rear 가 배열 끝을 넘어 돌아가야 한다."""
+    n, f, r, c = 8, 0, 0, 0
+    for op in "IIIIII" + "DD" + "III":
+        if op == "I":
+            if (r + 1) % n == f:
+                continue                       # 가득 참
+            r = (r + 1) % n
+            c += 1
+        else:
+            f = (f + 1) % n
+            c -= 1
+    if r >= 6:
+        raise AssertionError("rear 가 끝을 넘지 않았다 — 원형이 드러나지 않는다")
+    full = (r + 1) % n == f
+    return (f, r), f"front {f} · rear {r} · 원소 {c}개 · 가득 참 {full}(최대 {n-1}개)"
+
+
+def v_cspl_020() -> tuple[tuple, str]:
+    """최대 힙 루트 삭제 — 두 번 내려가야 끝나게 잡았다."""
+    h = [90, 70, 80, 30, 50, 60, 20]
+    h = list(h)
+    h[0] = h.pop()
+    i, n, steps = 0, len(h), 0
+    while True:
+        l, r, big = 2 * i + 1, 2 * i + 2, i
+        if l < n and h[l] > h[big]:
+            big = l
+        if r < n and h[r] > h[big]:
+            big = r
+        if big == i:
+            break
+        h[i], h[big] = h[big], h[i]
+        i = big
+        steps += 1
+    if steps < 2:
+        raise AssertionError(f"하향 조정이 {steps}번뿐이다")
+    return tuple(h), f"삭제 후 {h} · 하향 조정 {steps}번"
+
+
+_PL_ADJ = {"A": ["B", "C"], "B": ["D", "E"], "C": ["F"],
+           "D": [], "E": ["F"], "F": ["G"], "G": []}
+
+
+def v_cspl_021() -> tuple[tuple, str]:
+    """DFS 와 BFS 가 갈리는 그래프여야 오답 ②가 선다."""
+    from collections import deque
+    seen, dfs, st = set(), [], ["A"]
+    while st:
+        v = st.pop()
+        if v in seen:
+            continue
+        seen.add(v)
+        dfs.append(v)
+        st.extend(reversed(_PL_ADJ[v]))        # 알파벳 작은 쪽부터
+    vis, bfs, q = {"A"}, [], deque(["A"])
+    while q:
+        v = q.popleft()
+        bfs.append(v)
+        for w in _PL_ADJ[v]:
+            if w not in vis:
+                vis.add(w)
+                q.append(w)
+    if dfs == bfs:
+        raise AssertionError("DFS 와 BFS 가 같다")
+    return tuple(dfs), f"DFS {'→'.join(dfs)} · BFS {'→'.join(bfs)}(오답②)"
+
+
+def v_cspl_022() -> tuple[str, str]:
+    """전위 + 중위로 트리를 세우고 후위를 뽑는다."""
+    pre, ino = list("ABDECFG"), list("DBEAFCG")
+
+    def build(p, i):
+        if not p:
+            return None
+        k = i.index(p[0])
+        return (p[0], build(p[1:1 + k], i[:k]), build(p[1 + k:], i[k + 1:]))
+
+    def post(t):
+        return [] if t is None else post(t[1]) + post(t[2]) + [t[0]]
+
+    out = "".join(post(build(pre, ino)))
+    rev = "".join(reversed(pre))
+    if out == rev:
+        raise AssertionError("후위가 전위의 역순과 같다 — 오답 ④가 무너진다")
+    return out, f"후위 {out} · 전위 역순 {rev}(오답④)"
+
+
+def v_cspl_023() -> tuple[str, str]:
+    """AVL — 삽입 순서로 회전 유형을 판정한다."""
+    cases = {("30", "20", "10"): "LL", ("10", "20", "30"): "RR",
+             ("30", "10", "20"): "LR", ("10", "30", "20"): "RL"}
+    seq = ("30", "10", "20")
+    kind = cases[seq]
+    if len(set(cases.values())) != 4:
+        raise AssertionError("네 유형이 서로 다르지 않다")
+    return kind, (f"{' · '.join(seq)} → {kind} · "
+                  + " / ".join(f"{'·'.join(k)}={v}" for k, v in cases.items()))
+
+
+def v_cspl_024() -> tuple[int, str]:
+    """선형 조사 — 다섯 키의 해시값이 모두 같아 군집이 자란다."""
+    m, keys = 10, [23, 13, 33, 43, 53]
+    tbl, where = [None] * m, {}
+    for k in keys:
+        i, probe = k % m, 0
+        while tbl[i] is not None:
+            i = (i + 1) % m
+            probe += 1
+        tbl[i] = k
+        where[k] = (i, probe)
+    if len({k % m for k in keys}) != 1:
+        raise AssertionError("해시값이 모두 같지 않다")
+    return where[53][0], (f"자리 {[(k, where[k][0]) for k in keys]} · "
+                          f"53 은 조사 {where[53][1]}회 뒤 {where[53][0]}번")
+
+
+def v_cspl_025() -> tuple[str, str]:
+    """점화식 — 층마다 n · 층이 log n 개."""
+    table = [("T(n)=T(n/2)+1", "O(log n)"), ("T(n)=2T(n/2)+1", "O(n)"),
+             ("T(n)=2T(n/2)+n", "O(n log n)"), ("T(n)=T(n-1)+n", "O(n²)"),
+             ("T(n)=2T(n-1)+1", "O(2ⁿ)")]
+    ans = dict(table)["T(n)=2T(n/2)+n"]
+    # 층별 비용을 실제로 더해 n log n 에 비례하는지 본다
+    for n in (256, 1024):
+        total, size, cnt = 0, n, 1
+        while size >= 1:
+            total += cnt * size
+            size //= 2
+            cnt *= 2
+        import math
+        ratio = total / (n * math.log2(n))
+        if not 0.9 < ratio < 1.2:
+            raise AssertionError(f"n={n} 에서 n log n 비율이 {ratio:.2f}")
+    if len({c for _, c in table}) != 5:
+        raise AssertionError("복잡도가 겹친다")
+    return ans, " · ".join(f"{r}={c}" for r, c in table)
+
+
+def v_cspl_026() -> tuple[int, str]:
+    """안정 정렬 — 선택 정렬로 실제 순서가 뒤집히는지 굴려 본다."""
+    data = [(3, "a"), (3, "b"), (1, "c")]
+    d = list(data)
+    for i in range(len(d)):
+        m = min(range(i, len(d)), key=lambda k: d[k][0])
+        d[i], d[m] = d[m], d[i]
+    unstable = [t for _, t in d if _ == 3] != ["a", "b"]
+    sorts = [("버블", True), ("삽입", True), ("병합", True),
+             ("선택", not unstable), ("계수", True)]
+    bad = [i for i, (_, st) in enumerate(sorts, 1) if not st]
+    if len(bad) != 1:
+        raise AssertionError(f"불안정한 것이 하나가 아니다 {bad}")
+    return bad[0], f"선택 정렬 {data} → {d} (순서 뒤집힘 {unstable}) · 불안정 {bad}"
+
+
+def v_cspl_027() -> tuple[int, str]:
+    """이진 탐색 — 맨 끝 값이 최악이다."""
+    arr = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]
+
+    def cnt(t):
+        lo, hi, c = 0, len(arr) - 1, 0
+        while lo <= hi:
+            m = (lo + hi) // 2
+            c += 1
+            if arr[m] == t:
+                return c
+            lo, hi = (m + 1, hi) if arr[m] < t else (lo, m - 1)
+        return c
+
+    return cnt(91), (f"91 → {cnt(91)}회 · 72 → {cnt(72)}회(오답③) · "
+                     f"16 → {cnt(16)}회(오답①) · 순차면 {len(arr)}회(오답⑤)")
+
+
+def v_cspl_028() -> tuple[tuple, str]:
+    """로무토 분할 — 피벗보다 큰 값이 가운데 있어야 맞바꿈이 보인다."""
+    a = [15, 22, 13, 27, 12, 10, 20, 25]
+    arr, p, i = list(a), a[-1], -1
+    for j in range(len(arr) - 1):
+        if arr[j] <= p:
+            i += 1
+            arr[i], arr[j] = arr[j], arr[i]
+    arr[i + 1], arr[-1] = arr[-1], arr[i + 1]
+    if arr[:i + 1] == sorted(arr[:i + 1]):
+        raise AssertionError("왼쪽이 정렬돼 버렸다 — 오답 ①과 구분이 안 된다")
+    return tuple(arr), f"피벗 {p} · 분할 후 {arr} · 피벗 자리 {i+1}"
+
+
+def v_cspl_029() -> tuple[tuple, str]:
+    """별칭이 생겨야 참조 호출과 값-결과 호출이 갈린다."""
+    # 값 호출 — 복사본만 바뀐다
+    a_val = 5
+    # 참조 호출 — x·y 가 모두 a
+    a_ref = 5
+    a_ref = a_ref + 1
+    a_ref = a_ref + 2
+    # 값-결과 — 복사해 일하고 매개변수 순서대로 되쓴다
+    a0 = 5
+    x, y = a0, a0
+    x, y = x + 1, y + 2
+    a_vr = x
+    a_vr = y                                   # 왼쪽부터 되써서 y 가 남는다
+    out = (a_val, a_ref, a_vr)
+    if len(set(out)) != 3:
+        raise AssertionError(f"세 방식의 결과가 겹친다 {out}")
+    return out, f"값 {a_val} · 참조 {a_ref} · 값-결과 {a_vr}"
+
+
+def v_cspl_030() -> tuple[int, str]:
+    """동적 유효 범위 — 호출 사슬을 거슬러 가장 먼저 만나는 것."""
+    chain = [("전역", 1), ("r", 3), ("q", 2), ("p", None)]
+    for name, v in reversed(chain):            # p 부터 거슬러 올라간다
+        if v is not None:
+            dyn, who = v, name
+            break
+    static = dict(chain)["전역"]               # p 가 쓰인 자리는 전역
+    if dyn == static:
+        raise AssertionError("정적과 동적이 같다 — 문항이 성립하지 않는다")
+    return dyn, (f"사슬 {[n for n, _ in chain]} · 동적 {dyn}({who}) · "
+                 f"정적 {static}(오답①) · r 의 값 3(오답③)")
+
+
+def v_cspl_031() -> tuple[int, str]:
+    """하노이 — T(n) = 2T(n-1) + 1 이 2ⁿ − 1 과 같은지 확인한다."""
+    t, seq = 0, []
+    for n in range(1, 7):
+        t = 2 * t + 1
+        seq.append(t)
+        if t != 2 ** n - 1:
+            raise AssertionError(f"n={n} 에서 점화식과 닫힌 형태가 다르다")
+    return seq[4], f"원반 1~6 → {seq} · 5개면 2⁵−1 = {seq[4]} · 2⁵ = 32(오답④)"
+
+
+def v_cspl_032() -> tuple[int, str]:
+    """부호 있는 8비트 오버플로 — 양수 둘을 더했는데 음수가 된다."""
+    def s8(v):
+        v &= 0xFF
+        return v - 256 if v & 0x80 else v
+
+    a, b = 100, 50
+    got = s8(a + b)
+    if got >= 0:
+        raise AssertionError("오버플로가 나지 않았다")
+    return got, (f"{a}+{b}={a+b} → {(a+b) & 0xFF:08b} → {got} · "
+                 f"128 을 빼면 {a+b-128}(오답③) · 포화로 보면 127(오답④)")
+
+
+def v_cspl_033() -> tuple[int, str]:
+    """정수 나눗셈 — 몫×제수+나머지 = 피제수."""
+    a, b = 17, 5
+    got = a // b * b + a % b
+    if got != a:
+        raise AssertionError("항등식이 성립하지 않는다")
+    return got, (f"a/b={a//b} ×b={a//b*b} a%b={a%b} → {got} (= a) · "
+                 f"앞부분만 세면 {a//b*b}(오답①) · 실수 나눗셈이면 {a/b*b + a%b}")
+
+
+def v_cspl_034() -> tuple[int, str]:
+    """오버로딩은 컴파일 시각·정적 타입. 오버라이딩과 갈라 묻는다."""
+    claims = [
+        ("컴파일 시각 · 정적 타입으로 결정", True),
+        ("반환형만 달라도 정의 가능", False),      # 서명에 안 들어간다
+        ("실행 시각 · 실제 값으로 결정", False),    # 오버라이딩이다
+        ("매개변수 이름만 달라도 구분", False),
+        ("자식이 같은 서명으로 재정의", False),     # 오버라이딩의 정의
+    ]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"참인 진술 {right} ({claims[right[0]-1][0]})"
+
+
+def v_cspl_035() -> tuple[tuple, str]:
+    """다른 패키지의 자식에게 열린 것 — protected 와 public."""
+    #        같은클래스 같은패키지 다른패키지자식 다른패키지남
+    acc = {"ㄱ private": (1, 0, 0, 0), "ㄴ (기본)": (1, 1, 0, 0),
+           "ㄷ protected": (1, 1, 1, 0), "ㄹ public": (1, 1, 1, 1)}
+    ok = tuple(k.split()[0] for k, v in acc.items() if v[2])
+    if ok != ("ㄷ", "ㄹ"):
+        raise AssertionError(f"열린 것이 예상과 다르다 {ok}")
+    return ok, " · ".join(f"{k}{v}" for k, v in acc.items())
+
+
+def v_cspl_036() -> tuple[tuple, str]:
+    """컴파일 단계 — 앞 단계의 출력이 뒤 단계의 입력인지로 순서가 정해진다."""
+    produces = {"어휘": "토큰", "구문": "구문트리", "의미": "검증된트리",
+                "중간": "중간코드", "최적화": "다듬은코드", "목적": "기계어"}
+    needs = {"어휘": "문자열", "구문": "토큰", "의미": "구문트리",
+             "중간": "검증된트리", "최적화": "중간코드", "목적": "다듬은코드"}
+    order, have = [], "문자열"
+    while len(order) < len(needs):
+        nxt = [k for k, v in needs.items() if v == have and k not in order]
+        if len(nxt) != 1:
+            raise AssertionError(f"다음 단계가 하나로 정해지지 않는다 {nxt}")
+        order.append(nxt[0])
+        have = produces[nxt[0]]
+    return tuple(order), " → ".join(order)
+
+
 # ── 전자계산기구조 ──────────────────────────────────────────────────────
 
 def _twos(v: int, bits: int = 8) -> str:
@@ -2648,6 +2951,50 @@ REGISTRY = {
     # 018 finally 는 예외 여부와 무관하게 항상 (선지 ③)
     "major-cspl-common-018": (lambda: (3, "정리 코드는 항상 돌아야 쓸모가 있다"),
                               lambda i: i),
+    "major-cspl-common-019": (v_cspl_019, lambda t: {(0, 7): 1, (2, 0): 2, (2, 2): 3,
+                                                     (3, 1): 4, (2, 1): 5}[t]),
+    "major-cspl-common-020": (v_cspl_020, lambda t: {
+        (80, 70, 60, 30, 50, 20): 1, (80, 70, 20, 30, 50, 60): 2,
+        (70, 50, 80, 30, 20, 60): 3, (80, 60, 70, 30, 50, 20): 4,
+        (70, 30, 80, 50, 60, 20): 5}[t]),
+    "major-cspl-common-021": (v_cspl_021, lambda t: {
+        tuple("ABDEFGC"): 1, tuple("ABCDEFG"): 2, tuple("ABDEFCG"): 3,
+        tuple("ACFGBDE"): 4, tuple("ABDCFGE"): 5}[t]),
+    "major-cspl-common-022": (v_cspl_022, lambda s: {
+        "DEBFGCA": 1, "DBEFGCA": 2, "ABDECFG": 3, "GFCEDBA": 4,
+        "DEBCFGA": 5}[s]),
+    "major-cspl-common-023": (v_cspl_023, lambda s: {"LL": 1, "RR": 2, "RL": 3,
+                                                     "LR": 4}[s]),
+    "major-cspl-common-024": (v_cspl_024, lambda n: {3: 1, 4: 2, 5: 3, 6: 4,
+                                                     7: 5}[n]),
+    "major-cspl-common-025": (v_cspl_025, lambda s: {
+        "O(log n)": 1, "O(n)": 2, "O(n log n)": 3, "O(n²)": 4, "O(2ⁿ)": 5}[s]),
+    "major-cspl-common-026": (v_cspl_026, lambda i: i),
+    "major-cspl-common-027": (v_cspl_027, lambda n: {1: 1, 2: 2, 3: 3, 4: 4,
+                                                     10: 5}[n]),
+    "major-cspl-common-028": (v_cspl_028, lambda t: {
+        (15, 13, 12, 10, 20, 22, 25, 27): 1, (15, 22, 13, 12, 10, 20, 25, 27): 2,
+        (10, 12, 13, 15, 20, 22, 25, 27): 3, (15, 22, 13, 27, 12, 10, 25, 20): 4,
+        (12, 10, 13, 15, 20, 22, 25, 27): 5}[t]),
+    "major-cspl-common-029": (v_cspl_029, lambda t: {
+        (5, 7, 8): 1, (5, 8, 6): 2, (8, 5, 7): 3, (5, 5, 8): 4, (5, 8, 7): 5}[t]),
+    "major-cspl-common-030": (v_cspl_030, lambda n: {1: 1, 2: 2, 3: 3, 0: 4}[n]),
+    "major-cspl-common-031": (v_cspl_031, lambda n: {15: 1, 25: 2, 31: 3, 32: 4,
+                                                     63: 5}[n]),
+    "major-cspl-common-032": (v_cspl_032, lambda n: {-128: 1, -106: 2, 22: 3,
+                                                     127: 4, 150: 5}[n]),
+    "major-cspl-common-033": (v_cspl_033, lambda n: {15: 1, 16: 2, 17: 3, 20: 4,
+                                                     22: 5}[n]),
+    "major-cspl-common-034": (v_cspl_034, lambda i: i),
+    "major-cspl-common-035": (v_cspl_035, lambda t: {
+        ("ㄹ",): 1, ("ㄷ",): 2, ("ㄴ", "ㄹ"): 3, ("ㄷ", "ㄹ"): 4,
+        ("ㄴ", "ㄷ", "ㄹ"): 5}[t]),
+    "major-cspl-common-036": (v_cspl_036, lambda t: {
+        ("어휘", "구문", "의미", "최적화", "중간", "목적"): 1,
+        ("구문", "어휘", "의미", "중간", "최적화", "목적"): 2,
+        ("어휘", "의미", "구문", "중간", "최적화", "목적"): 3,
+        ("어휘", "구문", "중간", "의미", "최적화", "목적"): 4,
+        ("어휘", "구문", "의미", "중간", "최적화", "목적"): 5}[t]),
 
     "major-csca-common-001": (v_csca_001, lambda b: {
         "10000101": 1, "11111010": 2, "11111011": 3,
