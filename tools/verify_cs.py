@@ -1146,6 +1146,99 @@ def v_csdc_016() -> tuple[int, str]:
 #   검증 함수는 (계산값, 사람이 읽을 설명) 을 돌려준다.
 #   **선지 번호를 함수 안에 적지 않는다** — 계산과 배치를 갈라 두어야
 #   선지 순서를 바꿔도 검증이 따라온다.
+# ── 021~026 SQL 여섯 문항 — 하나의 스키마를 함께 쓴다 ──────────────────
+#
+# 자료를 손으로 옮겨 적지 않는다. **문항의 표와 같은 값을 여기 다시 세우고**
+# 질의를 실제로 돌린다. 표를 고치면서 검증기를 안 고치면 여기서 어긋난다.
+
+_DB2 = """
+CREATE TABLE 부서 (부서번호 TEXT PRIMARY KEY, 부서명 TEXT);
+CREATE TABLE 사원 (사번 TEXT PRIMARY KEY, 이름 TEXT, 부서번호 TEXT,
+                   직급 TEXT, 급여 INTEGER);
+CREATE TABLE 참여 (사번 TEXT, 과제 TEXT, 시간 INTEGER);
+INSERT INTO 부서 VALUES ('D1','전산기획'),('D2','정보보안'),('D3','데이터'),
+                        ('D4','인프라'),('D5','품질관리');
+INSERT INTO 사원 VALUES
+ ('E1','김한별','D1','과장',5200),('E2','이도현','D1','대리',4100),
+ ('E3','박서준','D2','과장',5400),('E4','최유진','D2','사원',3200),
+ ('E5','정민수','D2','사원',3200),('E6','한지우','D3','대리',4100),
+ ('E7','오세훈','D3','사원',NULL),('E8','신예린',NULL,'사원',2900);
+INSERT INTO 참여 VALUES
+ ('E1','차세대포털',120),('E1','보안점검',40),('E2','차세대포털',90),
+ ('E3','보안점검',200),('E4','보안점검',150),
+ ('E6','데이터표준',180),('E6','차세대포털',155);
+"""
+
+
+def _db2(sql):
+    con = sqlite3.connect(":memory:")
+    con.executescript(_DB2)
+    r = con.execute(sql).fetchall()
+    con.close()
+    return r
+
+
+def v_csdb_021() -> tuple[int, str]:
+    """GROUP BY 는 NULL 도 한 묶음. HAVING 이 그 묶음만 거른다."""
+    n = len(_db2("SELECT 부서번호, COUNT(*) FROM 사원 GROUP BY 부서번호 "
+                 "HAVING COUNT(*) >= 2"))
+    all_g = len(_db2("SELECT 부서번호 FROM 사원 GROUP BY 부서번호"))
+    return n, f"묶음 {all_g}개(NULL 포함) → HAVING 통과 {n}행 · HAVING 없으면 {all_g}(오답④)"
+
+
+def v_csdb_022() -> tuple[int, str]:
+    """부서 기준 LEFT. 짝 없는 부서가 둘이라 뒤집은 값과 갈린다."""
+    left = _db2("SELECT COUNT(*) FROM 부서 LEFT JOIN 사원 USING(부서번호)")[0][0]
+    rev = _db2("SELECT COUNT(*) FROM 사원 LEFT JOIN 부서 USING(부서번호)")[0][0]
+    inner = _db2("SELECT COUNT(*) FROM 부서 JOIN 사원 USING(부서번호)")[0][0]
+    if len({left, rev, inner}) != 3:
+        raise AssertionError(f"조인 값이 겹친다 {left} {rev} {inner}")
+    return left, f"부서 LEFT {left} · 사원 LEFT {rev}(오답②) · INNER {inner}(오답①)"
+
+
+def v_csdb_023() -> tuple[int, str]:
+    """EXISTS 는 있는지만 본다. E6 이 두 건이라 사원 수와 행 수가 갈린다."""
+    n = _db2("SELECT COUNT(*) FROM 사원 e WHERE EXISTS ("
+             "SELECT 1 FROM 참여 p WHERE p.사번=e.사번 AND p.시간>=150)")[0][0]
+    rows = _db2("SELECT COUNT(*) FROM 참여 WHERE 시간>=150")[0][0]
+    non = _db2("SELECT COUNT(*) FROM 사원 e WHERE NOT EXISTS ("
+               "SELECT 1 FROM 참여 p WHERE p.사번=e.사번 AND p.시간>=150)")[0][0]
+    return n, f"사원 {n}명 · 참여 행 {rows}(오답③) · NOT EXISTS {non}(오답④)"
+
+
+def v_csdb_024() -> tuple[int, str]:
+    """AVG 의 분모는 NULL 을 뺀 수다. 옳지 않은 선지 번호를 돌려준다."""
+    cs = _db2("SELECT COUNT(*) FROM 사원")[0][0]
+    cc = _db2("SELECT COUNT(급여) FROM 사원")[0][0]
+    avg = _db2("SELECT ROUND(AVG(급여),1) FROM 사원")[0][0]
+    naive = _db2("SELECT ROUND(SUM(급여)*1.0/COUNT(*),1) FROM 사원")[0][0]
+    if cs == cc or abs(avg - naive) < 1:
+        raise AssertionError("NULL 이 없어 문항이 성립하지 않는다")
+    return 4, (f"COUNT(*) {cs} · COUNT(급여) {cc} · AVG {avg} vs SUM/COUNT(*) {naive} "
+               f"— 같지 않으므로 ④가 옳지 않다")
+
+
+def v_csdb_025() -> tuple[tuple, str]:
+    """RANK 는 건너뛰고 DENSE_RANK 는 안 건너뛴다. 꼴찌의 두 값."""
+    rows = _db2("SELECT 이름, RANK() OVER (ORDER BY 급여 DESC), "
+                "DENSE_RANK() OVER (ORDER BY 급여 DESC) "
+                "FROM 사원 WHERE 급여 IS NOT NULL ORDER BY 급여")
+    name, r, dr = rows[0]
+    return (r, dr), f"{name} → RANK {r} · DENSE_RANK {dr} (동점 두 군데라 두 번 건너뛴다)"
+
+
+def v_csdb_026() -> tuple[tuple, str]:
+    """UNION 은 NULL 도 한 값으로 남긴다."""
+    q = ("SELECT 부서번호 FROM 사원 WHERE 직급='과장' {} "
+         "SELECT 부서번호 FROM 사원 WHERE 직급='사원'")
+    u = len(_db2(q.format("UNION")))
+    ua = len(_db2(q.format("UNION ALL")))
+    has_null = any(r[0] is None for r in _db2(q.format("UNION")))
+    if not has_null:
+        raise AssertionError("UNION 결과에 NULL 이 없다 — 함정이 성립하지 않는다")
+    return (u, ua), f"UNION {u}행(NULL 포함) · UNION ALL {ua}행"
+
+
 REGISTRY = {
     "major-csdb-common-001": (v_csdb_001, lambda nf: {1: 1, 2: 2, 3: 3}[nf]),
     "major-csdb-common-002": (v_csdb_002, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 7: 5}[n]),
@@ -1155,6 +1248,14 @@ REGISTRY = {
     "major-csdb-common-005": (v_csdb_005, lambda h: {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}[h]),
     "major-csdb-common-006": (v_csdb_006, lambda v: {"3NF만족_BCNF위반": 3}[v]),
     "major-csdb-common-007": (v_csdb_007, lambda i: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[i]),
+    "major-csdb-common-021": (v_csdb_021, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 8: 5}[n]),
+    "major-csdb-common-022": (v_csdb_022, lambda n: {7: 1, 8: 2, 9: 3, 10: 4, 13: 5}[n]),
+    "major-csdb-common-023": (v_csdb_023, lambda n: {2: 1, 3: 2, 4: 3, 5: 4, 7: 5}[n]),
+    "major-csdb-common-024": (v_csdb_024, lambda i: i),
+    "major-csdb-common-025": (v_csdb_025, lambda t: {(5, 5): 1, (5, 7): 2, (7, 4): 3,
+                                                     (7, 5): 4, (7, 7): 5}[t]),
+    "major-csdb-common-026": (v_csdb_026, lambda t: {(3, 6): 1, (4, 4): 2, (4, 6): 3,
+                                                     (6, 4): 4, (6, 6): 5}[t]),
     "major-csdb-common-008": (v_csdb_008, lambda n: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[n]),
     "major-csdb-common-009": (v_csdb_009, lambda r: {
         (1,): 1, (1, 2): 2, (1, 3): 3, (1, 2, 3, 4): 4, (2, 4): 5}[r]),

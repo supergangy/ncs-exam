@@ -1205,4 +1205,513 @@ ITEMS = [
             },
         }],
     },
+
+    # ─────────────────────────────────────────────────────────────
+    # 021 GROUP BY · HAVING
+    #   부서별 인원 D1 2 · D2 3 · D3 2 · NULL 1 → HAVING >= 2 로 3행
+    #   HAVING 을 빼면 4행(NULL 도 한 묶음), DISTINCT 로 세면 3
+    #   sqlite 로 확인 (scratchpad 검산)
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-021",
+        "risk": "low",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중",
+        "evidence": "전산 후기 153건 계열. 집계 뒤 거르기는 SQL 단골",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "SQL",
+                "stem": "다음 질의의 결과 행 수는?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;사원&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>사번</th><th>이름</th><th>부서번호</th></tr>"
+                    "<tr><td>E1</td><td>김한별</td><td>D1</td></tr>"
+                    "<tr><td>E2</td><td>이도현</td><td>D1</td></tr>"
+                    "<tr><td>E3</td><td>박서준</td><td>D2</td></tr>"
+                    "<tr><td>E4</td><td>최유진</td><td>D2</td></tr>"
+                    "<tr><td>E5</td><td>정민수</td><td>D2</td></tr>"
+                    "<tr><td>E6</td><td>한지우</td><td>D3</td></tr>"
+                    "<tr><td>E7</td><td>오세훈</td><td>D3</td></tr>"
+                    "<tr><td>E8</td><td>신예린</td><td>NULL</td></tr>"
+                    "</table>"
+                    '<div class="box-title">&lt;질의&gt;</div>'
+                    "<p><code>SELECT 부서번호, COUNT(*)</code></p>"
+                    "<p><code>FROM 사원</code></p>"
+                    "<p><code>GROUP BY 부서번호</code></p>"
+                    "<p><code>HAVING COUNT(*) &gt;= 2</code></p>"
+                    "</div>"
+                ),
+                "choices": ["1행", "2행", "3행", "4행", "8행"],
+                "answer": 3,
+                "explain": (
+                    "<p><code>GROUP BY</code> 는 <strong>NULL 도 하나의 묶음</strong>으로 "
+                    "본다. 먼저 네 묶음이 나온다.</p>"
+                    '<table class="data">'
+                    "<tr><th>부서번호</th><th>인원</th><th>HAVING 통과</th></tr>"
+                    "<tr><td>NULL</td><td>1</td><td>×</td></tr>"
+                    "<tr><td>D1</td><td>2</td><td>○</td></tr>"
+                    "<tr><td>D2</td><td>3</td><td>○</td></tr>"
+                    "<tr><td>D3</td><td>2</td><td>○</td></tr>"
+                    "</table>"
+                    "<p><code>HAVING COUNT(*) &gt;= 2</code> 가 NULL 묶음만 걸러 "
+                    "<strong>3행</strong>이 남는다.</p>"
+                ),
+                "each": [
+                    "① 묶음이 하나로 합쳐진다고 본 값이다. GROUP BY 는 값마다 나눈다.",
+                    "② NULL 묶음을 아예 만들지 않고 D1·D2·D3 중 둘만 통과한다고 센 값이다.",
+                    "③ (정답) 네 묶음 가운데 인원 2 이상인 D1·D2·D3 가 남는다.",
+                    "④ HAVING 을 빼고 센 값이다. NULL 묶음까지 네 행이 된다.",
+                    "⑤ 집계하지 않고 원래 행 수를 센 값이다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열. SQL 은 필기 단골이고 그 안에서도 "
+                            "집계 뒤 거르기가 자주 나온다 `[S-20260804-c85013]`",
+                    "설계": "**NULL 부서를 한 명 넣은 것**이 판정 지점이다. "
+                            "`GROUP BY` 가 NULL 을 묶음으로 만드는지 아는지를 묻는다. "
+                            "인원을 2·3·2·1 로 잡아 HAVING 이 정확히 하나만 걸러 내게 했다",
+                    "함정": "④ 4행이 가장 크게 끌린다. **묶음 수를 세고 HAVING 을 잊으면** "
+                            "그 값이다. ②는 반대로 NULL 묶음이 아예 안 생긴다고 본 값이라, "
+                            "두 오답이 NULL 처리의 양쪽 오해를 각각 맡는다",
+                    "검증": "sqlite 로 질의를 그대로 실행해 3행을 확인했다. "
+                            "HAVING 을 뺀 질의(4행)와 `COUNT(DISTINCT 부서번호)`(3)도 "
+                            "함께 돌려 오답 경로가 실제로 그 값을 내는지 확인했다",
+                },
+            },
+        ],
+    },
+
+    # ─────────────────────────────────────────────────────────────
+    # 022 외부 조인 — 어느 쪽을 기준으로 두느냐
+    #   부서 5 · 사원 8 · 짝지어지는 쌍 7
+    #   부서 LEFT 사원 = 7 + (D4·D5 각 1) = 9
+    #   사원 LEFT 부서 = 7 + (E8 1) = 8 · INNER = 7
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-022",
+        "risk": "low",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중상",
+        "evidence": "전산 후기 153건 계열. 조인 종류별 결과 판정",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "SQL",
+                "stem": "다음 질의의 결과 행 수는?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;부서&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>부서번호</th><th>부서명</th></tr>"
+                    "<tr><td>D1</td><td>전산기획</td></tr>"
+                    "<tr><td>D2</td><td>정보보안</td></tr>"
+                    "<tr><td>D3</td><td>데이터</td></tr>"
+                    "<tr><td>D4</td><td>인프라</td></tr>"
+                    "<tr><td>D5</td><td>품질관리</td></tr>"
+                    "</table>"
+                    '<div class="box-title">&lt;사원&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>사번</th><th>부서번호</th></tr>"
+                    "<tr><td>E1</td><td>D1</td></tr>"
+                    "<tr><td>E2</td><td>D1</td></tr>"
+                    "<tr><td>E3</td><td>D2</td></tr>"
+                    "<tr><td>E4</td><td>D2</td></tr>"
+                    "<tr><td>E5</td><td>D2</td></tr>"
+                    "<tr><td>E6</td><td>D3</td></tr>"
+                    "<tr><td>E7</td><td>D3</td></tr>"
+                    "<tr><td>E8</td><td>NULL</td></tr>"
+                    "</table>"
+                    '<div class="box-title">&lt;질의&gt;</div>'
+                    "<p><code>SELECT *</code></p>"
+                    "<p><code>FROM 부서 LEFT OUTER JOIN 사원</code></p>"
+                    "<p><code>&nbsp;&nbsp;ON 부서.부서번호 = 사원.부서번호</code></p>"
+                    "</div>"
+                ),
+                "choices": ["7행", "8행", "9행", "10행", "13행"],
+                "answer": 3,
+                "explain": (
+                    "<p>왼쪽이 <strong>부서</strong>다. 부서를 한 행도 잃지 않고, "
+                    "짝이 없으면 오른쪽을 NULL 로 채운다.</p>"
+                    '<table class="data">'
+                    "<tr><th>부서</th><th>짝지어진 사원</th><th>결과 행</th></tr>"
+                    "<tr><td>D1</td><td>E1·E2</td><td>2</td></tr>"
+                    "<tr><td>D2</td><td>E3·E4·E5</td><td>3</td></tr>"
+                    "<tr><td>D3</td><td>E6·E7</td><td>2</td></tr>"
+                    "<tr><td>D4</td><td>없음</td><td>1 (NULL 채움)</td></tr>"
+                    "<tr><td>D5</td><td>없음</td><td>1 (NULL 채움)</td></tr>"
+                    "<tr><td><strong>합계</strong></td><td>—</td>"
+                    "<td><strong>9</strong></td></tr>"
+                    "</table>"
+                    "<p>부서번호가 NULL 인 <strong>E8 은 나오지 않는다.</strong> "
+                    "왼쪽이 사원이 아니기 때문이다.</p>"
+                ),
+                "each": [
+                    "① 내부 조인의 결과다. 짝이 없는 D4·D5 가 빠졌다.",
+                    "② 왼쪽·오른쪽을 뒤집어 사원 기준으로 본 값이다. "
+                    "그때는 E8 이 남고 D4·D5 가 사라진다.",
+                    "③ (정답) 짝지어진 7행에 D4·D5 가 한 행씩 더해진다.",
+                    "④ 짝 없는 쪽을 양쪽 모두 채운 값이다. 완전 외부 조인의 결과다.",
+                    "⑤ 부서 5행과 사원 8행을 그냥 더한 값이다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열. 조인 종류를 가리는 문항이 반복된다 "
+                            "`[S-20260804-c85013]`",
+                    "설계": "**양쪽에 짝 없는 행을 따로 두었다** — 부서 쪽에 D4·D5, "
+                            "사원 쪽에 E8. 그래야 기준을 뒤집었을 때 값이 달라진다. "
+                            "짝 없는 부서를 둘로 한 것은 뒤집은 값(8)과 정답(9)이 "
+                            "우연히 같아지지 않게 하려는 것이다",
+                    "함정": "② 8행이 가장 그럴듯하다. **`LEFT` 가 어느 표를 가리키는지**를 "
+                            "놓치면 사원 기준으로 세게 된다. ④는 완전 외부 조인과 헷갈린 값이다",
+                    "검증": "sqlite 로 세 질의(부서 LEFT · 사원 LEFT · INNER)를 모두 돌려 "
+                            "9 · 8 · 7 을 확인했다. **처음 자료로는 두 LEFT 가 모두 8 이라** "
+                            "오답이 정답과 겹쳤고, 부서를 하나 더 넣어 갈랐다",
+                },
+            },
+        ],
+    },
+
+    # ─────────────────────────────────────────────────────────────
+    # 023 EXISTS 상관 서브쿼리
+    #   150 이상 참여: E3(200) E4(150) E6(180) E6(155) → 행 4 · 사원 3
+    #   EXISTS 3 · NOT EXISTS 5 · 행 수 4
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-023",
+        "risk": "low",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중상",
+        "evidence": "전산 후기 153건 계열. 상관 서브쿼리는 SQL 상위 난도의 단골",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "SQL",
+                "stem": "다음 질의의 결과로 옳은 것은?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;사원&gt;</div>'
+                    "<p>E1 · E2 · E3 · E4 · E5 · E6 · E7 · E8 (모두 8명)</p>"
+                    '<div class="box-title">&lt;참여&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>사번</th><th>과제</th><th>시간</th></tr>"
+                    "<tr><td>E1</td><td>차세대포털</td><td>120</td></tr>"
+                    "<tr><td>E1</td><td>보안점검</td><td>40</td></tr>"
+                    "<tr><td>E2</td><td>차세대포털</td><td>90</td></tr>"
+                    "<tr><td>E3</td><td>보안점검</td><td>200</td></tr>"
+                    "<tr><td>E4</td><td>보안점검</td><td>150</td></tr>"
+                    "<tr><td>E6</td><td>데이터표준</td><td>180</td></tr>"
+                    "<tr><td>E6</td><td>차세대포털</td><td>155</td></tr>"
+                    "</table>"
+                    '<div class="box-title">&lt;질의&gt;</div>'
+                    "<p><code>SELECT COUNT(*) FROM 사원 e</code></p>"
+                    "<p><code>WHERE EXISTS (</code></p>"
+                    "<p><code>&nbsp;&nbsp;SELECT 1 FROM 참여 p</code></p>"
+                    "<p><code>&nbsp;&nbsp;WHERE p.사번 = e.사번 AND p.시간 &gt;= 150)</code></p>"
+                    "</div>"
+                ),
+                "choices": ["2", "3", "4", "5", "7"],
+                "answer": 2,
+                "explain": (
+                    "<p><code>EXISTS</code> 는 <strong>있는지만 본다.</strong> "
+                    "몇 건 있는지는 세지 않는다.</p>"
+                    "<p>시간이 150 이상인 참여 기록은 네 건이다 — "
+                    "E3(200) · E4(150) · E6(180) · E6(155).<br>"
+                    "그런데 E6 이 두 번 나오므로 <strong>사원은 셋</strong>이다.</p>"
+                    "<p>바깥 질의는 사원을 세므로 답은 <strong>3</strong>이다.</p>"
+                ),
+                "each": [
+                    "① 경계값 150 을 제외하고 「150 초과」로 읽으면 E4 가 빠져 2가 된다.",
+                    "② (정답) E3·E4·E6 세 사람이다. E6 이 두 건이어도 한 번만 센다.",
+                    "③ 사원이 아니라 참여 '행' 을 센 값이다. E6 이 두 번 세어졌다.",
+                    "④ NOT EXISTS 로 읽어 조건에 해당하지 않는 사원을 센 값이다.",
+                    "⑤ 참여 기록이 있는 사원 전체를 센 값이다. 시간 조건을 빠뜨렸다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열 `[S-20260804-c85013]`",
+                    "설계": "**한 사원이 조건을 두 번 만족하게** 두었다(E6). "
+                            "`EXISTS` 가 존재만 보는지, 아니면 건수를 세는지를 "
+                            "가르는 자리다. 경계값 150 을 정확히 맞춘 참여(E4)도 넣어 "
+                            "이상·초과를 함께 묻는다",
+                    "함정": "③ 4가 가장 크게 끌린다. **참여 표에서 조건에 맞는 줄을 세면** "
+                            "그 값이고, `EXISTS` 를 「몇 건 있나」로 읽으면 그리로 간다. "
+                            "①은 경계값을 뺀 값이라 두 오답이 서로 다른 오해를 맡는다",
+                    "검증": "sqlite 로 `EXISTS`·`NOT EXISTS`·행 수 세 질의를 돌려 "
+                            "3 · 5 · 4 를 확인했다. **`COUNT(DISTINCT 사번)` 도 3 이라 "
+                            "정답과 겹쳐** 오답 후보에서 뺐다",
+                },
+            },
+        ],
+    },
+
+    # ─────────────────────────────────────────────────────────────
+    # 024 집계와 NULL
+    #   급여 NULL 이 한 명(E7). COUNT(*) 8 · COUNT(급여) 7
+    #   AVG = 28100/7 = 4014.3 · SUM/COUNT(*) = 28100/8 = 3512.5
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-024",
+        "risk": "low",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중",
+        "evidence": "전산 후기 153건 계열. NULL 처리는 SQL 함정의 대표",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "SQL",
+                "stem": "다음 자료에 대한 설명으로 옳지 않은 것은?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;사원&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>사번</th><th>급여</th></tr>"
+                    "<tr><td>E1</td><td>5200</td></tr>"
+                    "<tr><td>E2</td><td>4100</td></tr>"
+                    "<tr><td>E3</td><td>5400</td></tr>"
+                    "<tr><td>E4</td><td>3200</td></tr>"
+                    "<tr><td>E5</td><td>3200</td></tr>"
+                    "<tr><td>E6</td><td>4100</td></tr>"
+                    "<tr><td>E7</td><td>NULL</td></tr>"
+                    "<tr><td>E8</td><td>2900</td></tr>"
+                    "</table>"
+                    "</div>"
+                    '<p class="note">※ 급여의 합은 28,100 이다.</p>'
+                ),
+                "choices": [
+                    "<code>COUNT(*)</code> 는 8을 돌려준다.",
+                    "<code>COUNT(급여)</code> 는 7을 돌려준다.",
+                    "<code>AVG(급여)</code> 는 28,100 을 7로 나눈 값이다.",
+                    "<code>AVG(급여)</code> 와 <code>SUM(급여)/COUNT(*)</code> 는 같은 값이다.",
+                    "<code>SUM(급여)</code> 는 NULL 을 건너뛰고 28,100 을 돌려준다.",
+                ],
+                "answer": 4,
+                "explain": (
+                    "<p>집계 함수는 <code>COUNT(*)</code> 를 뺀 모두가 "
+                    "<strong>NULL 을 건너뛴다.</strong></p>"
+                    '<table class="data">'
+                    "<tr><th>식</th><th>값</th><th>왜</th></tr>"
+                    "<tr><td>COUNT(*)</td><td>8</td><td>행을 센다</td></tr>"
+                    "<tr><td>COUNT(급여)</td><td>7</td><td>NULL 을 뺀다</td></tr>"
+                    "<tr><td>AVG(급여)</td><td>4,014.3</td><td>28,100 ÷ <strong>7</strong></td></tr>"
+                    "<tr><td>SUM(급여)/COUNT(*)</td><td>3,512.5</td>"
+                    "<td>28,100 ÷ <strong>8</strong></td></tr>"
+                    "</table>"
+                    "<p>나누는 수가 달라 두 값은 같지 않다. 그래서 ④가 옳지 않다.</p>"
+                ),
+                "each": [
+                    "① 옳다. <code>COUNT(*)</code> 만은 NULL 을 가리지 않고 행을 센다.",
+                    "② 옳다. 열을 지정하면 그 열이 NULL 인 행을 뺀다.",
+                    "③ 옳다. 평균의 분모는 NULL 을 뺀 7이다.",
+                    "④ (정답) 분모가 7과 8로 달라 4,014.3 과 3,512.5 가 된다.",
+                    "⑤ 옳다. 합계도 NULL 을 건너뛴다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열. NULL 은 SQL 문항의 대표 함정이다 "
+                            "`[S-20260804-c85013]`",
+                    "설계": "**같은 합을 서로 다른 수로 나누게** 두었다. NULL 이 하나뿐이라 "
+                            "두 값의 차이가 500 정도로 뚜렷하다. `옳지 않은 것` 형식이라 "
+                            "나머지 넷의 참을 각각 확인해야 한다(규칙 `4-6`)",
+                    "함정": "④는 **평균의 정의를 「합÷행수」로 외우고 있으면 참으로 읽힌다.** "
+                            "NULL 이 분모에서 빠진다는 것이 판정 지점이고, "
+                            "①·②를 나란히 두어 그 차이를 앞서 보여 준다",
+                    "검증": "sqlite 로 네 식을 모두 실행해 8 · 7 · 4,014.3 · 3,512.5 를 "
+                            "확인했다. 나머지 넷이 모두 참임도 개별로 확인했다",
+                },
+            },
+        ],
+    },
+
+    # ─────────────────────────────────────────────────────────────
+    # 025 윈도 함수 — RANK 와 DENSE_RANK
+    #   급여 내림차순 5400 5200 4100 4100 3200 3200 2900
+    #   RANK       1 2 3 3 5 5 7
+    #   DENSE_RANK 1 2 3 3 4 4 5
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-025",
+        "risk": "low",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중상",
+        "evidence": "전산 후기 153건 계열. 윈도 함수는 최근 출제가 늘고 있다",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "SQL",
+                "stem": "다음 질의에서 신예린의 ㉠과 ㉡에 들어갈 값은?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;사원&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>이름</th><th>급여</th></tr>"
+                    "<tr><td>박서준</td><td>5400</td></tr>"
+                    "<tr><td>김한별</td><td>5200</td></tr>"
+                    "<tr><td>이도현</td><td>4100</td></tr>"
+                    "<tr><td>한지우</td><td>4100</td></tr>"
+                    "<tr><td>최유진</td><td>3200</td></tr>"
+                    "<tr><td>정민수</td><td>3200</td></tr>"
+                    "<tr><td>신예린</td><td>2900</td></tr>"
+                    "</table>"
+                    '<div class="box-title">&lt;질의&gt;</div>'
+                    "<p><code>SELECT 이름,</code></p>"
+                    "<p><code>&nbsp;&nbsp;RANK() OVER (ORDER BY 급여 DESC) AS ㉠,</code></p>"
+                    "<p><code>&nbsp;&nbsp;DENSE_RANK() OVER (ORDER BY 급여 DESC) AS ㉡</code></p>"
+                    "<p><code>FROM 사원</code></p>"
+                    "</div>"
+                ),
+                "choices": [
+                    "㉠ 5&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 5",
+                    "㉠ 5&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 7",
+                    "㉠ 7&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 4",
+                    "㉠ 7&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 5",
+                    "㉠ 7&nbsp;&nbsp;/&nbsp;&nbsp;㉡ 7",
+                ],
+                "answer": 4,
+                "explain": (
+                    "<p><code>RANK</code> 는 같은 값 뒤에서 <strong>건너뛴다.</strong> "
+                    "<code>DENSE_RANK</code> 는 건너뛰지 않는다.</p>"
+                    '<table class="data">'
+                    "<tr><th>급여</th><th>RANK</th><th>DENSE_RANK</th></tr>"
+                    "<tr><td>5400</td><td>1</td><td>1</td></tr>"
+                    "<tr><td>5200</td><td>2</td><td>2</td></tr>"
+                    "<tr><td>4100</td><td>3</td><td>3</td></tr>"
+                    "<tr><td>4100</td><td>3</td><td>3</td></tr>"
+                    "<tr><td>3200</td><td>5</td><td>4</td></tr>"
+                    "<tr><td>3200</td><td>5</td><td>4</td></tr>"
+                    "<tr><td><strong>2900</strong></td><td><strong>7</strong></td>"
+                    "<td><strong>5</strong></td></tr>"
+                    "</table>"
+                    "<p>4100 이 둘이라 4를 건너뛰고, 3200 이 둘이라 6을 건너뛴다. "
+                    "그래서 마지막이 7이다. 값의 종류는 다섯이므로 ㉡은 5다.</p>"
+                ),
+                "each": [
+                    "① 둘 다 건너뛰지 않는다고 본 값이다. RANK 는 건너뛴다.",
+                    "② 두 함수를 서로 바꿔 넣은 값이다.",
+                    "③ ㉠은 맞으나 ㉡에서 3200 묶음을 세지 않았다.",
+                    "④ (정답) 두 번 건너뛰어 RANK 7, 값의 종류가 다섯이라 DENSE_RANK 5다.",
+                    "⑤ 둘 다 건너뛴다고 본 값이다. DENSE_RANK 는 건너뛰지 않는다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열. 윈도 함수는 최근 출제가 느는 결이다 "
+                            "`[S-20260804-c85013]`",
+                    "설계": "**동점을 두 군데 두었다**(4100 둘 · 3200 둘). 한 군데만 두면 "
+                            "두 함수의 차이가 1밖에 안 나서 우연히 맞힐 수 있다. "
+                            "두 번 건너뛰게 하면 7과 5로 벌어진다",
+                    "함정": "①·⑤가 **두 함수를 같은 것으로 본** 오답이고 방향만 다르다. "
+                            "②는 이름을 맞바꾼 값이다. 값 짝짓기형이라 "
+                            "㉠의 최빈값(7)이 정답 하나만 가리키지 않도록 ③·⑤에도 7을 두었다",
+                    "검증": "sqlite 의 `RANK()`·`DENSE_RANK()` 를 그대로 실행해 "
+                            "1·2·3·3·5·5·7 과 1·2·3·3·4·4·5 를 확인했다. "
+                            "㉠ 칸의 최빈값이 7(3회)이라 최빈 조합이 정답을 단독으로 "
+                            "가리키지 않는 것도 확인했다(규칙 `4-11`)",
+                },
+            },
+        ],
+    },
+
+    # ─────────────────────────────────────────────────────────────
+    # 026 UNION vs UNION ALL
+    #   과장 D1 D2 · 사원 D2 D2 D3 NULL
+    #   UNION 4행(NULL D1 D2 D3) · UNION ALL 6행
+    # ─────────────────────────────────────────────────────────────
+    {
+        "id": "major-csdb-common-026",
+        "risk": "low",
+        "org": "공통",
+        "kind": "major",
+        "subject": "데이터베이스론",
+        "difficulty": "중",
+        "evidence": "전산 후기 153건 계열. 집합 연산자 구분",
+        "snapshot": "S-20260804-c85013",
+
+        "area": "데이터베이스론",
+        "lead": None,
+        "passage": None,
+        "questions": [
+            {
+                "type": "SQL",
+                "stem": "두 질의의 결과 행 수를 바르게 짝지은 것은?",
+                "material": (
+                    '<div class="box"><div class="box-title">&lt;사원&gt;</div>'
+                    '<table class="data">'
+                    "<tr><th>사번</th><th>직급</th><th>부서번호</th></tr>"
+                    "<tr><td>E1</td><td>과장</td><td>D1</td></tr>"
+                    "<tr><td>E3</td><td>과장</td><td>D2</td></tr>"
+                    "<tr><td>E4</td><td>사원</td><td>D2</td></tr>"
+                    "<tr><td>E5</td><td>사원</td><td>D2</td></tr>"
+                    "<tr><td>E7</td><td>사원</td><td>D3</td></tr>"
+                    "<tr><td>E8</td><td>사원</td><td>NULL</td></tr>"
+                    "<tr><td>E2</td><td>대리</td><td>D1</td></tr>"
+                    "<tr><td>E6</td><td>대리</td><td>D3</td></tr>"
+                    "</table>"
+                    '<div class="box-title">&lt;질의 ㉮&gt;</div>'
+                    "<p><code>SELECT 부서번호 FROM 사원 WHERE 직급='과장'</code></p>"
+                    "<p><code>UNION</code></p>"
+                    "<p><code>SELECT 부서번호 FROM 사원 WHERE 직급='사원'</code></p>"
+                    '<div class="box-title">&lt;질의 ㉯&gt;</div>'
+                    "<p><code>… 위 질의에서 UNION 을 UNION ALL 로만 바꾼 것</code></p>"
+                    "</div>"
+                ),
+                "choices": [
+                    "㉮ 3행&nbsp;&nbsp;/&nbsp;&nbsp;㉯ 6행",
+                    "㉮ 4행&nbsp;&nbsp;/&nbsp;&nbsp;㉯ 4행",
+                    "㉮ 4행&nbsp;&nbsp;/&nbsp;&nbsp;㉯ 6행",
+                    "㉮ 6행&nbsp;&nbsp;/&nbsp;&nbsp;㉯ 4행",
+                    "㉮ 6행&nbsp;&nbsp;/&nbsp;&nbsp;㉯ 6행",
+                ],
+                "answer": 3,
+                "explain": (
+                    "<p>과장은 D1·D2 두 행, 사원은 D2·D2·D3·NULL 네 행 — "
+                    "합쳐 <strong>여섯 행</strong>이 나온다.</p>"
+                    "<p><code>UNION</code> 은 <strong>중복을 지운다.</strong> "
+                    "남는 값은 D1 · D2 · D3 · NULL <strong>네 가지</strong>다. "
+                    "<strong>NULL 도 한 값으로 남는다.</strong></p>"
+                    "<p><code>UNION ALL</code> 은 지우지 않아 여섯 행 그대로다.</p>"
+                ),
+                "each": [
+                    "① ㉮에서 NULL 을 빼고 센 값이다. UNION 은 NULL 도 하나로 남긴다.",
+                    "② ㉯도 중복을 지운다고 본 값이다. ALL 이 그것을 막는다.",
+                    "③ (정답) 중복을 지우면 넷, 지우지 않으면 여섯이다.",
+                    "④ 두 연산자를 서로 바꿔 넣은 값이다.",
+                    "⑤ ㉮도 중복을 남긴다고 본 값이다.",
+                ],
+                "why": {
+                    "근거": "전산 후기 153건 계열 `[S-20260804-c85013]`",
+                    "설계": "**중복이 실제로 생기게** 자료를 잡았다 — 사원 쪽에 D2 가 둘, "
+                            "그리고 과장 쪽에도 D2 가 있어 두 질의 사이에서도 겹친다. "
+                            "여기에 NULL 을 하나 넣어 「NULL 도 한 값으로 남는가」를 함께 묻는다",
+                    "함정": "① 3행이 가장 크게 끌린다. **NULL 은 값이 아니라고 보면** "
+                            "D1·D2·D3 셋만 센다. UNION 의 중복 제거는 NULL 을 하나로 묶어 남긴다",
+                    "검증": "sqlite 로 두 질의를 그대로 돌려 4행과 6행을 확인했다. "
+                            "㉮의 결과에 NULL 이 실제로 들어 있는 것도 눈으로 확인했다. "
+                            "값 짝짓기형이라 각 칸의 최빈 조합이 정답을 단독으로 "
+                            "가리키지 않음도 확인했다(규칙 `4-11`)",
+                },
+            },
+        ],
+    },
 ]
