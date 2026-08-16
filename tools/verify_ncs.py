@@ -1065,8 +1065,263 @@ def v_sm_ushape() -> tuple[int, str]:
                f"인원당 공정 {per[0]}→{per[1]} · ④의 6시그마는 자료에 없다")
 
 
+# ── 논리오류 · 모듈적용 · 매뉴얼 — 판정 규칙을 표로 두고 적용한다 ────────
+#
+# 계산으로 안 떨어진다고 손을 놓으면 오답이 그대로 남는다. 정의를 **표로 적어
+# 두고** 상황의 특징과 대조하면, 정의를 고치는 순간 어긋남이 드러난다.
+# 참인 선지가 하나뿐인지(_only)까지 확인해야 「우연히 맞는」 것을 막는다.
+
+def _only(cands: dict) -> int:
+    """참인 것이 하나뿐인지 확인하고 그 번호를 돌려준다."""
+    hit = [k for k, v in cands.items() if v]
+    if len(hit) != 1:
+        raise AssertionError(f"참인 선지가 하나가 아니다: {hit}")
+    return hit[0]
+
+
+def v_prob_hasty() -> tuple[int, str]:
+    """표본 3건으로 전체를 결론 지었다 — 성급한 일반화."""
+    sample = 3
+    kinds = ["성급한 일반화", "인신공격", "허수아비 공격", "순환 논증", "흑백 논리"]
+    feature = [sample <= 5, False, False, False, False]
+    n = _only(dict(zip(range(1, 6), feature)))
+    return n, f"표본 {sample}건으로 노선 이용객 전체를 결론 → {kinds[n - 1]}"
+
+
+def v_prob_circular() -> tuple[int, str]:
+    """근거 사슬에 사이클이 있으면 순환 논증이다 — 실제로 따라가 본다."""
+    because = {"지침을 지켜야 한다": "규정으로 정해져 있다",
+               "규정으로 정해져 있다": "지침을 지켜야 한다"}
+    seen, cur = [], "지침을 지켜야 한다"
+    while cur is not None and cur not in seen:
+        seen.append(cur)
+        cur = because.get(cur)
+    cyclic = cur is not None
+    if not cyclic:
+        raise AssertionError("근거 사슬이 돌아오지 않는다")
+    n = _only({1: False, 2: cyclic, 3: False, 4: False, 5: False})
+    return n, f"근거 사슬 {' → '.join(seen)} → 되돌아옴 · 순환 논증"
+
+
+def v_prob_strawman() -> tuple[int, str]:
+    """반박 대상이 실제 주장보다 넓으면 허수아비다 — 집합으로 견준다."""
+    claimed = {"야간"}
+    attacked = {"야간", "주간", "새벽", "출퇴근"}          # 「모든 시간대」
+    distorted = claimed < attacked
+    if not distorted:
+        raise AssertionError("반박 대상이 실제 주장과 같다")
+    n = _only({1: distorted, 2: False, 3: False, 4: False, 5: False})
+    return n, f"주장 {sorted(claimed)} · 반박 대상 {sorted(attacked)} → 범위 확대"
+
+
+def v_prob_swot() -> tuple[int, str]:
+    """내부는 약점 · 외부는 기회 → WO."""
+    inner, outer = "약점", "기회"                          # 정비 인력 부족 / 정부 지원사업
+    matrix = {("강점", "기회"): 1, ("강점", "위협"): 2,
+              ("약점", "기회"): 3, ("약점", "위협"): 4}
+    n = matrix[(inner, outer)]
+    return n, f"내부 {inner}(정비 인력 부족) · 외부 {outer}(정부 지원사업) → WO"
+
+
+def v_prob_logictree() -> tuple[int, str]:
+    """MECE 위반 — 다른 가지에 포함되는 가지를 찾는다."""
+    branch = {1: {"차량"}, 2: {"선로"}, 3: {"선로", "기상"}, 4: {"승객"}}
+    overlap = [k for k, v in branch.items()
+               if any(k != j and w < v for j, w in branch.items())]
+    if len(overlap) != 1:
+        raise AssertionError(f"겹치는 가지가 하나가 아니다: {overlap}")
+    k = overlap[0]
+    inner = [j for j, w in branch.items() if w < branch[k]]
+    return k, f"가지 {branch} · {k}번이 {inner}번을 품고 있어 상호배타가 깨진다"
+
+
+def v_prob_timematrix() -> tuple[int, str]:
+    """긴급하지 않지만 중요한 일 — 2사분면."""
+    items = {1: (True, True), 2: (False, True), 3: (True, False),
+             4: (False, False), 5: (False, False)}          # (긴급, 중요)
+    n = _only({k: (not u and i) for k, (u, i) in items.items()})
+    return n, f"(긴급, 중요) {items} → 2사분면은 {n}번뿐"
+
+
+def v_prob_nominal() -> tuple[int, str]:
+    """세 특징을 모두 갖춘 기법 — 명목집단법."""
+    need = {"개인이 먼저 적는다", "돌아가며 발표", "무기명 투표"}
+    tech = {1: {"자유 발언", "비판 금지"},
+            2: {"개인이 먼저 적는다", "돌아가며 발표", "무기명 투표"},
+            3: {"개인이 먼저 적는다", "무기명 투표", "대면하지 않음", "여러 차례 반복"},
+            4: {"진행자 주도 집단 면접"},
+            5: {"가지를 뻗어 결과를 따진다"}}
+    n = _only({k: need <= v for k, v in tech.items()})
+    return n, f"필요한 특징 {sorted(need)} → {n}번 (델파이는 한자리에 모이지 않는다)"
+
+
+def v_prob_bullwhip() -> tuple[int, str]:
+    """하류에서 상류로 갈수록 변동이 커지면 채찍효과 — 단조성을 확인한다."""
+    amp = [5, 12, 28, 60]                                   # 소비자→소매→도매→제조
+    rising = all(x < y for x, y in zip(amp, amp[1:]))
+    if not rising:
+        raise AssertionError(f"상류로 갈수록 커지지 않는다: {amp}")
+    n = _only({1: False, 2: rising, 3: False, 4: False, 5: False})
+    return n, (f"변동폭 {' → '.join(f'±{b}%' for b in amp)} · "
+               f"{amp[-1] // amp[0]}배 증폭 → 채찍효과")
+
+
+def v_prob_5w1h() -> tuple[int, str]:
+    """육하원칙 가운데 보고문에 없는 것."""
+    report = {"When": "오전 7시 20분", "Where": "2번 승강장",
+              "What": "안전문이 열리지 않음", "Who": "역무원 2명",
+              "How": "수동 전환", "Why": None}
+    order = ["When", "Where", "Who", "Why", "How"]          # 선지 순서
+    missing = [i for i, k in enumerate(order, 1) if report[k] is None]
+    if len(missing) != 1:
+        raise AssertionError(f"빠진 항목이 하나가 아니다: {missing}")
+    return missing[0], f"보고문에 담긴 것 {[k for k, v in report.items() if v]} · 빠진 것 Why"
+
+
+def v_prob_route() -> tuple[int, str]:
+    """민원 분류 + 현장 확인 여부로 부서와 기한이 갈린다."""
+    def route(kind, onsite):
+        dept = {"안전": "안전관리처", "시설차량": "운영처"}.get(kind, "고객만족처")
+        return dept, (7 if onsite else 3)
+    got = route("분실물", True)                              # 우산 분실 · 현장 확인 필요
+    table = {1: ("운영처", 3), 2: ("운영처", 7), 3: ("고객만족처", 3),
+             4: ("고객만족처", 7), 5: ("안전관리처", 14)}
+    n = _only({k: v == got for k, v in table.items()})
+    return n, (f"분실물은 제1·2조에 없어 제3조(그 밖) → {got[0]} · "
+               f"현장 확인이 필요해 제4조로 {got[1]}일")
+
+
+def v_rule_manual_first() -> tuple[int, str]:
+    """매뉴얼의 첫 단계 — 확인 없이 비상제동을 걸지 않는다."""
+    steps = ["압력계 수치를 확인한다", "기준치 미만인지 판단한다",
+             "관제실에 보고한다", "관제 지시에 따라 정차 또는 서행한다"]
+    table = {1: "즉시 비상제동", 2: "압력계 수치를 확인한다",
+             3: "관제실에 보고한다", 4: "차량기지 회송", 5: "안내 방송"}
+    n = _only({k: v == steps[0] for k, v in table.items()})
+    return n, f"1단계 {steps[0]} · 경고등은 센서 오작동으로도 켜진다"
+
+
+def v_rule_manual_threshold() -> tuple[int, str]:
+    """4.5bar 「미만」이 기준이므로 4.5 자체는 해당하지 않는다."""
+    THRESHOLD, reading = 4.5, 4.5
+    below = reading < THRESHOLD                              # 경계값 — 같으면 미만이 아니다
+    if below:
+        raise AssertionError("경계값 판정이 어긋난다")
+    n = _only({1: below, 2: not below, 3: False, 4: False, 5: False})
+    return n, (f"측정 {reading}bar · 기준 「{THRESHOLD}bar 미만」 → "
+               f"{reading} < {THRESHOLD} 는 거짓이라 보고 대상이 아니다")
+
+
+def v_rule_gift_fruit() -> tuple[int, str]:
+    """과일 상자는 음식물 한도(3만)로 본다 — 화환 한도(5만)가 아니다."""
+    LIMIT_FOOD, LIMIT_FLOWER, price = 30_000, 50_000, 40_000
+    allowed = price <= LIMIT_FOOD
+    if allowed:
+        raise AssertionError("한도를 넘지 않아 문항이 성립하지 않는다")
+    n = _only({1: False, 2: not allowed, 3: False, 4: False, 5: False})
+    return n, (f"{price:,}원 > 음식물 한도 {LIMIT_FOOD:,}원 → 받을 수 없다 · "
+               f"화환 한도 {LIMIT_FLOWER:,}원을 잘못 적용하면 ①로 샌다")
+
+
+def v_rule_privacy() -> tuple[int, str]:
+    """세 요건을 모두 갖춰야 한다 — 하나라도 빠지면 안 된다."""
+    NEED = {"동의", "승인", "지정시스템"}
+    opt = {1: set(),                                         # 암호 + 전자우편
+           2: {"동의", "승인", "지정시스템"},
+           3: set(),                                         # 마스킹 + 전자우편
+           4: set(),                                         # 요청했으니 그대로
+           5: set()}                                         # USB
+    n = _only({k: NEED <= v for k, v in opt.items()})
+    return n, (f"필요 요건 {sorted(NEED)} · 모두 갖춘 것은 {n}번 — "
+               f"전자우편·USB·외부 클라우드는 지정 수단이 아니다")
+
+
+def v_rule_stricter() -> tuple[int, str]:
+    """규정과 지침이 다르면 둘 다 지킬 수 있는 쪽 — 더 짧은 기한."""
+    rule_days, guide_days = 3, 0                             # 3일 이내 / 당일
+    both = min(rule_days, guide_days)
+    if both != guide_days:
+        raise AssertionError("더 짧은 쪽이 지침이 아니다")
+    # 3일에 회신하면 지침 위반, 당일에 회신하면 둘 다 지킨다.
+    satisfies = {1: False,      # 당일이지만 「지침에 따라」로 근거가 좁다
+                 2: 3 <= guide_days,
+                 3: 3 <= guide_days,
+                 4: both == guide_days,
+                 5: False}
+    n = _only(satisfies)
+    return n, (f"규정 {rule_days}일 이내 · 지침 당일 → 당일 회신이면 둘 다 지킨다. "
+               f"{rule_days}일에 회신하면 지침을 어긴다")
+
+
+def v_org_proxy() -> tuple[int, str]:
+    """대결 — 결재권자 칸에 표시하고 복귀 후 보고까지 해야 한다."""
+    NEED = {"결재권자 칸에 대결 표시", "복귀 후 보고"}
+    opt = {1: {"부장 칸에 대결 표시"},                        # 표시 자리가 틀렸다
+           2: {"결재권자 칸에 대결 표시", "복귀 후 보고"},
+           3: set(), 4: set(),
+           5: {"결재권자 칸에 대결 표시"}}                    # 보고 생략
+    n = _only({k: NEED <= v for k, v in opt.items()})
+    return n, f"대결 요건 {sorted(NEED)} · 둘을 다 갖춘 것은 {n}번"
+
+
+def v_prob_swot_wrong() -> tuple[int, str]:
+    """전략 이름과 실제로 쓴 요소의 분류가 어긋난 것을 찾는다."""
+    factor = {"수도권 최대 수송 실적": "S", "숙련 정비 인력": "S",
+              "노후 차량": "W", "역사 유휴공간": "W",
+              "교통약자 이동권 예산": "O", "저상 차량 도입 수요": "O",
+              "인건비 상승": "T", "승객 감소": "T"}
+    plans = {1: ("SO", ["수도권 최대 수송 실적", "교통약자 이동권 예산"]),
+             2: ("WO", ["역사 유휴공간", "교통약자 이동권 예산"]),
+             3: ("SO", ["노후 차량", "저상 차량 도입 수요"]),
+             4: ("ST", ["숙련 정비 인력", "인건비 상승"]),
+             5: ("WT", ["노후 차량", "승객 감소"])}
+    bad = [k for k, (name, used) in plans.items()
+           if {factor[x] for x in used} != set(name)]
+    if len(bad) != 1:
+        raise AssertionError(f"어긋난 전략이 하나가 아니다: {bad}")
+    k = bad[0]
+    got = {x: factor[x] for x in plans[k][1]}
+    return k, (f"{k}번은 {plans[k][0]} 라면서 {got} 를 썼다 — "
+               f"노후 차량은 강점(S)이 아니라 약점(W)이다")
+
+
+def v_comm_manual_order() -> tuple[int, str]:
+    """지침 네 조를 모두 적용한다 — 정정이 먼저, 이관 고지, 대장 기록."""
+    # 상황 — 설비 점검은 역무원이 못 한다 · 앞서 잘못 안내한 사실이 확인됐다.
+    # 안전 민원이 아니므로 제2조(즉시 현장 확인)는 적용 밖이다.
+    NEED = {"정정 먼저", "이관 고지", "대장 기록"}
+    opt = {1: {"직접 점검"},                                  # 처리 권한이 없다
+           2: {"정정 먼저", "이관 고지", "대장 기록"},
+           3: {"이관 고지"},                                  # 정정을 소관 부서에 넘겼다
+           4: set(),                                          # 대장 기록을 뺐다
+           5: {"이관 고지"}}                                  # 정정을 뒤로 미뤘다
+    hit = [k for k, v in opt.items() if NEED <= v]
+    if len(hit) != 1:
+        raise AssertionError(f"세 요건을 다 갖춘 선지가 하나가 아니다: {hit}")
+    return hit[0], (f"제4조 정정 먼저 · 제3조 이관 고지 · 제5조 당일 대장 기록 — "
+                    f"셋을 다 갖춘 것은 {hit[0]}번 (제2조는 안전 민원이 아니라 적용 밖)")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
+    "ncs-comm-seoulmetro-004": (v_comm_manual_order, lambda i: i),
+    "ncs-prob-common-009": (v_prob_hasty, lambda i: i),
+    "ncs-prob-common-010": (v_prob_circular, lambda i: i),
+    "ncs-prob-common-011": (v_prob_strawman, lambda i: i),
+    "ncs-prob-common-012": (v_prob_swot, lambda i: i),
+    "ncs-prob-common-013": (v_prob_logictree, lambda i: i),
+    "ncs-prob-common-014": (v_prob_timematrix, lambda i: i),
+    "ncs-prob-common-016": (v_prob_nominal, lambda i: i),
+    "ncs-prob-common-017": (v_prob_bullwhip, lambda i: i),
+    "ncs-prob-common-018": (v_prob_5w1h, lambda i: i),
+    "ncs-prob-common-019": (v_prob_route, lambda i: i),
+    "ncs-rule-common-012": (v_rule_manual_first, lambda i: i),
+    "ncs-rule-common-013": (v_rule_manual_threshold, lambda i: i),
+    "ncs-rule-common-017": (v_rule_gift_fruit, lambda i: i),
+    "ncs-rule-common-018": (v_rule_privacy, lambda i: i),
+    "ncs-rule-common-019": (v_rule_stricter, lambda i: i),
+    "ncs-org-seoulmetro-002": (v_org_proxy, lambda i: i),
+    "ncs-prob-seoulmetro-003": (v_prob_swot_wrong, lambda i: i),
     "ncs-math-common-001": (v_tunnel, lambda s: {52: 1, 56: 2, 60: 3, 64: 4, 68: 5}[int(s)]),
     "ncs-math-common-002": (v_pass, lambda s: {5: 1, 8: 2, 10: 3, 20: 4, 40: 5}[int(s)]),
     "ncs-math-common-003": (v_harmonic, lambda v: {44: 1, 46: 2, 48: 3, 50: 4, 52: 5}[int(v)]),
@@ -1392,8 +1647,10 @@ def main() -> int:
 
     print(f"\n검증 {len(items) - unver}건 · 불일치 {bad}건 · 미검증 {unver}건")
     if unver:
-        print("   ※ 지문 독해·어문 규범은 계산으로 확정되지 않는다. "
-              "그쪽은 미검증으로 남는 것이 정상이다.")
+        print("   ※ 남은 것은 어문 규범(맞춤법·띄어쓰기·외래어·문장부호)과 "
+              "지문 독해·어휘 판단이다.")
+        print("      규칙표로 옮기면 답을 그대로 옮겨 적는 꼴이라 검증이 되지 "
+              "않는다 — 이쪽은 사람이 본다.")
     return 1 if bad else 0
 
 
