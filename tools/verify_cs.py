@@ -576,6 +576,398 @@ def v_csos_018() -> tuple[tuple, str]:
     return levels["RAID5"], " · ".join(f"{k} {v[0]}GB/장애{v[1]}" for k, v in levels.items())
 
 
+# ── 운영체제 021~040 ────────────────────────────────────────────────────
+#
+# 001~020 이 기법별 값을 하나씩 물었다면 여기는 **기법 사이의 차이**와
+# 규칙을 실제로 적용했을 때의 결과다. 오답 선지도 대부분 「다른 기법으로
+# 풀었을 때 나오는 값」이라, 그 값들이 정말 나오는지까지 함께 확인한다.
+
+def _fcfs(js):
+    """js = [(이름, 도착, 실행)] → {이름: (대기, 반환)}"""
+    t, res = 0, {}
+    for n, a, b in sorted(js, key=lambda x: (x[1], x[0])):
+        t = max(t, a)
+        res[n] = (t - a, t - a + b)
+        t += b
+    return res
+
+
+_OS21 = [("P1", 0, 24), ("P2", 1, 3), ("P3", 2, 3)]
+
+
+def v_csos_021() -> tuple[float, str]:
+    """호위 효과 — 긴 작업이 앞에 서면 FCFS 가 얼마나 손해인가."""
+    f, s = _fcfs(_OS21), _srtf(_OS21)
+    diff = round(_avg(f, 0) - _avg(s, 0), 2)
+    return diff, (f"FCFS 평균대기 {_avg(f,0)} − SRTF {_avg(s,0)} = {diff} · "
+                  f"평균반환 FCFS {_avg(f,1)} / SRTF {_avg(s,1)}(오답 ②⑤)")
+
+
+def v_csos_022() -> tuple[str, str]:
+    """HRRN — 응답률이 가장 큰 것. SJF·FCFS 와 답이 갈려야 문항이 선다."""
+    now = 10
+    js = [("P1", 0, 6), ("P2", 2, 2), ("P3", 8, 1), ("P4", 5, 4)]
+    rr = {n: round((now - a + b) / b, 2) for n, a, b in js}
+    hrrn = max(rr, key=lambda k: (rr[k], k))
+    sjf = min(js, key=lambda x: (x[2], x[0]))[0]
+    fcfs_ = min(js, key=lambda x: (x[1], x[0]))[0]
+    if len({hrrn, sjf, fcfs_}) != 3:
+        raise AssertionError(f"세 기법의 답이 겹친다 {hrrn} {sjf} {fcfs_}")
+    if len(set(rr.values())) != len(rr):
+        raise AssertionError("응답률이 동률이다 — 선지 ⑤가 참이 된다")
+    return hrrn, (f"응답률 {rr} → HRRN {hrrn} · SJF {sjf}(오답③) · "
+                  f"FCFS {fcfs_}(오답①)")
+
+
+def _prio(jobs, aging, step=4):
+    """비선점 우선순위. aging 이면 대기 step 마다 우선순위 숫자가 1 줄어든다(최소 1)."""
+    rem = {n: (a, b, p) for n, a, b, p in jobs}
+    t, order = 0, []
+    while rem:
+        ready = [n for n in rem if rem[n][0] <= t]
+        if not ready:
+            t += 1
+            continue
+
+        def eff(n):
+            a, b, p = rem[n]
+            return ((max(1, p - (t - a) // step) if aging else p), a, n)
+
+        n = min(ready, key=eff)
+        order.append(n)
+        t += rem[n][1]
+        del rem[n]
+    return tuple(order)
+
+
+def v_csos_023() -> tuple[tuple, str]:
+    """에이징이 실제로 순서를 바꾸는지부터 확인한다 — 안 바뀌면 문항이 안 선다."""
+    jobs = [("P1", 0, 4, 5), ("P2", 1, 5, 1), ("P3", 2, 3, 2), ("P4", 3, 2, 1)]
+    on, off = _prio(jobs, True), _prio(jobs, False)
+    if on == off:
+        raise AssertionError("에이징이 순서를 바꾸지 못한다")
+    return on, f"에이징 O {'→'.join(on)} · X {'→'.join(off)}(오답①)"
+
+
+def v_csos_024() -> tuple[tuple, str]:
+    """다단계 피드백 큐 — 할당량을 다 쓰고도 남을 때만 내려간다."""
+    quanta = [2, 4, None]
+    res = []
+    for burst in (1, 5, 9):
+        rem, lv = burst, 0
+        while rem > 0:
+            rem -= min(quanta[lv] if quanta[lv] else rem, rem)
+            if rem > 0:
+                lv += 1
+        res.append(f"Q{lv}")
+    if len(set(res)) != 3:
+        raise AssertionError(f"끝나는 큐가 겹친다 {res}")
+    return tuple(res), f"실행 1·5·9 → {' / '.join(res)} 에서 완료"
+
+
+def v_csos_025() -> tuple[tuple, str]:
+    """유한 버퍼 — empty + full 은 늘 N 이다."""
+    n, prod, cons = 5, 3, 1
+    empty, full = n - prod + cons, prod - cons
+    if empty + full != n:
+        raise AssertionError("empty + full 이 N 이 아니다")
+    return (empty, full), f"N={n} · 생산 {prod} 소비 {cons} → empty {empty} · full {full}"
+
+
+def _inversion(inherit):
+    """우선순위 역전 1틱 시뮬레이션.
+
+    L 은 [일반 1] + [임계구역 4] + [일반 1] 순으로 6틱을 쓴다.
+    락은 임계구역 첫 틱을 시작할 때 잡고 마지막 틱을 끝낼 때 놓는다.
+    """
+    plan = ["일반"] + ["CS"] * 4 + ["일반"]
+    rem = {"L": 6, "H": 2, "M": 5}
+    arr = {"L": 0, "H": 2, "M": 3}
+    base = {"H": 0, "M": 1, "L": 2}
+    li, fin = 0, {}
+    for t in range(60):
+        if not rem:
+            break
+        held = "L" in rem and 1 <= li <= 4 and plan[li - 1] == "CS"
+        cand = [n for n in rem if arr[n] <= t and not (n == "H" and held)]
+        if not cand:
+            continue
+        eff = dict(base)
+        if inherit and held and "H" in rem and arr["H"] <= t:
+            eff["L"] = base["H"]                     # 상속
+        n = min(cand, key=lambda x: (eff[x], x))
+        if n == "L":
+            li += 1
+        rem[n] -= 1
+        if rem[n] == 0:
+            fin[n] = t + 1
+            del rem[n]
+    return fin
+
+
+def v_csos_026() -> tuple[int, str]:
+    """상속을 켜면 H 가 얼마나 앞당겨지나. M 이 밀리는 것도 함께 본다."""
+    off, on = _inversion(False), _inversion(True)
+    gain = off["H"] - on["H"]
+    if gain <= 0:
+        raise AssertionError("상속이 H 를 앞당기지 못한다 — 역전이 성립하지 않는다")
+    return gain, (f"H 완료 {off['H']} → {on['H']} (앞당김 {gain}) · "
+                  f"M 은 {off['M']} → {on['M']} 로 밀린다")
+
+
+def v_csos_027() -> tuple[int, str]:
+    """동기화 도구의 성질 — 표준 정의를 표로 두고 참인 진술을 뽑는다."""
+    claims = [
+        ("초기값 1 계수 세마포어 = 상호배제", True),
+        ("뮤텍스는 다른 스레드가 풀 수 있다", False),      # 소유자가 있다
+        ("스핀락은 대기 중 CPU 를 놓는다", False),          # 놓지 않는다
+        ("V 는 대기자 없으면 아무 일도 안 한다", False),     # 값을 1 올린다
+        ("뮤텍스는 임계구역이 길수록 유리", False),          # 길면 블로킹이 유리
+    ]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], f"참인 진술 {right} ({claims[right[0]-1][0]})"
+
+
+def v_csos_028() -> tuple[int, str]:
+    """철학자 — 넷은 교착 필요조건을 깬다. 하나는 교착이 아닌 방식으로 실패한다."""
+    ways = [
+        ("동시 착석 4명", "상호배제 외 — 요청자 < 자원", True),
+        ("한 명만 반대 순서", "순환 대기", True),
+        ("두 개 한꺼번에", "부분 할당", True),
+        ("번호 오름차순", "순환 대기", True),
+        ("못 집으면 내려놓고 재시도", "비선점만 깬다 — 활동 교착", False),
+    ]
+    bad = [i for i, (_, _, ok) in enumerate(ways, 1) if not ok]
+    if len(bad) != 1:
+        raise AssertionError(f"막지 못하는 방법이 하나가 아니다 {bad}")
+    return bad[0], f"교착을 막지 못하는 것 {bad} ({ways[bad[0]-1][0]} — {ways[bad[0]-1][1]})"
+
+
+def v_csos_029() -> tuple[tuple, str]:
+    """다중 인스턴스 — 사이클이 있어도 기다리지 않는 보유자가 있으면 풀린다."""
+    inst = {"R1": 2, "R2": 2}
+    hold = {"P1": ["R1"], "P2": ["R2"], "P3": ["R2"], "P4": ["R1"]}
+    want = {"P1": ["R2"], "P2": ["R1"], "P3": [], "P4": []}
+    free = dict(inst)
+    for p in hold:
+        for r in hold[p]:
+            free[r] -= 1
+    done, changed = set(), True
+    while changed:
+        changed = False
+        for p in sorted(hold):
+            if p in done or not all(free[r] > 0 for r in want[p]):
+                continue
+            for r in hold[p]:
+                free[r] += 1
+            done.add(p)
+            changed = True
+    stuck = sorted(set(hold) - done)
+    # 사이클이 실제로 있어야 함정이 성립한다 — P1 과 P2 가 서로를 기다린다
+    cycle = ("R2" in want["P1"] and "R2" in hold["P2"]
+             and "R1" in want["P2"] and "R1" in hold["P1"])
+    if not cycle:
+        raise AssertionError("사이클이 없다 — 문항의 전제가 무너진다")
+    return (cycle, tuple(stuck)), f"사이클 {cycle} · 교착 {stuck or '없음'}"
+
+
+def v_csos_030() -> tuple[tuple, str]:
+    """교착 탐지 — 요청을 지금 채울 수 있는 것부터 끝낸다."""
+    avail = [0, 0, 0]
+    alloc = {"P0": [0, 1, 0], "P1": [2, 0, 0], "P2": [3, 0, 3],
+             "P3": [2, 1, 1], "P4": [0, 0, 2]}
+    req = {"P0": [0, 0, 0], "P1": [2, 0, 2], "P2": [0, 0, 1],
+           "P3": [1, 0, 0], "P4": [0, 0, 2]}
+
+    def run(rq):
+        work, done = list(avail), set()
+        changed = True
+        while changed:
+            changed = False
+            for p in sorted(alloc):
+                if p in done or not all(rq[p][i] <= work[i] for i in range(3)):
+                    continue
+                work = [work[i] + alloc[p][i] for i in range(3)]
+                done.add(p)
+                changed = True
+        return sorted(set(alloc) - done)
+
+    dead = run(req)
+    loose = run(dict(req, P2=[0, 0, 0]))          # 요청 한 칸이 판을 가른다
+    return tuple(dead), (f"교착 {dead} · P2 요청을 (0,0,0) 으로 바꾸면 "
+                         f"{loose or '없음'}")
+
+
+def v_csos_031() -> tuple[tuple, str]:
+    """FIFO 와 LRU 가 1회 차이나야 문항이 선다."""
+    ref = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2]
+    f, l, o = _fifo(ref, 3), _lru(ref, 3), _opt(ref, 3)
+    if f == l:
+        raise AssertionError("FIFO 와 LRU 가 같다")
+    return (f, l), f"FIFO {f} · LRU {l} · OPT {o}(오답②)"
+
+
+def _clock(ref, k):
+    """2차 기회 — 참조 비트가 1이면 0으로 내리고 넘어간다."""
+    fr, bit, hand, faults = [], [], 0, 0
+    for p in ref:
+        if p in fr:
+            bit[fr.index(p)] = 1
+            continue
+        faults += 1
+        if len(fr) < k:
+            fr.append(p)
+            bit.append(1)
+            continue
+        while bit[hand] == 1:
+            bit[hand] = 0
+            hand = (hand + 1) % k
+        fr[hand], bit[hand] = p, 1
+        hand = (hand + 1) % k
+    return faults
+
+
+def v_csos_032() -> tuple[tuple, str]:
+    """네 기법의 값이 모두 달라야 「가장 적은 것」이 하나로 떨어진다."""
+    ref = [2, 3, 2, 1, 5, 2, 4, 5, 3, 2, 5, 2]
+    v = {"FIFO": _fifo(ref, 3), "클럭": _clock(ref, 3),
+         "LRU": _lru(ref, 3), "최적": _opt(ref, 3)}
+    if len(set(v.values())) != 4:
+        raise AssertionError(f"기법 간 값이 겹친다 {v}")
+    best = min(v, key=lambda k: v[k])
+    if best != "최적":
+        raise AssertionError("최적이 최소가 아니다")
+    return (best, v[best]), " · ".join(f"{k} {n}" for k, n in v.items())
+
+
+def v_csos_033() -> tuple[str, str]:
+    """시계 바늘을 실제로 굴려 교체 대상을 찾는다."""
+    fr, bit, hand = ["P1", "P2", "P3", "P4"], [1, 1, 0, 1], 0
+    passed = []
+    while bit[hand] == 1:
+        passed.append(fr[hand])
+        bit[hand] = 0
+        hand = (hand + 1) % len(fr)
+    victim = fr[hand]
+    if not passed:
+        raise AssertionError("바늘이 곧바로 멈춘다 — 2차 기회가 안 드러난다")
+    return victim, (f"2차 기회를 받은 것 {passed} → 교체 {victim} · "
+                    f"교체 뒤 비트 {bit[:hand] + [1] + bit[hand+1:]}")
+
+
+def v_csos_034() -> tuple[str, str]:
+    """세그먼테이션 — 변위가 한계 이상이면 트랩."""
+    seg = {0: (660, 240), 1: (1_752, 90), 2: (140, 100), 3: (3_200, 580)}
+    addrs = [(0, 200), (1, 100), (2, 40), (3, 579)]
+    trap, ok = [], []
+    for s, off in addrs:
+        base, lim = seg[s]
+        (trap if off >= lim else ok).append(
+            f"({s},{off})" + ("" if off >= lim else f"→{base + off}"))
+    if len(trap) != 1:
+        raise AssertionError(f"트랩이 하나가 아니다 {trap}")
+    return trap[0], f"트랩 {trap[0]} · 통과 {' '.join(ok)}"
+
+
+def v_csos_035() -> tuple[int, str]:
+    """버디 시스템 — 살아 있는 블록의 내부 단편만 더한다."""
+    def block(size):
+        b = 1
+        while b < size:
+            b *= 2
+        return b
+
+    live = {"B": 35, "C": 80, "D": 60}
+    freed = {"A": 70}
+    total = sum(block(s) - s for s in live.values())
+    with_a = total + sum(block(s) - s for s in freed.values())
+    detail = " + ".join(f"{k} {block(s)}−{s}={block(s)-s}" for k, s in live.items())
+    return total, (f"{detail} = {total}KB · 반납한 A 까지 세면 {with_a}KB(오답⑤)")
+
+
+def _disk(path, start):
+    cur, d = start, 0
+    for x in path:
+        d += abs(x - cur)
+        cur = x
+    return d
+
+
+def v_csos_036() -> tuple[int, str]:
+    """다섯 기법의 값이 서로 달라야 오답이 정답과 겹치지 않는다."""
+    reqs = [98, 183, 37, 122, 14, 124, 65, 67]
+    start, maxc = 53, 199
+    lo = sorted(x for x in reqs if x < start)
+    hi = sorted(x for x in reqs if x >= start)
+    cur, left, sstf = start, list(reqs), 0
+    while left:
+        n = min(left, key=lambda x: (abs(x - cur), x))
+        sstf += abs(n - cur)
+        cur = n
+        left.remove(n)
+    v = {"SSTF": sstf,
+         "LOOK": _disk(hi + lo[::-1], start),
+         "C-LOOK": _disk(hi + lo, start),
+         "SCAN": _disk(hi + [maxc] + lo[::-1], start),
+         "C-SCAN": _disk(hi + [maxc, 0] + lo, start)}
+    if len(set(v.values())) != 5:
+        raise AssertionError(f"기법 간 거리가 겹친다 {v}")
+    return v["C-SCAN"], " · ".join(f"{k} {n}" for k, n in v.items())
+
+
+def v_csos_037() -> tuple[float, str]:
+    """접근 시간 = 탐색 + 회전지연(반 바퀴) + 전송."""
+    seek, rpm, rate_mb, blk_kb = 6.0, 6000, 50, 64
+    rot = 60_000 / rpm
+    xfer = blk_kb / 1024 / rate_mb * 1000
+    total = round(seek + rot / 2 + xfer, 2)
+    return total, (f"탐색 {seek} + 회전 {rot/2}(1회전 {rot}의 절반) + "
+                   f"전송 {xfer} = {total}ms · 회전 빼면 {round(seek+xfer,2)}(오답②) · "
+                   f"전송 빼면 {round(seek+rot/2,2)}(오답③) · "
+                   f"1회전으로 보면 {round(seek+rot+xfer,2)}(오답⑤)")
+
+
+def v_csos_038() -> tuple[tuple, str]:
+    """임의 접근 — 연결 할당만 앞을 다 훑는다."""
+    nth = 100
+    contig, linked, indexed = 1, nth + 1, 2
+    return (contig, linked, indexed), (f"{nth}번째 블록 — 연속 {contig} · "
+                                       f"연결 {linked}(앞 {nth}개 + 목표) · "
+                                       f"색인 {indexed}(색인 + 데이터)")
+
+
+def v_csos_039() -> tuple[int, str]:
+    """링크 수를 단계별로 따라가고, 진술의 참거짓을 표로 확정한다."""
+    n = 1                                   # 파일 생성
+    n += 1                                  # 하드 링크 — i-node 를 공유한다
+    after_soft = n                          # 심볼릭 링크 — 별개 i-node
+    n -= 1                                  # 원본 이름 삭제
+    claims = [
+        ("셋 다 지워진다", False),
+        ("soft 는 읽히고 hard 는 끊긴다", False),
+        ("2번 뒤 링크 수는 3", after_soft == 3),
+        ("3번 뒤 링크 수 0 · 공간 회수", n == 0),
+        ("hard 는 읽히고 soft 는 끊긴다", n >= 1),
+    ]
+    right = [i for i, (_, t) in enumerate(claims, 1) if t]
+    if len(right) != 1:
+        raise AssertionError(f"참인 진술이 하나가 아니다 {right}")
+    return right[0], (f"링크 수 1 → 2 → {after_soft} → {n} · "
+                      f"참인 진술 {right}")
+
+
+def v_csos_040() -> tuple[int, str]:
+    """반복마다 살아 있는 프로세스가 모두 복제된다."""
+    loops, alive = 3, 1
+    for _ in range(loops):
+        alive *= 2
+    return alive, (f"fork {loops}회 → 2^{loops} = {alive} · "
+                   f"자식만 세면 {alive - 1}(오답③) · 곱으로 보면 "
+                   f"{loops * 2}(오답②)")
+
+
 # ── 네트워크 ────────────────────────────────────────────────────────────
 
 def v_csnet_001() -> tuple[int, str]:
@@ -1695,6 +2087,48 @@ REGISTRY = {
     # 020 문맥 교환 — 프로세스 교환이 더 비싸다 (선지 ②)
     "major-csos-common-020": (lambda: (2, "프로세스 교환은 주소공간 전환·TLB 무효화를 포함"),
                               lambda i: i),
+    "major-csos-common-021": (v_csos_021, lambda d: {2.67: 1, 12.67: 2, 13.33: 3,
+                                                     16.0: 4, 26.0: 5}[d]),
+    "major-csos-common-022": (v_csos_022, lambda p: {"P1": 1, "P2": 2, "P3": 3,
+                                                     "P4": 4}[p]),
+    "major-csos-common-023": (v_csos_023, lambda o: {
+        ("P1", "P2", "P4", "P3"): 1, ("P1", "P3", "P2", "P4"): 2,
+        ("P2", "P4", "P3", "P1"): 3, ("P4", "P2", "P3", "P1"): 4,
+        ("P1", "P2", "P3", "P4"): 5}[o]),
+    "major-csos-common-024": (v_csos_024, lambda t: {
+        ("Q0", "Q1", "Q2"): 1, ("Q0", "Q1", "Q1"): 2, ("Q0", "Q2", "Q2"): 3,
+        ("Q1", "Q1", "Q2"): 4, ("Q1", "Q2", "Q2"): 5}[t]),
+    "major-csos-common-025": (v_csos_025, lambda t: {(0, 5): 1, (2, 3): 2, (3, 2): 3,
+                                                     (4, 1): 4, (5, 0): 5}[t]),
+    "major-csos-common-026": (v_csos_026, lambda g: {0: 1, 2: 2, 4: 3, 5: 4, 7: 5}[g]),
+    "major-csos-common-027": (v_csos_027, lambda i: i),
+    "major-csos-common-028": (v_csos_028, lambda i: i),
+    "major-csos-common-029": (v_csos_029, lambda t: {(True, ()): 1}[t]),
+    "major-csos-common-030": (v_csos_030, lambda t: {
+        ("P1", "P2"): 1, ("P1", "P3"): 2, ("P1", "P2", "P3"): 3,
+        ("P1", "P2", "P3", "P4"): 4,
+        ("P0", "P1", "P2", "P3", "P4"): 5}[t]),
+    "major-csos-common-031": (v_csos_031, lambda t: {(9, 10): 1, (10, 7): 2, (10, 9): 3,
+                                                     (10, 10): 4, (13, 13): 5}[t]),
+    "major-csos-common-032": (v_csos_032, lambda t: {
+        ("FIFO", 9): 1, ("클럭", 8): 2, ("LRU", 7): 3, ("LRU", 6): 4,
+        ("최적", 6): 5}[t]),
+    "major-csos-common-033": (v_csos_033, lambda p: {"P1": 1, "P2": 2, "P3": 3,
+                                                     "P4": 4}[p]),
+    "major-csos-common-034": (v_csos_034, lambda s: {"(0,200)": 1, "(1,100)": 2,
+                                                     "(2,40)": 3, "(3,579)": 4}[s]),
+    "major-csos-common-035": (v_csos_035, lambda n: {4: 1, 33: 2, 81: 3, 135: 4,
+                                                     139: 5}[n]),
+    "major-csos-common-036": (v_csos_036, lambda d: {236: 1, 299: 2, 322: 3, 331: 4,
+                                                     382: 5}[d]),
+    "major-csos-common-037": (v_csos_037, lambda t: {6.0: 1, 7.25: 2, 11.0: 3,
+                                                     12.25: 4, 17.25: 5}[t]),
+    "major-csos-common-038": (v_csos_038, lambda t: {
+        (1, 100, 1): 1, (1, 101, 2): 2, (1, 101, 101): 3, (2, 101, 2): 4,
+        (100, 101, 100): 5}[t]),
+    "major-csos-common-039": (v_csos_039, lambda i: i),
+    "major-csos-common-040": (v_csos_040, lambda n: {4: 1, 6: 2, 7: 3, 8: 4,
+                                                     16: 5}[n]),
 
     "major-csnet-common-001": (v_csnet_001, lambda h: {
         30: 1, 62: 2, 64: 3, 126: 4, 254: 5}[h]),
