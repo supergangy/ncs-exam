@@ -1640,8 +1640,171 @@ def v_eth_024() -> tuple[int, str]:
                f"(③ 일반적 업무 능력은 비밀이 아니고, ④⑤는 법령상 사유)")
 
 
+# ── 정보 016~024 — 엑셀 함수 · 용량 · 코드 · 규칙 판정 ──────────────────
+#
+# 수식 문항은 **표를 여기 다시 세워** 파이썬으로 같은 계산을 한다. 자료의
+# 숫자를 고치면서 해설만 안 고치는 사고를 잡는다. 개념 문항은 정의를 표로
+# 두고 `_only` 로 참인 것이 하나뿐인지 확인한다.
+
+# 016~017 이 함께 쓰는 발주 내역 (부서, 품목, 수량, 단가)
+_ORDERS = [("자재팀", "침목", 120, 45_000), ("시설팀", "레일", 30, 380_000),
+           ("자재팀", "체결구", 400, 3_200), ("전기팀", "케이블", 250, 12_000),
+           ("자재팀", "침목", 80, 45_000), ("시설팀", "침목", 150, 45_000),
+           ("전기팀", "애자", 600, 2_800), ("자재팀", "레일", 20, 380_000)]
+
+
+def v_sumproduct() -> tuple[int, str]:
+    """조건을 곱해서 거는 방식. 맨 뒤 배열을 빼먹으면 개수가 나온다."""
+    hit = [r for r in _ORDERS if r[0] == "자재팀" and r[1] == "침목"]
+    ans = sum(r[2] for r in hit)
+    only_cond = len(hit)                                    # ① 수량 배열 누락
+    only_item = sum(r[2] for r in _ORDERS if r[1] == "침목")  # ⑤ 부서 조건 누락
+    if ans == only_item:
+        raise AssertionError("부서 조건을 흘려도 같은 값이라 함정이 서지 않는다")
+    return ans, (f"두 조건이 모두 참인 행 {[r[2] for r in hit]} → {ans} · "
+                 f"수량 배열을 빼면 개수 {only_cond}(①) · "
+                 f"부서 조건을 흘리면 침목 전체 {only_item}(⑤)")
+
+
+def v_index_match() -> tuple[str, str]:
+    """MATCH 는 자리를, INDEX 는 값을 돌려준다. 거기서 멈추면 자리가 답이 된다."""
+    name = ["김하늘", "이도현", "박서준", "최윤아", "정민석"]
+    team = ["자재팀", "시설팀", "전기팀", "자재팀", "운영팀"]
+    code = ["K-2038", "K-2041", "K-2055", "K-2062", "K-2074"]
+    at = code.index("K-2062") + 1                # MATCH 는 1부터 센다
+    ans = name[at - 1]
+    if team[at - 1] == ans:
+        raise AssertionError("열을 잘못 잡은 오답이 정답과 같아진다")
+    return ans, (f"MATCH → {at}(①) · INDEX(B, {at}) → {ans} · "
+                 f"한 칸 밀리면 {name[at - 2]}(②) · "
+                 f"열을 C 로 잡으면 {team[at - 1]}(④)")
+
+
+def v_backup_size() -> tuple[float, str]:
+    """네 단계를 차례로 곱한다. 어디서 멈췄는지가 고른 번호로 드러난다."""
+    per, day, keep, cut, copies = 1.8, 250, 30, 0.30, 2
+    one = per * day
+    full = one * keep
+    zipped = full * (1 - cut)
+    ans = zipped * copies
+    wrong = full * cut                      # ② 줄어드는 비율과 남는 비율을 뒤집음
+    steps = [one, wrong, zipped, full, ans]
+    if steps != sorted(steps):
+        raise AssertionError(f"선지가 오름차순이 아니다 {steps}")
+    return ans, (f"하루 {one:,.0f} → 30일 {full:,.0f} → 압축 {zipped:,.0f} → "
+                 f"이중화 {ans:,.0f}MB · 0.3 을 곱하면 {wrong:,.0f}(②)")
+
+
+def v_vlookup_approx():
+    """근사일치는 가까운 쪽이 아니라 **넘지 않는 쪽**을 고른다."""
+    bands = [(0, 0), (50, 8), (150, 15), (280, 22)]
+    look = 240
+    below = [rate for base, rate in bands if base <= look]
+    ans = below[-1]
+    nearest = min(bands, key=lambda b: abs(b[0] - look))[1]
+    if ans == nearest:
+        raise AssertionError("가까운 쪽과 넘지 않는 쪽이 같아 함정이 서지 않는다")
+    exact = [r for base, r in bands if base == look]
+    if exact:
+        raise AssertionError("정확일치로도 값이 나와 #N/A 근거가 무너진다")
+    i = [r for _, r in bands].index(ans)
+    return ans, (f"{look} 을 넘지 않는 기준 {[b for b, _ in bands if b <= look]} "
+                 f"→ 마지막 {bands[i][0]} → {ans}% · "
+                 f"가까운 쪽은 {nearest}%(⑤) · 정확일치면 #N/A(①)")
+
+
+def v_subtotal_pivot() -> tuple[int, str]:
+    """「새로운 값으로 대치」는 쌓는 것이 아니라 지우고 새로 넣는 선택이다."""
+    facts = {"부분합 전에 기준 열로 정렬해야 한다": True,
+             "부분합은 원본 시트 안에 들어간다": True,
+             "피벗은 원본을 고쳐도 새로 고쳐야 한다": True,
+             "같은 필드를 값 영역에 두 번 넣을 수 있다": True,
+             "겹쳐 쌓으려면 「새로운 값으로 대치」를 켠다": False}
+    order = list(facts)
+    n = _only({i: not facts[k] for i, k in enumerate(order, 1)})
+    return n, f"참·거짓 {list(facts.values())} → 옳지 않은 것 {n}번"
+
+
+def v_checkdigit() -> tuple[str, str]:
+    """연도와 일련번호의 **모든 자릿수**를 더해 7로 나눈 나머지."""
+    site, year, serial = "BS", 2027, 324
+    ys = sum(int(c) for c in str(year))
+    ss = sum(int(c) for c in str(serial))
+    r = (ys + ss) % 7
+    by10 = (ys + ss) % 10                                   # ① 나누는 수를 틀림
+    no_year = ss % 7                                        # ② 연도 누락
+    yr2 = (sum(int(c) for c in str(year)[2:]) + ss) % 7     # ③ 연도 두 자리
+    if len({r, by10, no_year, yr2}) != 4:
+        raise AssertionError(f"검증 숫자 후보가 겹친다 {[r, by10, no_year, yr2]}")
+    if sorted([by10, no_year, yr2, r]).index(r) + 1 != 4:
+        raise AssertionError("정답이 오름차순 네 번째가 아니다")
+    return f"{site}{year}{serial}{r}", (
+        f"자릿수 합 {ys}+{ss}={ys + ss} · %7 = {r} · "
+        f"%10 이면 {by10}(①) · 연도 빼면 {no_year}(②) · "
+        f"연도 두 자리면 {yr2}(③)")
+
+
+def v_ransomware() -> tuple[int, str]:
+    """번지는 속도가 피해 크기를 정한다 — 차단이 먼저다."""
+    steps = ["네트워크 분리", "담당 부서 신고", "감염 범위 확인", "백업으로 복구"]
+    opts = {1: "감염 범위 확인", 2: "백업 서버에 올린다", 3: "금전 지불",
+            4: "재부팅", 5: "네트워크 분리"}
+    n = _only({k: v == steps[0] for k, v in opts.items()})
+    if opts[1] not in steps:
+        raise AssertionError("①이 절차에 없는 행동이면 「늦은 것」이 아니다")
+    return n, (f"절차 {steps} · 1순위 {steps[0]} → {n}번 · "
+               f"①은 틀린 것이 아니라 {steps.index(opts[1]) + 1}순위라 늦다")
+
+
+def v_xl_error() -> tuple[int, str]:
+    """다섯 오류값과 다섯 상황을 일대일로 맞춘다."""
+    cause = {"0 으로 나눔": "#DIV/0!", "값의 종류가 다름": "#VALUE!",
+             "이름을 못 알아봄": "#NAME?", "찾는 값이 없음": "#N/A",
+             "참조가 사라짐": "#REF!"}
+    sit = {1: "0 으로 나눔", 2: "값의 종류가 다름", 3: "이름을 못 알아봄",
+           4: "찾는 값이 없음", 5: "참조가 사라짐"}
+    if len(set(cause.values())) != 5:
+        raise AssertionError("오류값이 겹쳐 일대일이 아니다")
+    n = _only({k: cause[v] == "#REF!" for k, v in sit.items()})
+    return n, f"상황 → 오류값 {[cause[v] for v in sit.values()]} · #REF! 는 {n}번"
+
+
+def v_privacy_purge() -> tuple[int, str]:
+    """옮겨 담은 것은 파기가 아니다. ④와 ①은 법령 근거로 갈린다."""
+    # (보유 기간이 끝났나, 법령 근거가 있나, 실제로 지웠나)
+    acts = {1: (True, False, False), 2: (True, False, True),
+            3: (True, False, True), 4: (True, True, False),
+            5: (True, False, True)}
+    bad = {k: over and not law and not gone
+           for k, (over, law, gone) in acts.items()}
+    n = _only(bad)
+    if acts[4][1] is not True:
+        raise AssertionError("④에 법령 근거가 없으면 ①과 갈리지 않는다")
+    return n, (f"파기 = 지우거나 법령 근거로 분리 · 어긴 것 {n}번 "
+               f"(④는 근거가 있고 분리했다)")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
+    "ncs-info-common-016": (v_sumproduct, lambda v: {2: 1, 100: 2, 120: 3,
+                                                     200: 4, 350: 5}[v]),
+    "ncs-info-common-017": (v_index_match, lambda t: {"4": 1, "박서준": 2,
+                                                      "#N/A": 3, "자재팀": 4,
+                                                      "최윤아": 5}[t]),
+    "ncs-info-common-018": (v_backup_size, lambda v: {450.0: 1, 4050.0: 2,
+                                                      9450.0: 3, 13500.0: 4,
+                                                      18900.0: 5}[v]),
+    "ncs-info-common-019": (v_vlookup_approx, lambda v: {"#N/A": 1, 0: 2, 8: 3,
+                                                         15: 4, 22: 5}[v]),
+    "ncs-info-common-020": (v_subtotal_pivot, lambda i: i),
+    "ncs-info-common-021": (v_checkdigit, lambda c: {"BS20273240": 1,
+                                                     "BS20273242": 2,
+                                                     "BS20273244": 3,
+                                                     "BS20273246": 4,
+                                                     "3242027BS6": 5}[c]),
+    "ncs-info-common-022": (v_ransomware, lambda i: i),
+    "ncs-info-common-023": (v_xl_error, lambda i: i),
+    "ncs-info-common-024": (v_privacy_purge, lambda i: i),
     "ncs-eth-common-013": (v_eth_013, lambda i: i),
     "ncs-eth-common-014": (v_eth_014, lambda i: i),
     "ncs-eth-common-015": (v_eth_015, lambda i: i),
