@@ -79,7 +79,7 @@ python build.py
 
 1. **[`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) — 작업별 참조서.** 지문·자료·발문·선지·오답·조건추리·해설을 만들 때 각 절의 `사전 준비 → 규칙 → 자가검증`을 그대로 따른다. 실제 발생한 결함 39건이 규칙과 연결돼 있다. **문항을 만들기 전에 반드시 해당 절을 펼친다.**
 2. [`SPEC.md`](SPEC.md) — 데이터 스키마, 허용 HTML, 분량·난이도·정답분포·지면배치 기준
-3. [`docs/PLAN.md`](docs/PLAN.md) — 50문항 블루프린트, 감수 13항목, 문체 감수 기준
+3. [`docs/PLAN.md`](docs/PLAN.md) — **한 것과 안 한 것.** 지금 어디까지 왔는지와 남은 일이 우선순위 순으로 있다. 1회차 설계 원본(블루프린트·감수 13항목·문체 감수 기준)은 부록 A
 4. [`docs/CORPUS_ANALYSIS.md`](docs/CORPUS_ANALYSIS.md) — 시판본 실측 수치. **0절의 신뢰도 등급을 먼저 볼 것**
 5. [`WORKLOG.md`](WORKLOG.md) — 시간순 이력(무엇을 왜 했는지)
 
@@ -116,7 +116,7 @@ python build.py
 ├─ templates/            exam · solution · rationale .html.j2 (회차 무관)
 ├─ docs/
 │  ├─ PLAYBOOK.md           작업별 참조서 — 집필 전에 펼친다
-│  ├─ PLAN.md               1회 분석 · 설계 · 감수 이력 전문
+│  ├─ PLAN.md               한 것과 안 한 것 · 부록 A 에 1회 설계 원본
 │  ├─ CORPUS_ANALYSIS.md    시판본 실측 수치 (0절 신뢰도 등급 먼저 볼 것)
 │  ├─ INSTITUTION_PROFILES.md  기관별 출제 비율 — 새 회차 설계의 출발점
 │  └─ ANSWER_DISTRIBUTION.md   기관별 정답 분포
@@ -198,12 +198,12 @@ python build.py --html
 
 ## 품질 기준
 
-문항을 추가하거나 고칠 때는 아래를 지킨다. 근거는 `docs/PLAN.md`에 있다.
+문항을 추가하거나 고칠 때는 아래를 지킨다. 규칙 본문은 `docs/PLAYBOOK.md`, 그 규칙이 나온 관찰은 `docs/PLAN.md` 부록 A 에 있다.
 
 - 모든 문항은 **업무 상황 → 자료 분석 → 추론 → 의사결정** 흐름을 갖는다. 개념 정의를 묻지 않는다.
 - 계산·조건추리 문항은 **Python으로 전수 재계산·전수 탐색해 정답 유일성을 확인**한 뒤 확정한다.
   오답 선지도 실제 오류 경로에서 그 값이 재현되는지 검증한다.
-- 지문은 AI 문투를 배제한다. 걸러낼 표현 24종과 채택 문체는 `docs/PLAN.md`의 문체 감수 절 참고.
+- 지문은 AI 문투를 배제한다. 걸러낼 표현 24종의 **목록은 `tools/selfcheck.py` 의 `BANNED`** 이고, 채택 문체는 `docs/PLAN.md` 부록 A 의 문체 감수 절에 있다.
 - 정답은 ①~⑤에 고르게 배치하고 3연속 동일 정답을 만들지 않는다.
 
 ## 저작권
