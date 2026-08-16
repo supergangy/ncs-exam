@@ -17,11 +17,13 @@
     7  허용 밖 HTML 태그                     SPEC 4절
     8  정답 분포 · 연속                       SPEC 8절
     9  <보기> 조합형 문항 수                   PLAYBOOK 4-10
+   10  <보기> 조합형 최소 판정 수                PLAYBOOK 4-7  (전수 탐색 = D17)
 """
 from __future__ import annotations
 
 import argparse
 import io
+import itertools
 import re
 import sys
 from collections import Counter
@@ -85,7 +87,69 @@ COMBO = re.compile(r"&lt;보기&gt;|<보기>")
 STATUTE = re.compile(r"제\d+조(?:의\d+)?\([^)]{2,30}\)")
 
 TAG = re.compile(r"<(/?)([a-zA-Z][a-zA-Z0-9]*)")
+# 조합형인지는 **선지 모양**으로 판정한다. 자료에 「<보기>」가 있어도 문장 삽입
+# 위치(r2_korail 7)나 상황 판단(r5_nhis 10)처럼 조합형이 아닌 것이 섞이기 때문이다.
+# 라벨 universe 도 자료가 아니라 선지에서 뽑는다 — 자료 쪽 표기가 표·문단으로
+# 제각각이라 정규식으로 안정적으로 읽히지 않는다 (r1_public 18 의 「A사」).
+CHOICE_LABEL = re.compile(r"^(?:\(\s*)?([ㄱ-ㅎ]|[A-E]|[가-힣])(?:\s*\))?(?:사|팀|씨)?$")
 BLOCK_BOUNDARY = re.compile(r"<br\s*/?>|</p>|</td>|</th>|</li>|</caption>|</div>")
+
+
+def parse_combo(choices: list[str]) -> tuple[list[str], list[frozenset]] | None:
+    """선지가 「라벨 나열」이면 (라벨 목록, 선지별 라벨 집합)을 돌려준다.
+
+    조합형이 아니면 None. 판정 기준은 둘이다 —
+      · 모든 선지가 라벨만으로 되어 있고
+      · 라벨을 둘 이상 담은 선지가 하나라도 있다
+    두 번째 조건이 「( 가 ) ( 나 ) …」 같은 위치 선택형을 걸러 낸다.
+    """
+    sets: list[list[str]] = []
+    for c in choices:
+        toks = [t.strip() for t in re.split(r"[,·]", strip_tags(c)) if t.strip()]
+        if not toks:
+            return None
+        got = []
+        for t in toks:
+            m = CHOICE_LABEL.match(t)
+            if not m:
+                return None
+            got.append(m.group(1))
+        sets.append(got)
+    if not any(len(g) > 1 for g in sets):
+        return None
+    labels: list[str] = []
+    for g in sets:
+        for x in g:
+            if x not in labels:
+                labels.append(x)
+    # 자모(ㄱㄴㄷ) · 가나다 · 십간(갑을병정무) · 영문 순으로 자리를 매긴다.
+    # 십간을 빼면 ord() 로 떨어져 「갑무병을정」 같은 엉뚱한 순서가 된다.
+    ORDERS = ("ㄱㄴㄷㄹㅁㅂ", "가나다라마바", "갑을병정무기경신임계", "ABCDE")
+    def rank(x):
+        for i, seq in enumerate(ORDERS):
+            if x in seq:
+                return (i, seq.index(x))
+        return (len(ORDERS), ord(x))
+    labels.sort(key=rank)
+    return labels, [frozenset(g) for g in sets]
+
+
+def min_judgments(labels: list[str], sets: list[frozenset],
+                  answer: frozenset) -> tuple[int, tuple]:
+    """정답이 하나로 좁혀지는 **최소 판정 개수**를 전수 탐색한다.
+
+    정답 선지가 곧 「참인 항목의 집합」이므로 각 라벨의 참거짓이 정해진다.
+    라벨 부분집합 S 만 판정했을 때 살아남는 선지가 하나뿐이면 S 로 답이 나온다.
+    규칙 4-7 은 이 값이 3 이상이기를 요구한다 — 두 개만 보고 찍히면 안 된다.
+    """
+    truth = {k: (k not in answer) for k in labels}
+    for r in range(1, len(labels) + 1):
+        for S in itertools.combinations(labels, r):
+            alive = [s for s in sets
+                     if all((k in s) == (not truth[k]) for k in S)]
+            if len(alive) == 1:
+                return r, S
+    return len(labels) + 1, ()
 
 
 def strip_tags(s: str) -> str:
@@ -204,6 +268,19 @@ def main() -> int:
             for _, tag in TAG.findall(fields.get(fname) or ""):
                 findings.append(("치명", no, "SPEC 4",
                                  f"{fname}: 태그 <{tag}> — 발문·리드문은 순수 텍스트다"))
+
+        # 10 <보기> 조합형 최소 판정 수 (4-7)
+        #    손으로 세다 두 번 놓쳤다 — r1_public 31 · r4_korail 23/24 ·
+        #    r5_nhis 26/50 (D17 재발). 전수 탐색으로만 확실히 잡힌다.
+        parsed = parse_combo(q["choices"])
+        if parsed:
+            labels, sets = parsed
+            r, S = min_judgments(labels, sets, sets[q["answer"] - 1])
+            if r < 3:
+                findings.append(("치명", no, "4-7",
+                                 f"보기 {'·'.join(S)} {r}개만 판정하면 답이 나옵니다. "
+                                 f"규칙 4-7 은 3개 이상을 요구합니다 — "
+                                 f"단독 보기 선지를 넣어 다시 배열하십시오"))
 
     # ── 전체 검사 ────────────────────────────────────────────────
     stems = Counter(strip_tags(q["stem"]) for _, _, q in items)
