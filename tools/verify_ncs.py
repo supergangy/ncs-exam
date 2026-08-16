@@ -1302,8 +1302,201 @@ def v_comm_manual_order() -> tuple[int, str]:
                     f"셋을 다 갖춘 것은 {hit[0]}번 (제2조는 안전 민원이 아니라 적용 밖)")
 
 
+# ── 기술능력 013~024 — 사양 산정 · 임계값 · 재해율 ──────────────────────
+#
+# 사양표와 기준표를 **여기 다시 세우고** 값을 계산한다. 표를 고치면서 해설만
+# 안 고치는 사고를 잡는다. 판정형은 정의를 표로 두고 `_only` 로 참인 것이
+# 하나뿐인지 확인한다.
+
+def v_tech_bandwidth() -> tuple[int, str]:
+    """계산값이 회선 규격에 없어야 「가장 작은 것」을 고르는 단계가 산다."""
+    users, per, peak, margin = 120, 2.0, 0.4, 1.3
+    need = users * peak * per
+    want = need * margin
+    grades = [50, 100, 150, 200, 500]
+    pick = min(g for g in grades if g >= want)
+    if want in grades:
+        raise AssertionError("계산값이 규격에 딱 맞아 올림 단계가 사라진다")
+    return pick, (f"동시 {int(users*peak)}대 × {per}Mbps = {need:.0f} · "
+                  f"여유 {margin} → {want:.1f} → 규격 {pick}Mbps "
+                  f"(여유 무시하면 {need:.0f}, 반올림하면 125)")
+
+
+def v_tech_ups() -> tuple[int, str]:
+    """VA×역률을 하느냐가 부하율 50% 경계를 사이에 두고 갈려야 한다."""
+    cap, pf, load = 3000, 0.9, 1400
+    table = {0.25: 60, 0.50: 25, 0.75: 12, 1.00: 7}
+
+    def band(r):
+        for k in (0.25, 0.50, 0.75, 1.00):
+            if r <= k:
+                return table[k]
+        return 0
+
+    right = band(load / (cap * pf))
+    wrong = band(load / cap)          # VA 를 W 로 그대로 본 경우
+    if right == wrong:
+        raise AssertionError(f"역률을 무시해도 같은 답이 나온다 ({right})")
+    return right, (f"{cap}VA×{pf}={cap*pf:.0f}W · 부하율 "
+                   f"{load/(cap*pf):.1%} → {right}분 · "
+                   f"VA 그대로면 {load/cap:.1%} → {wrong}분")
+
+
+def v_tech_cycle() -> tuple[int, str]:
+    """90일 뒤가 주말이어야 휴일 보정이 실제로 일어난다."""
+    import datetime as dt
+    base = dt.date(2026, 3, 16)
+    raw = base + dt.timedelta(days=90)
+    if raw.weekday() < 5:
+        raise AssertionError(f"{raw} 가 평일이라 보정이 안 일어난다")
+    day = raw
+    while day.weekday() >= 5:
+        day += dt.timedelta(days=1)
+    return day.day, (f"{base} + 90일 = {raw}(일) → 다음 평일 {day}(월) · "
+                     f"보정 없이 답하면 {raw.day}일")
+
+
+def v_tech_grade() -> tuple[int, str]:
+    """경계값 65 는 「65 미만」이 아니라 「65 이상」 칸으로 간다."""
+    limits = [(0, 55, "기록만 남긴다"), (55, 65, "다음 정기 점검에 확인한다"),
+              (65, 75, "7일 안에 정밀 진단을 의뢰한다"), (75, 10 ** 9, "즉시 가동을 멈춘다")]
+
+    def act(v):
+        for lo, hi, a in limits:
+            if lo <= v < hi:
+                return a
+        return None
+
+    got = act(65)
+    if got == act(64):
+        raise AssertionError("64 와 65 의 등급이 같아 경계가 안 갈린다")
+    opts = {1: "기록만 남긴다", 2: "즉시 가동을 멈춘다",
+            3: "다음 정기 점검에 확인한다", 4: "판정 기준이 겹쳐 상위 등급으로 본다",
+            5: "7일 안에 정밀 진단을 의뢰한다"}
+    n = _only({k: v == got for k, v in opts.items()})
+    return n, f"64dB→{act(64)} · 65dB→{got} · 경계값은 위 칸으로 간다"
+
+
+def v_tech_frequency() -> tuple[float, str]:
+    """도수율은 100만 시간당. 강도율(1,000)·연천인율(인원 기준)과 갈린다."""
+    workers, hours, acc, lost = 250, 2000, 3, 120
+    mh = workers * hours
+    freq = round(acc / mh * 1_000_000, 3)
+    sev = round(lost / mh * 1000, 3)
+    per1000 = round(acc / workers * 1000, 1)
+    return freq, (f"연 근로시간 {mh:,} · 도수율 {freq} · 강도율 {sev} · "
+                  f"연천인율 {per1000} — 셋이 서로 다르다")
+
+
+def v_tech_domino() -> tuple[int, str]:
+    """도미노 다섯 단계 가운데 손댈 수 있으면서 아직 늦지 않은 자리."""
+    stages = [("사회적 환경·유전적 요인", False), ("개인적 결함", False),
+              ("불안전한 행동·상태", True), ("사고", False), ("재해", False)]
+    removable = [i for i, (_, ok) in enumerate(stages, 1) if ok]
+    if removable != [3]:
+        raise AssertionError(f"없앨 수 있는 단계가 3 이 아니다 {removable}")
+    opts = {1: "불안전한 행동·상태", 2: "안전 교육 미실시", 3: "관리 감독 소홀",
+            4: "설비의 노후화", 5: "작업자의 부주의"}
+    n = _only({k: v == stages[2][0] for k, v in opts.items()})
+    return n, f"단계 {[x for x, _ in stages]} · 없앨 수 있는 것 3단계 → 선지 {n}"
+
+
+def v_tech_benchmark() -> tuple[int, str]:
+    """대상에 따른 분류 넷. 「간접적」은 수행 방식이라 축이 다르다."""
+    by_target = {"내부": "같은 조직", "경쟁적": "같은 업종의 경쟁사",
+                 "비경쟁적": "다른 업종 · 같은 기능", "글로벌": "다른 나라"}
+    by_method = {"직접적", "간접적"}
+    fact = {"같은 조직인가": False, "같은 업종인가": False,
+            "기능이 같은가": True, "다른 나라인가": False}
+    hit = [k for k in by_target
+           if (k == "비경쟁적") == (fact["기능이 같은가"] and not fact["같은 업종인가"]
+                                    and not fact["같은 조직인가"]
+                                    and not fact["다른 나라인가"])]
+    opts = {1: "내부", 2: "경쟁적", 3: "비경쟁적", 4: "글로벌", 5: "간접적"}
+    if "간접적" in by_target:
+        raise AssertionError("간접적이 대상 분류에 섞였다")
+    n = _only({k: v == "비경쟁적" for k, v in opts.items()})
+    return n, (f"대상 분류 {list(by_target)} · 수행 방식 {sorted(by_method)} · "
+               f"사례는 비경쟁적 → 선지 {n} (⑤는 축이 다르다)")
+
+
+def v_tech_transfer() -> tuple[int, str]:
+    """만든 곳과 쓰는 곳이 다르면 기술이전이다."""
+    made_here, bought = False, True
+    opts = {1: "기술이전", 2: "연구개발", 3: "기술융합", 4: "리엔지니어링",
+            5: "기술 표준화"}
+    fit = {1: bought and not made_here, 2: made_here, 3: False, 4: False, 5: False}
+    n = _only(fit)
+    return n, f"자체 개발 {made_here} · 사 왔다 {bought} → {opts[n]}"
+
+
+def v_tech_ip() -> tuple[int, str]:
+    """겉모양만 바뀌었으면 디자인권. 구조가 바뀌면 실용신안이다."""
+    changed = {"겉모양": True, "구조": False, "고도한 기술": False, "식별 표지": False}
+    rule = {1: changed["고도한 기술"], 2: changed["구조"],
+            3: changed["겉모양"] and not changed["구조"],
+            4: changed["식별 표지"], 5: False}   # 저작권은 산업재산권이 아니다
+    n = _only(rule)
+    kinds = {1: "특허", 2: "실용신안", 3: "디자인", 4: "상표", 5: "저작권"}
+    return n, f"바뀐 것 {[k for k, v in changed.items() if v]} → {kinds[n]}권"
+
+
+def v_tech_scurve() -> tuple[int, str]:
+    """개선 폭이 주는데 새 기술이 오르면 갈아탈 준비를 시작할 때."""
+    gain_falling, rival_rising = True, False or True
+    opts = {1: "연구비를 더 늘린다", 2: "멈출 때까지 기다린다", 3: "그대로 쓴다",
+            4: "두 기술을 합친다", 5: "갈아탈 준비를 시작한다"}
+    fit = {1: not gain_falling, 2: not rival_rising, 3: not rival_rising,
+           4: False, 5: gain_falling and rival_rising}
+    n = _only(fit)
+    return n, (f"개선 폭 감소 {gain_falling}(성숙기) · 새 기술 성장 "
+               f"{rival_rising} → {opts[n]}")
+
+
+def v_tech_bill() -> tuple[int, str]:
+    """기본요금과 가동 일수 — 둘 다 빠뜨리기 쉽다."""
+    kw, hours, days, base, rate = 15, 8, 22, 6160, 105.7
+    kwh = kw * hours * days
+    total = round(base + kwh * rate)
+    no_base = round(kwh * rate)
+    thirty = round(base + kw * hours * 30 * rate)
+    if len({total, no_base, thirty}) != 3:
+        raise AssertionError("오답 경로의 값이 겹친다")
+    return total, (f"{kwh:,}kWh × {rate} = {no_base:,}(오답①) + 기본 {base:,} = "
+                   f"{total:,} · 30일로 보면 {thirty:,}(오답④)")
+
+
+def v_tech_ppe() -> tuple[int, str]:
+    """작업의 위험이 무엇인가로 고른다 — 조건이 나머지를 지운다."""
+    risk = {"감전": True, "추락": False, "분진": False, "소음": False,
+            "낙하물": False}
+    covers = {1: "낙하물", 2: "분진", 3: "소음", 4: "추락", 5: "감전"}
+    n = _only({k: risk[v] for k, v in covers.items()})
+    return n, (f"이 작업의 위험 {[k for k, v in risk.items() if v]} · "
+               f"보호구 {covers} → {n}번")
+
+
 # id → (검증 함수, 계산값을 선지 번호로 옮기는 함수)
 REGISTRY = {
+    "ncs-tech-common-013": (v_tech_bandwidth, lambda n: {50: 1, 96: 2, 100: 3,
+                                                        125: 4, 150: 5}[n]),
+    "ncs-tech-common-014": (v_tech_ups, lambda n: {7: 1, 12: 2, 25: 3, 60: 4,
+                                                   120: 5}[n]),
+    "ncs-tech-common-015": (v_tech_cycle, lambda d: {12: 1, 13: 2, 14: 3, 15: 4,
+                                                     16: 5}[d]),
+    "ncs-tech-common-016": (v_tech_grade, lambda i: i),
+    "ncs-tech-common-017": (v_tech_frequency, lambda v: {0.006: 1, 0.06: 2,
+                                                         0.6: 3, 6.0: 4,
+                                                         60.0: 5}[v]),
+    "ncs-tech-common-018": (v_tech_domino, lambda i: i),
+    "ncs-tech-common-019": (v_tech_benchmark, lambda i: i),
+    "ncs-tech-common-020": (v_tech_transfer, lambda i: i),
+    "ncs-tech-common-021": (v_tech_ip, lambda i: i),
+    "ncs-tech-common-022": (v_tech_scurve, lambda i: i),
+    "ncs-tech-common-023": (v_tech_bill, lambda n: {279048: 1, 285208: 2,
+                                                    300000: 3, 386680: 4,
+                                                    392840: 5}[n]),
+    "ncs-tech-common-024": (v_tech_ppe, lambda i: i),
     "ncs-comm-seoulmetro-004": (v_comm_manual_order, lambda i: i),
     "ncs-prob-common-009": (v_prob_hasty, lambda i: i),
     "ncs-prob-common-010": (v_prob_circular, lambda i: i),
