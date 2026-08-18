@@ -372,7 +372,8 @@ def v_tunnel() -> tuple[float, str]:
     train, tunnel, v = 200, 1300, 25
     return ((tunnel + train) / v,
             f"({tunnel}+{train})/{v} = {(tunnel+train)/v:.0f}초 · "
-            f"터널만 {tunnel/v:.0f}(오답①) · 열차만 {train/v:.0f}")
+            f"터널만 {tunnel/v:.0f}(오답②) · 열차 길이를 빼면 "
+            f"{(tunnel-train)/v:.0f}(오답①)")
 
 
 def v_pass() -> tuple[float, str]:
@@ -2193,7 +2194,7 @@ REGISTRY = {
     "ncs-rule-common-019": (v_rule_stricter, lambda i: i),
     "ncs-org-seoulmetro-002": (v_org_proxy, lambda i: i),
     "ncs-prob-seoulmetro-003": (v_prob_swot_wrong, lambda i: i),
-    "ncs-math-common-001": (v_tunnel, lambda s: {52: 1, 56: 2, 60: 3, 64: 4, 68: 5}[int(s)]),
+    "ncs-math-common-001": (v_tunnel, lambda s: {44: 1, 52: 2, 56: 3, 58: 4, 60: 5}[int(s)]),
     "ncs-math-common-002": (v_pass, lambda s: {5: 1, 8: 2, 10: 3, 20: 4, 40: 5}[int(s)]),
     "ncs-math-common-003": (v_harmonic, lambda v: {44: 1, 46: 2, 48: 3, 50: 4, 52: 5}[int(v)]),
     "ncs-math-common-004": (v_mix, lambda p: {9.5: 1, 10.5: 2, 11.0: 3, 11.5: 4, 12.0: 5}[round(p, 1)]),
@@ -2217,7 +2218,7 @@ REGISTRY = {
     "ncs-math-common-016": (v_same_color, lambda p: {F(5, 28): 2, F(13, 28): 1, F(15, 28): 3, F(1, 2): 4, F(5, 14): 5}[p]),
     "ncs-math-common-017": (v_modpow, lambda r: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[r]),
     "ncs-math-common-018": (v_lcm_time, lambda h: {8: 1, 9: 4, 10: 2, 11: 3, 12: 5}[h]),
-    "ncs-math-common-019": (v_seq, lambda n: {36: 1, 40: 2, 42: 3, 44: 4, 48: 5}[n]),
+    "ncs-math-common-019": (v_seq, lambda n: {36: 1, 38: 2, 40: 3, 41: 4, 42: 5}[n]),
     "ncs-math-common-020": (v_clock, lambda a: {110: 1, 120: 2, 125: 3, 130: 4, 140: 5}[round(a)]),
 
     # ── 문제해결 ────────────────────────────────────────────────────
@@ -2401,9 +2402,9 @@ REGISTRY = {
     "ncs-data-common-001": (v_share_rail, lambda p: {29.4: 1, 31.2: 2, 33.5: 3, 35.1: 4, 38.0: 5}[round(p, 1)]),
     "ncs-data-common-002": (v_best_growth, lambda k: "ABCDE".index(k) + 1),
     "ncs-data-common-003": (v_bad_chart, lambda i: {1: 1, 2: 2, 3: 5, 4: 3, 5: 4}[i]),
-    "ncs-data-common-004": (v_blank_sum, lambda n: {318: 1, 336: 2, 354: 3, 372: 4, 390: 5}[n]),
+    "ncs-data-common-004": (v_blank_sum, lambda n: {300: 1, 320: 2, 336: 3, 345: 4, 354: 5}[n]),
     "ncs-data-common-005": (v_blank_avg, lambda n: {231: 1, 235: 2, 239: 3, 243: 4, 247: 5}[n]),
-    "ncs-data-common-006": (v_cross_seats, lambda n: {2536: 1, 2648: 2, 2776: 3, 2904: 4, 3120: 5}[n]),
+    "ncs-data-common-006": (v_cross_seats, lambda n: {2200: 1, 2312: 2, 2496: 3, 2720: 4, 2776: 5}[n]),
     "ncs-data-common-007": (v_unit_thousand, lambda n: {1449: 1, 14490: 2, 144900: 3,
                                                         1449000: 4, 14490000: 5}[n]),
     "ncs-data-common-008": (v_wavg_fare, lambda n: {1633: 1, 1772: 2, 1900: 3, 1967: 4, 2033: 5}[n]),
@@ -2418,7 +2419,7 @@ REGISTRY = {
     "ncs-data-common-016": (v_rate_times_cap, lambda k: "ABC".index(k) + 1),
     "ncs-data-common-017": (v_wavg_score, lambda p: {78.50: 1, 81.62: 2, 84.75: 3, 86.30: 4, 91.00: 5}[round(p, 2)]),
     "ncs-data-common-018": (v_cagr, lambda p: {9.5: 1, 10.0: 2, 10.5: 3, 21.0: 4, 42.0: 5}[round(p, 1)]),
-    "ncs-data-common-019": (v_congestion, lambda n: {1600: 1, 1850: 2, 2160: 3, 2400: 4, 2700: 5}[n]),
+    "ncs-data-common-019": (v_congestion, lambda n: {1600: 1, 1840: 2, 2000: 3, 2080: 4, 2160: 5}[n]),
     "ncs-data-common-020": (v_pp_vs_pct, lambda t: {(6.0, 25.0): 4}[t]),
 
     # ── 규정적용 (bank/_common/ncs_rule.py) ─────────────────────────────
