@@ -26,3 +26,8 @@ corpus/parsed/
 # 필기후기 원문 — 작성자 저작물이므로 커밋 금지 (reviews/README.md 참고)
 # db.json 의 분류 결과만 커밋한다.
 reviews/raw/
+
+# 웹 재제작 — 의존성은 담지 않는다
+web/node_modules/
+web/dist/
+docs/*.render.html

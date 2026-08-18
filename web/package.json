@@ -1,0 +1,16 @@
+{
+  "name": "ncs-bank-web",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "NCS 기출은행 웹 — 순수 로직(src/core)은 브라우저 없이 시험한다",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}
