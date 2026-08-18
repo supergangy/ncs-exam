@@ -3503,10 +3503,9 @@ REGISTRY = {
     "major-csdb-common-001": (v_csdb_001, lambda nf: {1: 1, 2: 2, 3: 3}[nf]),
     "major-csdb-common-002": (v_csdb_002, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 7: 5}[n]),
     "major-csdb-common-003": (v_csdb_003, lambda n: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[n]),
-    "major-csdb-common-004": (v_csdb_004, lambda s: {
-        "Dirty Read": 1, "Non-repeatable Read": 2, "Phantom Read": 3}[s]),
-    "major-csdb-common-005": (v_csdb_005, lambda h: {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}[h]),
-    "major-csdb-common-006": (v_csdb_006, lambda v: {"3NF만족_BCNF위반": 3}[v]),
+    "major-csdb-common-004": (v_csdb_004, lambda s: {"Dirty Read": 1, "Non-repeatable Read": 2, "Phantom Read": 5}[s]),
+    "major-csdb-common-005": (v_csdb_005, lambda h: {2: 2, 3: 1, 4: 3, 5: 4, 6: 5}[h]),
+    "major-csdb-common-006": (v_csdb_006, lambda v: {"3NF만족_BCNF위반": 5}[v]),
     "major-csdb-common-007": (v_csdb_007, lambda i: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[i]),
     "major-csdb-common-021": (v_csdb_021, lambda n: {1: 1, 2: 2, 3: 3, 4: 4, 8: 5}[n]),
     "major-csdb-common-022": (v_csdb_022, lambda n: {7: 1, 8: 2, 9: 3, 10: 4, 13: 5}[n]),
@@ -3554,28 +3553,24 @@ REGISTRY = {
         "데이터 flush → 로그 flush → 커밋": 4}[s]),
     # 「옳지 않은 것」 — 거짓인 선지의 자리를 그대로 답으로 삼는다
     "major-csdb-common-040": (v_csdb_040, lambda t: t.index(False) + 1),
-    "major-csdb-common-008": (v_csdb_008, lambda n: {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}[n]),
-    "major-csdb-common-009": (v_csdb_009, lambda r: {
-        (1,): 1, (1, 2): 2, (1, 3): 3, (1, 2, 3, 4): 4, (2, 4): 5}[r]),
-    "major-csdb-common-010": (v_csdb_010, lambda p: {
-        ("UNDO", "REDO", "REDO"): 1, ("REDO", "UNDO", "UNDO"): 2,
-        ("REDO", "REDO", "UNDO"): 3}[p]),
+    "major-csdb-common-008": (v_csdb_008, lambda n: {0: 1, 1: 4, 2: 2, 3: 3, 4: 5}[n]),
+    "major-csdb-common-009": (v_csdb_009, lambda r: {(1,): 1, (1, 2): 2, (1, 3): 5, (1, 2, 3, 4): 3, (2, 4): 4}[r]),
+    "major-csdb-common-010": (v_csdb_010, lambda p: {("UNDO", "REDO", "REDO"): 1, ("REDO", "UNDO", "UNDO"): 4, ("REDO", "REDO", "UNDO"): 2}[p]),
     "major-csdb-common-011": (v_csdb_011, lambda k: {
         ("A",): 1, ("B",): 2, ("AC",): 3, ("BC",): 4, ("ABC",): 5}[k]),
     "major-csdb-common-012": (v_csdb_012, lambda r: {
         (4, 5, 85.75): 1, (5, 5, 68.6): 2, (4, 4, 85.75): 3,
         (5, 5, 85.75): 4, (4, 5, 68.6): 5}[r]),
     "major-csdb-common-015": (v_csdb_015, lambda s: 2 if s < 0.01 else 1),
-    "major-csdb-common-016": (v_csdb_016, lambda n: {0: 1, 1: 2, 2: 3, 3: 4}[n]),
+    "major-csdb-common-016": (v_csdb_016, lambda n: {0: 1, 1: 4, 2: 2, 3: 3}[n]),
     "major-csdb-common-017": (v_csdb_017, lambda v: {120: 1, 170: 2, 150: 3, 100: 4}[v]),
     "major-csdb-common-018": (v_csdb_018, lambda nf: 2 if nf == 1 else 5),
-    "major-csdb-common-019": (v_csdb_019, lambda n: {3: 1, 4: 2, 5: 3, 6: 4, 2: 5}[n]),
+    "major-csdb-common-019": (v_csdb_019, lambda n: {3: 1, 4: 5, 5: 2, 6: 3, 2: 4}[n]),
     "major-csdb-common-013": (v_csdb_013, lambda i: i),
-    "major-csdb-common-014": (v_csdb_014, lambda i: i),
+    "major-csdb-common-014": (v_csdb_014, lambda i: {1: 1, 2: 4, 3: 2, 4: 3, 5: 5}[i]),
     "major-csdb-common-020": (v_csdb_020, lambda i: i),
 
-    "major-csos-common-001": (v_csos_001, lambda v: {
-        6.5: 1, 7.75: 2, 8.75: 3, 11.75: 4, 14.25: 5}[v]),
+    "major-csos-common-001": (v_csos_001, lambda v: {6.5: 2, 7.75: 1, 8.75: 3, 11.75: 4, 14.25: 5}[v]),
     "major-csos-common-002": (v_csos_002, lambda v: {
         6.5: 1, 7.75: 2, 8.75: 3, 9.25: 4, 11.75: 5}[v]),
     "major-csos-common-003": (v_csos_003, lambda v: {
@@ -3585,10 +3580,8 @@ REGISTRY = {
     "major-csos-common-006": (v_csos_006, lambda s: {
         ("P1", "P3", "P0", "P2", "P4"): 3,
         ("P0", "P1", "P2", "P3", "P4"): 4}[s]),
-    "major-csos-common-007": (v_csos_007, lambda d: {
-        208: 1, 236: 2, 299: 3, 331: 4, 640: 5}[d]),
-    "major-csos-common-008": (v_csos_008, lambda pr: {
-        (1, 4099): 1, (2, 3): 2, (2, 8195): 3, (3, 3): 4, (8, 195): 5}[pr]),
+    "major-csos-common-007": (v_csos_007, lambda d: {208: 1, 236: 4, 299: 2, 331: 3, 640: 5}[d]),
+    "major-csos-common-008": (v_csos_008, lambda pr: {(1, 4099): 1, (2, 3): 5, (2, 8195): 2, (3, 3): 3, (8, 195): 4}[pr]),
     "major-csos-common-009": (v_csos_009, lambda r: {
         88: 1, 288: 2, 388: 3, 12: 4}[r]),
     "major-csos-common-010": (v_csos_010, lambda e: {
@@ -3655,17 +3648,13 @@ REGISTRY = {
     "major-csos-common-040": (v_csos_040, lambda n: {4: 1, 6: 2, 7: 3, 8: 4,
                                                      16: 5}[n]),
 
-    "major-csnet-common-001": (v_csnet_001, lambda h: {
-        30: 1, 62: 2, 64: 3, 126: 4, 254: 5}[h]),
+    "major-csnet-common-001": (v_csnet_001, lambda h: {30: 2, 62: 1, 64: 3, 126: 4, 254: 5}[h]),
     "major-csnet-common-002": (v_csnet_002, lambda a: {
         "192.168.1.0": 1, "192.168.1.64": 2, "192.168.1.128": 3,
         "192.168.1.129": 4, "192.168.1.192": 5}[a]),
-    "major-csnet-common-003": (v_csnet_003, lambda h: {
-        14: 1, 30: 2, 32: 3, 62: 4, 126: 5}[h]),
-    "major-csnet-common-004": (v_csnet_004, lambda c: {
-        17: 1, 20: 2, 21: 3, 25: 4}[c]),
-    "major-csnet-common-005": (v_csnet_005, lambda w: {
-        16: 1, 17: 2, 18: 3, 32: 4, 64: 5}[w]),
+    "major-csnet-common-003": (v_csnet_003, lambda h: {14: 1, 30: 4, 32: 2, 62: 3, 126: 5}[h]),
+    "major-csnet-common-004": (v_csnet_004, lambda c: {17: 1, 20: 5, 21: 2, 25: 3}[c]),
+    "major-csnet-common-005": (v_csnet_005, lambda w: {16: 1, 17: 5, 18: 2, 32: 3, 64: 4}[w]),
     # 006 L2 스위치는 데이터링크 계층 (선지 ④가 틀린 짝)
     "major-csnet-common-006": (lambda: (4, "L2 스위치는 MAC 기반 2계층. 네트워크 계층이 아니다"),
                                lambda i: i),
@@ -3745,14 +3734,13 @@ REGISTRY = {
                                                        1480: 4, 2960: 5}[n]),
     "major-csnet-common-040": (v_csnet_040, lambda i: i),
 
-    "major-cssec-common-001": (v_cssec_001, lambda d: {
-        13: 1, 37: 2, 43: 3, 53: 4, 60: 5}[d]),
+    "major-cssec-common-001": (v_cssec_001, lambda d: {13: 1, 37: 2, 43: 5, 53: 3, 60: 4}[d]),
     "major-cssec-common-002": (v_cssec_002, lambda k: {
         100: 1, 200: 2, 4950: 3, 9900: 4, 10000: 5}[k]),
     # 003 CBC 암호화는 앞 블록에 묶여 병렬 불가 (선지 ④가 틀린 진술)
     "major-cssec-common-003": (lambda: (4, "CBC 암호화만 순차 강제 · 복호화는 병렬 가능"),
                                lambda i: i),
-    "major-cssec-common-004": (v_cssec_004, lambda e: {64: 1, 127: 2, 128: 3, 256: 4}[e]),
+    "major-cssec-common-004": (v_cssec_004, lambda e: {64: 4, 127: 1, 128: 2, 256: 3}[e]),
     # 005 전자서명은 기밀성을 주지 않는다 (선지 ④)
     "major-cssec-common-005": (lambda: (4, "인증·무결성·부인방지 O / 기밀성 X"), lambda i: i),
     # 006 벨-라파듈라 — no read up, no write down → 위에 쓰기는 허용 (선지 ③)
@@ -3763,7 +3751,7 @@ REGISTRY = {
                                lambda i: i),
     # 008 매개변수화 질의가 근본 대책 (선지 ②)
     "major-cssec-common-008": (lambda: (2, "질의 구조를 먼저 확정해 값이 구문이 되지 않게 한다"),
-                               lambda i: i),
+                               lambda i: {1: 1, 2: 5, 3: 2, 4: 3, 5: 4}[i]),
     # 009 인증 상태를 빌려 요청을 위조 → CSRF (선지 ③)
     "major-cssec-common-009": (lambda: (3, "훔치지 않고 브라우저가 보내는 인증 정보를 이용"),
                                lambda i: i),
@@ -3772,14 +3760,13 @@ REGISTRY = {
     # 011 커버로스는 대칭키 기반, PKI 인증서를 쓰지 않는다 (선지 ⑤)
     "major-cssec-common-011": (lambda: (5, "AS→TGT · TGS→서비스티켓 · 대칭키 · 시간동기"),
                                lambda i: i),
-    "major-cssec-common-012": (v_cssec_012, lambda ale: {
-        10_000_000: 1, 20_000_000: 2, 40_000_000: 3, 50_000_000: 4, 80_000_000: 5}[ale]),
+    "major-cssec-common-012": (v_cssec_012, lambda ale: {10_000_000: 1, 20_000_000: 5, 40_000_000: 2, 50_000_000: 3, 80_000_000: 4}[ale]),
     # 013 IDS 는 경로 밖 복사본을 본다 (선지 ③)
     "major-cssec-common-013": (lambda: (3, "IDS 미러링·탐지 / IPS 인라인·차단, 오탐 피해는 IPS"),
                                lambda i: i),
     # 014 절반 연결을 쌓는 것은 SYN 플러딩 (선지 ①)
     "major-cssec-common-014": (lambda: (1, "마지막 ACK 를 안 보내 백로그를 채운다"),
-                               lambda i: i),
+                               lambda i: {1: 5, 2: 1, 3: 2, 4: 3, 5: 4}[i]),
     # 015 공개키로 세션키, 대칭키로 본문 (선지 ②)
     "major-cssec-common-015": (lambda: (2, "키 전달은 공개키 · 본문은 빠른 대칭키"),
                                lambda i: i),
@@ -3820,8 +3807,7 @@ REGISTRY = {
     "major-cssec-common-036": (v_cssec_036, lambda v: {8.76: 1, 26.3: 2, 87.6: 3,
                                                        876.0: 4, 8760.0: 5}[v]),
 
-    "major-csse-common-001": (v_csse_001, lambda e: {85: 1, 120: 2, 146: 3,
-                                                     210: 4, 302: 5}[e]),
+    "major-csse-common-001": (v_csse_001, lambda e: {85: 1, 120: 2, 146: 5, 210: 3, 302: 4}[e]),
     "major-csse-common-002": (v_csse_002, lambda f: {29: 1, 104: 2, 148: 3,
                                                      160: 4, 290: 5}[f]),
     "major-csse-common-003": (v_csse_003, lambda d: {12: 1, 13: 2, 14: 3,
@@ -3829,7 +3815,7 @@ REGISTRY = {
     "major-csse-common-004": (v_csse_004, lambda k: {1: 1, 2: 2, 3: 3, 4: 4, 8: 5}[k]),
     # 005 기초 경로 검사만 제어 흐름을 봐야 한다 → 화이트박스 (선지 ④)
     "major-csse-common-005": (lambda: (4, "동등분할·경계값·원인결과·오류예측은 명세만으로 설계"),
-                              lambda i: i),
+                              lambda i: {1: 1, 2: 2, 3: 3, 4: 5, 5: 4}[i]),
     # 006 응집도는 높게 결합도는 낮게 (선지 ②)
     "major-csse-common-006": (lambda: (2, "응집 기능적↑ 우연적↓ · 결합 자료(약)~내용(강)"),
                               lambda i: i),
@@ -3866,9 +3852,7 @@ REGISTRY = {
                                                      146: 5}[n]),
     "major-csse-common-020": (v_csse_020, lambda n: {103: 1, 130: 2, 159: 3,
                                                      175: 4, 183: 5}[n]),
-    "major-csse-common-021": (v_csse_021, lambda t: {
-        ("A", "B", "D", "F"): 1, ("B", "D", "F"): 2, ("C", "E"): 3,
-        ("C", "E", "G"): 4}[t]),
+    "major-csse-common-021": (v_csse_021, lambda t: {("A", "B", "D", "F"): 1, ("B", "D", "F"): 2, ("C", "E"): 3, ("C", "E", "G"): 5}[t]),
     "major-csse-common-022": (v_csse_022, lambda n: {5: 1, 9: 2, 12: 3, 17: 4,
                                                      146: 5}[n]),
     "major-csse-common-023": (v_csse_023, lambda v: {0.64: 1, 0.8: 2, 1.0: 3,
@@ -3892,10 +3876,8 @@ REGISTRY = {
                                                      "1.5.0": 3, "1.5.2": 4,
                                                      "2.0.0": 5}[s]),
 
-    "major-cspl-common-001": (v_cspl_001, lambda s: {
-        "10 20": 1, "20 10": 2, "10 10": 3, "20 20": 4}[s]),
-    "major-cspl-common-002": (v_cspl_002, lambda c: {8: 1, 13: 2, 15: 3,
-                                                     25: 4, 64: 5}[c]),
+    "major-cspl-common-001": (v_cspl_001, lambda s: {"10 20": 3, "20 10": 1, "10 10": 2, "20 20": 4}[s]),
+    "major-cspl-common-002": (v_cspl_002, lambda c: {8: 1, 13: 2, 15: 3, 25: 5, 64: 4}[c]),
     "major-cspl-common-003": (v_cspl_003, lambda t: {
         (1, 2, 3, 4): 1, (2, 4, 5, 3): 2, (2, 3, 4, 5): 3,
         (5, 4, 3, 2): 4, (1, 3, 5, 4): 5}[t]),
@@ -3912,7 +3894,7 @@ REGISTRY = {
     # 007 한 줄씩 번역·즉시 실행은 인터프리터 (선지 ④)
     "major-cspl-common-007": (lambda: (4, "컴파일러는 전체 번역·목적코드 생성·빠른 실행"),
                               lambda i: i),
-    "major-cspl-common-008": (v_cspl_008, lambda v: {10: 1, 20: 2, 30: 3, 0: 4}[v]),
+    "major-cspl-common-008": (v_cspl_008, lambda v: {10: 3, 20: 1, 30: 2, 0: 4}[v]),
     # 009 같은 호출·다른 동작 → 다형성 (선지 ③)
     "major-cspl-common-009": (lambda: (3, "상속은 다형성을 구현하는 수단이지 그 자체가 아니다"),
                               lambda i: i),
@@ -3941,10 +3923,7 @@ REGISTRY = {
                               lambda i: i),
     "major-cspl-common-019": (v_cspl_019, lambda t: {(0, 7): 1, (2, 0): 2, (2, 2): 3,
                                                      (3, 1): 4, (2, 1): 5}[t]),
-    "major-cspl-common-020": (v_cspl_020, lambda t: {
-        (80, 70, 60, 30, 50, 20): 1, (80, 70, 20, 30, 50, 60): 2,
-        (70, 50, 80, 30, 20, 60): 3, (80, 60, 70, 30, 50, 20): 4,
-        (70, 30, 80, 50, 60, 20): 5}[t]),
+    "major-cspl-common-020": (v_cspl_020, lambda t: {(80, 70, 60, 30, 50, 20): 5, (80, 70, 20, 30, 50, 60): 1, (70, 50, 80, 30, 20, 60): 2, (80, 60, 70, 30, 50, 20): 3, (70, 30, 80, 50, 60, 20): 4}[t]),
     "major-cspl-common-021": (v_cspl_021, lambda t: {
         tuple("ABDEFGC"): 1, tuple("ABCDEFG"): 2, tuple("ABDEFCG"): 3,
         tuple("ACFGBDE"): 4, tuple("ABDCFGE"): 5}[t]),
@@ -3987,19 +3966,17 @@ REGISTRY = {
     "major-csca-common-001": (v_csca_001, lambda b: {
         "10000101": 1, "11111010": 2, "11111011": 3,
         "01111011": 4, "10000110": 5}[b]),
-    "major-csca-common-002": (v_csca_002, lambda h: {"A5": 1, "B5": 2, "D5": 3,
-                                                     "5B": 4}[h]),
+    "major-csca-common-002": (v_csca_002, lambda h: {"A5": 1, "B5": 4, "D5": 2, "5B": 3}[h]),
     "major-csca-common-003": (v_csca_003, lambda e: {
         "10000001": 1, "10000010": 2, "10000011": 3,
         "01111101": 4, "00000011": 5}[e]),
     # 004 자리올림 **입력**을 받는 것은 전가산기 (선지 ③이 틀린 진술)
     "major-csca-common-004": (lambda: (3, "반가산기는 입력이 둘뿐. S=A⊕B, C=A·B"),
                               lambda i: i),
-    "major-csca-common-005": (v_csca_005, lambda c: {100: 1, 104: 2, 105: 3,
-                                                     500: 4, 505: 5}[c]),
+    "major-csca-common-005": (v_csca_005, lambda c: {100: 1, 104: 4, 105: 2, 500: 3, 505: 5}[c]),
     # 006 앞 명령의 결과를 기다린다 → 데이터 해저드 (선지 ②)
     "major-csca-common-006": (lambda: (2, "R1 이 1번의 출력이자 2번의 입력. 포워딩으로 완화"),
-                              lambda i: i),
+                              lambda i: {1: 1, 2: 5, 3: 2, 4: 3, 5: 4}[i]),
     "major-csca-common-007": (v_csca_007, lambda t: {14: 1, 17: 2, 19: 3,
                                                      22: 4, 27: 5}[t]),
     "major-csca-common-008": (v_csca_008, lambda t: {10: 1, 15: 2, 19: 3,
@@ -4014,7 +3991,7 @@ REGISTRY = {
     "major-csca-common-012": (v_csca_012, lambda m: {500: 1, 800: 2, 2000: 3,
                                                      5000: 5}[m]),
     # 013 요청 → 현재 명령 완료 → 상태 저장 → 루틴 → 복귀 (선지 ①)
-    "major-csca-common-013": (lambda: (1, "명령 중간의 상태는 저장할 수 없다"), lambda i: i),
+    "major-csca-common-013": (lambda: (1, "명령 중간의 상태는 저장할 수 없다"), lambda i: {1: 4, 2: 1, 3: 2, 4: 3, 5: 5}[i]),
     # 014 바이트마다 CPU 개입은 인터럽트 방식 (선지 ③이 틀린 진술)
     "major-csca-common-014": (lambda: (3, "DMA 는 시작과 끝에만 개입한다"), lambda i: i),
     # 015 고정 길이라 파이프라인에 유리 — 나머지 넷은 CISC (선지 ②)
@@ -4022,7 +3999,7 @@ REGISTRY = {
                               lambda i: i),
     # 016 레지스터 → 캐시 → 주기억 → 보조기억 (선지 ①)
     "major-csca-common-016": (lambda: (1, "속도·용량·단가가 같은 방향으로 움직인다"),
-                              lambda i: i),
+                              lambda i: {1: 4, 2: 1, 3: 2, 4: 3, 5: 5}[i]),
     "major-csca-common-017": (v_csca_017, lambda g: {"AND": 1, "OR": 2, "NOT": 3,
                                                      "XOR": 4}[g]),
     # 018 결과를 누산기에 저장하는 것은 실행 주기 (선지 ⑤)
@@ -4061,15 +4038,11 @@ REGISTRY = {
     "major-csca-common-036": (v_csca_036, lambda v: {0.75: 1, 1.33: 2, 2.0: 3, 2.5: 4,
                                                      3.0: 5}[v]),
 
-    "major-csdc-common-001": (v_csdc_001, lambda r: {3000: 1, 6000: 2, 12000: 3,
-                                                     18000: 4, 24000: 5}[r]),
-    "major-csdc-common-002": (v_csdc_002, lambda f: {"000": 1, "001": 2, "011": 3,
-                                                     "101": 4, "110": 5}[f]),
+    "major-csdc-common-001": (v_csdc_001, lambda r: {3000: 1, 6000: 2, 12000: 5, 18000: 3, 24000: 4}[r]),
+    "major-csdc-common-002": (v_csdc_002, lambda f: {"000": 1, "001": 2, "011": 5, "101": 3, "110": 4}[f]),
     "major-csdc-common-003": (v_csdc_003, lambda r: {2: 1, 3: 2, 4: 3, 5: 4, 8: 5}[r]),
     "major-csdc-common-004": (v_csdc_004, lambda c: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}[c]),
-    "major-csdc-common-005": (v_csdc_005, lambda s: {
-        "10110100": 1, "10110101": 2, "01011010": 3,
-        "11011010": 4, "10110110": 5}[s]),
+    "major-csdc-common-005": (v_csdc_005, lambda s: {"10110100": 1, "10110101": 5, "01011010": 2, "11011010": 3, "10110110": 4}[s]),
     # 006 주파수 대역을 나누는 것은 FDM (선지 ③이 틀린 진술)
     "major-csdc-common-006": (lambda: (3, "TDM 은 시간, FDM 은 주파수로 나눈다"),
                               lambda i: i),
@@ -4104,8 +4077,7 @@ REGISTRY = {
     # 018 문자마다 부가 비트가 붙어 효율이 낮다 (선지 ④가 틀린 진술)
     "major-csdc-common-018": (lambda: (4, "8비트에 시작·정지 2비트 → 20%가 부가 정보"),
                               lambda i: i),
-    "major-csdc-common-019": (v_csdc_019, lambda n: {12: 1, 30: 2, 42: 3, 3000: 4,
-                                                     6000: 5}[n]),
+    "major-csdc-common-019": (v_csdc_019, lambda n: {12: 4, 30: 1, 42: 2, 3000: 3, 6000: 5}[n]),
     "major-csdc-common-020": (v_csdc_020, lambda n: {2000: 1, 4000: 2, 6000: 3,
                                                      8000: 4, 10000: 5}[n]),
     "major-csdc-common-021": (v_csdc_021, lambda n: {4: 1, 7: 2, 9: 3, 11: 4,
