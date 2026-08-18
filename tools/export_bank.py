@@ -367,6 +367,24 @@ def load_rounds() -> tuple[list[dict], list[dict]]:
 
 # ── 점검 ────────────────────────────────────────────────────────────────
 
+# 「수 + 같은 꼬리말」 선지는 오름차순이어야 한다 (PLAYBOOK 4-13).
+# 자리를 옮겨 정답 분포를 맞출 때 이 규칙을 잊기 쉽다 — 실제로 한 번
+# 33문항을 깨뜨리고 나서야 알았다(2026-08-18). 그래서 내보내기에서 센다.
+_NUMERIC = re.compile(r"^\s*(-?[\d,]+(?:\.\d+)?)\s*([^\d]*)$")
+
+
+def numeric_values(choices: list[str]) -> list[float] | None:
+    """선지가 전부 「수 + 같은 꼬리말」이면 수 목록을, 아니면 None 을 준다."""
+    vals, tails = [], set()
+    for c in choices:
+        m = _NUMERIC.match(plain(c))
+        if not m:
+            return None
+        vals.append(float(m.group(1).replace(",", "")))
+        tails.add(m.group(2).strip())
+    return vals if len(tails) <= 1 else None
+
+
 def check(items: list[dict]) -> list[str]:
     """앱에서 터질 것을 미리 잡는다. 정답 범위·선지 수·id 중복."""
     bad = []
@@ -386,6 +404,16 @@ def check(items: list[dict]) -> list[str]:
         if not plain(it["stem"]):
             bad.append(f"{i} 발문이 비었다")
     return bad
+
+
+def check_order(items: list[dict]) -> list[str]:
+    """수치 선지의 오름차순 (PLAYBOOK 4-13). 막지는 않고 알려만 준다."""
+    out = []
+    for it in items:
+        v = numeric_values(it["choices"])
+        if v is not None and v != sorted(v):
+            out.append(f"{it['id']} {[plain(c) for c in it['choices']]}")
+    return out
 
 
 # ── 내보내기 ────────────────────────────────────────────────────────────
@@ -524,6 +552,15 @@ def main() -> int:
 
     kb = OUT.stat().st_size / 1024
     kb_a = OUT_ADMIN.stat().st_size / 1024
+
+    off = check_order(items)
+    if off:
+        print(f"[알림] 수치 선지가 오름차순이 아닌 문항 {len(off)}건 (PLAYBOOK 4-13)")
+        for o in off[:10]:
+            print(f"   {o}")
+        if len(off) > 10:
+            print(f"   … 그 밖 {len(off) - 10}건")
+        print()
 
     print(f"■ {OUT.relative_to(ROOT)}  {kb:,.0f}KB   (학습자가 받는 것)")
     print(f"■ {(OUT_MOBILE / OUT.name).relative_to(ROOT)}  같은 파일   (Flutter 판)")
