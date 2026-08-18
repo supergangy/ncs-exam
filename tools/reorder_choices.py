@@ -499,6 +499,107 @@ def edit_sorted(path, ids, todo, done, notes) -> bool:
     return True
 
 
+def sort_round(round_tag: str, dry: bool) -> int:
+    """회차에서 오름차순이 깨진 수치 선지 문항을 값 순으로 다시 늘어놓는다.
+
+    회차는 정답 분포를 각 자리 같은 수로 맞춰 두는데(SPEC 8절) 정렬하면
+    그것이 깨진다. **여기서는 순서만 바로잡고, 분포 보정은 따로 한다** —
+    수치 선지가 아닌 문항을 옮겨야 하므로 성격이 다른 일이다.
+    """
+    import build
+    build.select_round(round_tag)
+    blocks, _, _ = build.load_blocks(preview=True)
+
+    plans = {}
+    for b in blocks:
+        for q in b["questions"]:
+            v = choice_values(q["choices"])
+            if v is None or v == sorted(v):
+                continue
+            perm = sorted(range(len(v)), key=lambda j: v[j])
+            plans[q["no"]] = (perm, q["answer"], perm.index(q["answer"] - 1) + 1)
+
+    for no, (_p, old, new) in sorted(plans.items()):
+        print(f"   {no:02d}번  정답 {CIRCLED[old-1]} → {CIRCLED[new-1]}")
+    if dry:
+        print(f"\n[미리보기] {len(plans)}문항")
+        return 0
+    if not plans:
+        return 0
+
+    counter = {"no": 1}
+
+    def key_of(_blk, _qi):
+        n = counter["no"]
+        counter["no"] += 1
+        return n
+
+    todo = {no: p for no, (p, _o, _n) in plans.items()}
+    done, notes = [], []
+    for mod_name, _area, _n in build.CFG.AREAS:
+        path = build.CONTENT / f"{mod_name}.py"
+        if path.exists():
+            counter_start = counter["no"]
+            edit_sorted_generic(path, "BLOCKS", key_of, todo, done, notes)
+    for n in notes:
+        print(f"   [안내] {n}")
+    return 0
+
+
+def edit_sorted_generic(path, list_name, key_of, todo, done, notes) -> bool:
+    """회차(BLOCKS)용 정렬. 은행판(edit_sorted)과 같은 일을 한다."""
+    raw = path.read_bytes()
+    tree = ast.parse(raw.decode("utf-8"))
+    assign = next((n for n in tree.body
+                   if isinstance(n, ast.Assign)
+                   and getattr(n.targets[0], "id", "") == list_name), None)
+    if assign is None:
+        return False
+    edits = []
+    for blk in assign.value.elts:
+        if not isinstance(blk, ast.Dict):
+            continue
+        qs = next((v for k, v in zip(blk.keys, blk.values)
+                   if getattr(k, "value", "") == "questions"), None)
+        if qs is None or not isinstance(qs, ast.List):
+            continue
+        for qi, q in enumerate(qs.elts):
+            if not isinstance(q, ast.Dict):
+                continue
+            key = key_of(blk, qi)
+            if key not in todo:
+                continue
+            keys = {getattr(k, "value", ""): v for k, v in zip(q.keys, q.values)}
+            ch, ea, an = keys.get("choices"), keys.get("each"), keys.get("answer")
+            if ch is None or an is None:
+                notes.append(f"{key}: choices/answer 를 찾지 못했다")
+                continue
+            perm = todo[key]
+            cs = spans(raw, ch)
+            texts = [raw[a:b].decode("utf-8") for a, b in cs]
+            edits.append(((cs[0][0], cs[-1][1]), ", ".join(apply_perm(texts, perm))))
+            if ea is not None and isinstance(ea, ast.List) and len(ea.elts) == len(ch.elts):
+                es = spans(raw, ea)
+                et = [raw[a:b].decode("utf-8") for a, b in es]
+                edits.append(((es[0][0], es[-1][1]),
+                              ", ".join(renumber_each(apply_perm(et, perm)))))
+            old = ast.literal_eval(an)
+            edits.append((spans(raw, ast.List(elts=[an]))[0],
+                          str(perm.index(old - 1) + 1)))
+            done.append(key)
+    if not edits:
+        return False
+    ordered = sorted(edits, key=lambda x: x[0][0])
+    for (prev, _pt), (nxt, _nt) in zip(ordered, ordered[1:]):
+        if prev[1] > nxt[0]:
+            raise SystemExit(f"[중단] 수정 구간이 겹친다: {prev} / {nxt}")
+    for (a, b), text in reversed(ordered):
+        raw = raw[:a] + text.encode("utf-8") + raw[b:]
+    path.write_bytes(raw)
+    print(f"[수정] {path.relative_to(ROOT)}")
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
@@ -508,12 +609,16 @@ def main() -> int:
     g.add_argument("--sort", action="store_true",
                    help="은행의 수치 선지를 오름차순으로 다시 늘어놓는다 (규칙 4-13)")
     g.add_argument("--sort-dry", action="store_true", help="--sort 미리보기")
+    ap.add_argument("--for", dest="round_for_sort", metavar="회차",
+                    help="--sort 를 회차에 건다 (예: --sort --for r5_nhis)")
     ap.add_argument("moves", nargs="*", metavar="번호=위치",
                     help="예) 01=1 05=5 · ncs-math-common-003=5")
     args = ap.parse_args()
 
     sys.path.insert(0, str(ROOT))
     if args.sort or args.sort_dry:
+        if args.round_for_sort:
+            return sort_round(args.round_for_sort, dry=args.sort_dry)
         return sort_bank(dry=args.sort_dry)
 
     want = {}
