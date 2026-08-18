@@ -374,7 +374,16 @@ _NUMERIC = re.compile(r"^\s*(-?[\d,]+(?:\.\d+)?)\s*([^\d]*)$")
 
 
 def numeric_values(choices: list[str]) -> list[float] | None:
-    """선지가 전부 「수 + 같은 꼬리말」이면 수 목록을, 아니면 None 을 준다."""
+    """선지가 전부 「수 + 같은 꼬리말」이면 수 목록을, 아니면 None 을 준다.
+
+    **비트 패턴은 뺀다.** 0 과 1 로만 된 선지(2진수·플래그·서브넷 마스크)는
+    크기순으로 늘어놓는 것이 뜻을 갖지 않는다 — 「10000101 이 01111011 보다
+    크다」는 문항과 아무 상관이 없다. 오름차순 규칙(4-13)은 값의 크기를
+    견주는 선지에 대한 것이다.
+    """
+    plains = [plain(c) for c in choices]
+    if all(re.fullmatch(r"[01]{3,}", t) for t in plains):
+        return None
     vals, tails = [], set()
     for c in choices:
         m = _NUMERIC.match(plain(c))

@@ -3562,7 +3562,7 @@ REGISTRY = {
     "major-csdb-common-016": (v_csdb_016, lambda n: {0: 1, 1: 4, 2: 2, 3: 3}[n]),
     "major-csdb-common-017": (v_csdb_017, lambda v: {120: 1, 170: 2, 150: 3, 100: 4}[v]),
     "major-csdb-common-018": (v_csdb_018, lambda nf: 2 if nf == 1 else 5),
-    "major-csdb-common-019": (v_csdb_019, lambda n: {3: 1, 4: 2, 5: 3, 6: 4, 2: 5}[n]),
+    "major-csdb-common-019": (v_csdb_019, lambda n: {3: 2, 4: 3, 5: 4, 6: 5, 2: 1}[n]),
     "major-csdb-common-013": (v_csdb_013, lambda i: i),
     "major-csdb-common-014": (v_csdb_014, lambda i: {1: 1, 2: 4, 3: 2, 4: 3, 5: 5}[i]),
     "major-csdb-common-020": (v_csdb_020, lambda i: {1: 2, 2: 1, 3: 3, 4: 4, 5: 5}[i]),
@@ -3591,8 +3591,7 @@ REGISTRY = {
     # 016 교착 예방 — 상호 배제만 자원 성질에 달렸다 (선지 ①)
     "major-csos-common-016": (lambda: (1, "상호배제만 자원 성질 · 나머지 셋은 요청 규칙으로 깨진다"),
                               lambda i: i),
-    "major-csos-common-017": (v_csos_017, lambda n: {
-        268: 1, 780: 2, 65804: 3, 65792: 4, 16777216: 5}[n]),
+    "major-csos-common-017": (v_csos_017, lambda n: {268: 1, 780: 2, 65804: 4, 65792: 3, 16777216: 5}[n]),
     "major-csos-common-018": (v_csos_018, lambda t: {(2000, 1): 1, (3000, 1): 4, (3000, 2): 2, (4000, 0): 3, (2000, 2): 5}[t]),
     # 019 스래싱 — 프로세스를 더 늘리면 악화된다 (선지 ④가 틀린 진술)
     "major-csos-common-019": (lambda: (4, "다중 프로그래밍 정도를 높이면 악화 · 대책은 낮추기"),

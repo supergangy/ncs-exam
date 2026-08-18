@@ -2271,8 +2271,7 @@ REGISTRY = {
     "ncs-info-common-001": (v_sumif, lambda v: {1130: 1, 1450: 2, 1930: 3,
                                                 2275: 4, 2595: 5}[v]),
     "ncs-info-common-002": (v_countif, lambda n: {2: 1, 3: 2, 4: 3, 5: 4, 6: 5}[n]),
-    "ncs-info-common-003": (v_averageif, lambda v: {1450: 1, 483: 2, 435: 3,
-                                                    410: 4, 320: 5}[v]),
+    "ncs-info-common-003": (v_averageif, lambda v: {1450: 5, 483: 4, 435: 3, 410: 2, 320: 1}[v]),
     "ncs-info-common-004": (v_rank, lambda r: {1: 1, 6: 3}[r]),
     "ncs-info-common-005": (v_sumifs, lambda v: {320: 1, 1130: 2, 1450: 3,
                                                  1930: 4, 2595: 5}[v]),
@@ -2426,9 +2425,9 @@ REGISTRY = {
     # 가상 규정의 수치에서 다시 계산한다. 사례 판정형은 규정 대조가 코드로
     # 확정되는 것만 등록했다 — 012·013·018·019 는 순서·경계·절차 판정이라
     # 규정을 코드로 옮기면 문항을 베끼는 것이 되어 뜻이 없다.
-    "ncs-rule-common-001": (v_rule_surcharge, lambda n: {81000: 1, 83700: 2, 27000: 3, 29700: 4, 2700: 5}[n]),
+    "ncs-rule-common-001": (v_rule_surcharge, lambda n: {81000: 4, 83700: 5, 27000: 2, 29700: 3, 2700: 1}[n]),
     "ncs-rule-common-002": (v_rule_exempt, lambda i: i),
-    "ncs-rule-common-003": (v_rule_refund, lambda n: {28000: 1, 26600: 2, 25200: 3, 23800: 4, 22400: 5}[n]),
+    "ncs-rule-common-003": (v_rule_refund, lambda n: {28000: 5, 26600: 4, 25200: 3, 23800: 2, 22400: 1}[n]),
     "ncs-rule-common-004": (v_rule_delay, lambda n: {0: 1, 3500: 2, 7000: 3,
                                                      14000: 4, 28000: 5}[n]),
     "ncs-rule-common-005": (v_rule_pass_adult, lambda n: {28700: 1, 35000: 2, 35090: 3, 36300: 4, 63800: 5}[n]),

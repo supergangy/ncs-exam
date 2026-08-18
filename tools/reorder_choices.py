@@ -133,6 +133,34 @@ def edit_file(path, list_name, key_of, want, done, notes) -> bool:
     return True
 
 
+# ── 수치 선지 오름차순 정렬 ──────────────────────────────────────────
+#
+# 규칙 4-13 은 「수 + 같은 꼬리말」 선지가 오름차순이기를 요구한다.
+# 정답 위치를 옮기다 보면 이 순서가 깨진다. 여기서는 **선지 전체를 값 순으로
+# 다시 늘어놓고** answer·each·검증기 배치람다를 따라 맞춘다.
+_NUM = re.compile(r"^\s*(-?[\d,]+(?:\.\d+)?)\s*([^\d]*)$")
+
+
+def choice_values(choices: list[str]) -> list[float] | None:
+    """값을 견줄 수 있는 선지면 수 목록을, 아니면 None. 비트 패턴은 뺀다."""
+    plains = [re.sub(r"<[^>]+>", "", c).strip() for c in choices]
+    if all(re.fullmatch(r"[01]{3,}", t) for t in plains):
+        return None
+    vals, tails = [], set()
+    for t in plains:
+        m = _NUM.match(t)
+        if not m:
+            return None
+        vals.append(float(m.group(1).replace(",", "")))
+        tails.add(m.group(2).strip())
+    return vals if len(tails) <= 1 else None
+
+
+def apply_perm(texts: list[str], perm: list[int]) -> list[str]:
+    """perm[i] = 새 i 번째 자리에 올 원래 인덱스."""
+    return [texts[j] for j in perm]
+
+
 # ── 검증기 매핑 동반 갱신 ────────────────────────────────────────────
 #
 # `tools/verify_*.py` 의 REGISTRY 는 (계산함수, 배치람다) 짝이다.
@@ -188,8 +216,14 @@ def sync_verifiers(moved: dict) -> list[str]:
                     and isinstance(v.elts[1], ast.Lambda)):
                 continue
             lam = v.elts[1]
-            frm, to = left[iid]
+            spec = left[iid]
             kind = registry_kind(lam)
+            # (frm, to) 는 한 개 옮기기, perm 은 전체 재배열이다.
+            if isinstance(spec, list):
+                place = {old + 1: new + 1 for new, old in enumerate(spec)}
+            else:
+                frm, to = spec
+                place = {p: newpos(p, frm, to) for p in range(1, 6)}
             span = spans(raw, ast.List(elts=[lam]))[0]
             arg = lam.args.args[0].arg
             if kind == "dict":
@@ -198,12 +232,12 @@ def sync_verifiers(moved: dict) -> list[str]:
                 for dk, dv in zip(d.keys, d.values):
                     val = raw[spans(raw, ast.List(elts=[dk]))[0][0]:
                               spans(raw, ast.List(elts=[dk]))[0][1]].decode("utf-8")
-                    pairs.append(f"{val}: {newpos(ast.literal_eval(dv), frm, to)}")
+                    pairs.append(f"{val}: {place[ast.literal_eval(dv)]}")
                 idx = raw[spans(raw, ast.List(elts=[lam.body.slice]))[0][0]:
                           spans(raw, ast.List(elts=[lam.body.slice]))[0][1]].decode("utf-8")
                 edits.append((span, f"lambda {arg}: {{{', '.join(pairs)}}}[{idx}]"))
             elif kind == "identity":
-                m = ", ".join(f"{p}: {newpos(p, frm, to)}" for p in range(1, 6))
+                m = ", ".join(f"{p}: {place[p]}" for p in range(1, 6))
                 edits.append((span, f"lambda {arg}: {{{m}}}[{arg}]"))
             else:
                 continue                     # 손댈 수 없는 모양 — 호출자에게 남긴다
@@ -387,15 +421,100 @@ def run_bank(want: dict) -> int:
     return 0
 
 
+def sort_bank(dry: bool) -> int:
+    """은행에서 오름차순이 깨진 수치 선지 문항을 찾아 값 순으로 다시 늘어놓는다."""
+    done, notes = [], []
+    plans = {}
+    for path, ids, m in bank_files():
+        todo = {}
+        for i, it in enumerate(m.ITEMS):
+            q = it["questions"][0]
+            v = choice_values(q["choices"])
+            if v is None or v == sorted(v):
+                continue
+            perm = sorted(range(len(v)), key=lambda j: v[j])
+            todo[it["id"]] = perm
+            plans[it["id"]] = (perm, q["answer"], perm.index(q["answer"] - 1) + 1)
+        if not todo:
+            continue
+        if dry:
+            continue
+        edit_sorted(path, ids, todo, done, notes)
+
+    for iid, (perm, old, new) in sorted(plans.items()):
+        print(f"   {iid:26} 정답 {CIRCLED[old-1]} → {CIRCLED[new-1]}")
+    if dry:
+        print(f"\n[미리보기] {len(plans)}문항. 실제로 고치려면 --sort 를 쓴다")
+        return 0
+    if done:
+        stuck = sync_verifiers({k: p for k, (p, _o, _n) in plans.items()})
+        if stuck:
+            print(f"   [주의] 검증기를 자동으로 못 고친 문항 {len(stuck)}개 — {stuck}")
+    for n in notes:
+        print(f"   [안내] {n}")
+    return 0
+
+
+def edit_sorted(path, ids, todo, done, notes) -> bool:
+    """choices·each 를 순열대로 다시 쓰고 answer 를 맞춘다."""
+    raw = path.read_bytes()
+    tree = ast.parse(raw.decode("utf-8"))
+    assign = next((n for n in tree.body
+                   if isinstance(n, ast.Assign)
+                   and getattr(n.targets[0], "id", "") == "ITEMS"), None)
+    if assign is None or not isinstance(assign.value, ast.List):
+        return False
+    edits = []
+    for i, node in enumerate(assign.value.elts):
+        key = ids[i] if i < len(ids) else None
+        if key not in todo:
+            continue
+        ch, ea, an = _question_nodes(tree, node)
+        if ch is None or an is None:
+            notes.append(f"{key}: choices/answer 를 소스에서 찾지 못했다")
+            continue
+        perm = todo[key]
+        cs = spans(raw, ch)
+        texts = [raw[a:b].decode("utf-8") for a, b in cs]
+        edits.append(((cs[0][0], cs[-1][1]), ", ".join(apply_perm(texts, perm))))
+        if ea is not None and isinstance(ea, ast.List) and len(ea.elts) == len(ch.elts):
+            es = spans(raw, ea)
+            et = [raw[a:b].decode("utf-8") for a, b in es]
+            edits.append(((es[0][0], es[-1][1]),
+                          ", ".join(renumber_each(apply_perm(et, perm)))))
+        old = ast.literal_eval(an)
+        edits.append((spans(raw, ast.List(elts=[an]))[0],
+                      str(perm.index(old - 1) + 1)))
+        done.append(key)
+    if not edits:
+        return False
+    ordered = sorted(edits, key=lambda x: x[0][0])
+    for (prev, _pt), (nxt, _nt) in zip(ordered, ordered[1:]):
+        if prev[1] > nxt[0]:
+            raise SystemExit(f"[중단] 수정 구간이 겹친다: {prev} / {nxt}")
+    for (a, b), text in reversed(ordered):
+        raw = raw[:a] + text.encode("utf-8") + raw[b:]
+    path.write_bytes(raw)
+    print(f"[수정] {path.relative_to(ROOT)}")
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--round", metavar="이름")
     g.add_argument("--bank", action="store_true",
                    help="bank/**/*.py 의 ITEMS 를 문항 id 로 가리킨다")
-    ap.add_argument("moves", nargs="+", metavar="번호=위치",
+    g.add_argument("--sort", action="store_true",
+                   help="은행의 수치 선지를 오름차순으로 다시 늘어놓는다 (규칙 4-13)")
+    g.add_argument("--sort-dry", action="store_true", help="--sort 미리보기")
+    ap.add_argument("moves", nargs="*", metavar="번호=위치",
                     help="예) 01=1 05=5 · ncs-math-common-003=5")
     args = ap.parse_args()
+
+    sys.path.insert(0, str(ROOT))
+    if args.sort or args.sort_dry:
+        return sort_bank(dry=args.sort_dry)
 
     want = {}
     for m in args.moves:
@@ -404,7 +523,6 @@ def main() -> int:
     if any(not 1 <= p <= 5 for p in want.values()):
         raise SystemExit("[중단] 목표 위치는 1~5 다")
 
-    sys.path.insert(0, str(ROOT))      # bank 모듈을 읽으려면 먼저 있어야 한다
     if args.bank:
         return run_bank(want)
 
