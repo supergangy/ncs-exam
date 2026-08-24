@@ -31,3 +31,4 @@ reviews/raw/
 web/node_modules/
 web/dist/
 docs/*.render.html
+web/public/data/

@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { plain, stripLead, mmss, CIRC } from '../src/core/text.js';
-import { schedule, fresh, due, DAY, AGAIN } from '../src/core/srs.js';
+import { schedule, fresh, due, untilText, DAY, AGAIN } from '../src/core/srs.js';
 import { search, split } from '../src/core/search.js';
 import { progress, apply, FILTERS } from '../src/core/progress.js';
 import { choiceStates, gradeOne, gradeAll, byArea, shuffle, CH, MAX_MS }
@@ -72,6 +72,16 @@ test('받은 상태를 고치지 않는다', () => {
 test('안 푼 것은 복습 대상이 아니다', () => {
   const items = [{ id: 'a' }, { id: 'b' }];
   assert.deepEqual(due({ a: { due: 0 } }, items, 100), ['a']);
+});
+
+test('하루 미만을 「1일 뒤」라고 하지 않는다 — 화면에 그렇게 나와서 고쳤다', () => {
+  const now = 1000;
+  assert.equal(untilText({ due: now + AGAIN }, now), '10분 뒤');
+  assert.equal(untilText({ due: now + 3 * 3600000 }, now), '3시간 뒤');
+  assert.equal(untilText({ due: now + 3 * DAY }, now), '3일 뒤');
+  assert.equal(untilText({ due: now - 5 }, now), '지금');
+  assert.equal(untilText({ due: now + 500 }, now), '곧');
+  assert.equal(untilText(null, now), null);
 });
 
 // ── 채점 ───────────────────────────────────────────────────────────

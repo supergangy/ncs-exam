@@ -41,3 +41,19 @@ export function daysUntil(s, now) {
   if (!s) return null;
   return Math.max(0, Math.ceil((s.due - now) / DAY));
 }
+
+/** 사람이 읽을 표기 — **하루 미만을 「1일 뒤」라고 하지 않는다.**
+ *
+ *  틀린 문항은 10분 뒤에 다시 뜨는데 `daysUntil` 은 그것을 1 로 올린다
+ *  (ceil 이므로). 화면에 「1일 뒤」라고 쓰면 사용자가 내일 오라는 줄 안다.
+ *  실제로 화면에 그렇게 나온 것을 보고 고쳤다.
+ */
+export function untilText(s, now) {
+  if (!s) return null;
+  const left = s.due - now;
+  if (left <= 0) return '지금';
+  if (left < 60 * 1000) return '곧';
+  if (left < 60 * 60 * 1000) return Math.round(left / 60000) + '분 뒤';
+  if (left < DAY) return Math.round(left / 3600000) + '시간 뒤';
+  return Math.round(left / DAY) + '일 뒤';
+}

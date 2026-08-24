@@ -9,7 +9,7 @@
  *  콘텐츠와 기록을 섞지 않는다는 원칙은 그대로다. 문항을 새로 배포해도
  *  이 기록은 건드리지 않는다.
  */
-import { schedule, due as dueIds, daysUntil } from './srs.js';
+import { schedule, due as dueIds, daysUntil, untilText } from './srs.js';
 
 export const KEY = 'ncsbank.v1';
 export const PREV = 'ncsbank.v1.prev';   // 복원 직전의 것 — 되돌릴 여지
@@ -59,6 +59,7 @@ export function createStore({ get, set, now = Date.now } = {}) {
     // ── 복습 ──────────────────────────────────────────────────────
     due(items) { return dueIds(d.srs, items, now()); },
     daysUntil(id) { return daysUntil(d.srs[id], now()); },
+    untilText(id) { return untilText(d.srs[id], now()); },
 
     // ── 표시 ──────────────────────────────────────────────────────
     marked(id) { const m = d.mark[id]; return !!(m && (m.b || m.f)); },

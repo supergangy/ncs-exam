@@ -1,0 +1,120 @@
+/* 디자인 토큰 — **색은 여기에만 있다.**
+ *
+ * 컴포넌트 CSS 는 var(--…) 만 쓴다. 다크 모드를 이 파일의 토큰 교체로만
+ * 하기 때문이다 — 컴포넌트 CSS 를 두 벌 쓰면 한쪽만 고쳐 어긋난다.
+ * `tool/check_ui.mjs` 가 이 파일 밖의 색 값을 지적한다.
+ *
+ * 값의 출처는 `tools/ui_kit.py` 다. 도면과 화면이 같은 색이어야 한다.
+ */
+
+:root {
+  --ink: #0f172a;
+  --mute: #64748b;
+  --faint: #94a3b8;
+  --line: #e2e8f0;
+  --hair: #f1f5f9;
+  --bg: #f6f7f9;
+  --surf: #ffffff;
+
+  --acc: #3b5bdb;
+  --acc-bg: #eef2ff;
+  --acc-ln: #c7d2fe;
+  --ok: #0f7b4f;
+  --ok-bg: #ecfdf5;
+  --bad: #c2334d;
+  --bad-bg: #fff1f2;
+  --warn: #a45a12;
+  --warn-bg: #fffbeb;
+  --vivid: #5b21b6;          /* 게임화 액센트 — 진도·연속일에만 */
+
+  --r: 16px;
+  --rs: 11px;
+  --sh: 0 1px 2px rgba(15, 23, 42, .04), 0 8px 24px rgba(15, 23, 42, .07);
+
+  --nav-w: 240px;
+  --pad-w: 260px;
+  --body-min: 560px;        /* 문항 본문의 최소 폭. 이 아래로는 접지 않는다 */
+  --tap: 44px;              /* 터치 목표 최소 크기 */
+
+  --font: "Pretendard", -apple-system, "맑은 고딕", "Malgun Gothic", sans-serif;
+  --mono: "SF Mono", Consolas, "D2Coding", monospace;
+}
+
+/* 다크 모드 — **토큰만 바꾼다.** 규칙을 새로 쓰지 않는다.
+   기본값(system)은 미디어 질의로, 사용자가 고르면 data-theme 로 이긴다 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e8ecf4;
+    --mute: #97a3b6;
+    --faint: #6b7688;
+    --line: #263041;
+    --hair: #1a2130;
+    --bg: #0d1219;
+    --surf: #141b26;
+
+    --acc: #7d95f0;
+    --acc-bg: #1a2340;
+    --acc-ln: #33417a;
+    --ok: #4cc38a;
+    --ok-bg: #10291f;
+    --bad: #f07a8f;
+    --bad-bg: #2b1520;
+    --warn: #d8a24a;
+    --warn-bg: #2a2013;
+    --vivid: #a78bfa;
+    --sh: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ink: #e8ecf4;
+  --mute: #97a3b6;
+  --faint: #6b7688;
+  --line: #263041;
+  --hair: #1a2130;
+  --bg: #0d1219;
+  --surf: #141b26;
+
+  --acc: #7d95f0;
+  --acc-bg: #1a2340;
+  --acc-ln: #33417a;
+  --ok: #4cc38a;
+  --ok-bg: #10291f;
+  --bad: #f07a8f;
+  --bad-bg: #2b1520;
+  --warn: #d8a24a;
+  --warn-bg: #2a2013;
+  --vivid: #a78bfa;
+  --sh: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.6 var(--font);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 초점 표시를 지우지 마라 — 키보드로만 푸는 사람이 길을 잃는다 */
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* 숫자는 자리를 맞춘다 — 표에서 자리가 흔들리면 견주기 어렵다 */
+.num, table td, .mono { font-variant-numeric: tabular-nums; }
+
+/* 모션을 줄이라고 한 사람에게는 움직이지 않는다 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
