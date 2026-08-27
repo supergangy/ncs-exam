@@ -13,6 +13,8 @@ export default function More({ db }) {
     marks: db.items.filter(i => s.marked(i.id)).length,
     tried: db.items.filter(i => s.tried(i.id)).length,
   }), [db]);
+  // 키워드 수는 기록과 무관하다 — 기록이 바뀔 때마다 세지 않는다
+  const kwN = db.keywords.length;
 
   const rows = [
     { icon: I.Search, to: '/search', t: '전문 검색',
@@ -23,6 +25,10 @@ export default function More({ db }) {
       d: 'SM-2 간격으로 돌아오는 오늘 몫' },
     { icon: I.Bookmark, to: '/marks', t: '표시해 둔 문항', n: m.marks,
       d: '나중에 다시 볼 것으로 표시한 문항' },
+    { icon: I.Tag, to: '/kw', t: '키워드', n: kwN,
+      d: '과목을 가로지르는 용어로 묶어 보기' },
+    { icon: I.Check, to: '/done', t: '방금 푼 묶음', n: null,
+      d: '마지막으로 푼 묶음의 결과' },
     { icon: I.Gear, to: '/settings', t: '설정',
       d: '하루 목표 · 시험일 · 기록 백업' },
     { icon: I.Exam, to: '/about', t: '정보',

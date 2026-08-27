@@ -238,7 +238,7 @@ export default function Question({ db, query }) {
             <span style={{ marginLeft: 'auto' }} />
             {graded
               ? <button className="btn btn-primary"
-                        onClick={() => (at + 1 < pool.items.length ? move(1) : go('/'))}>
+                        onClick={() => (at + 1 < pool.items.length ? move(1) : go('/done'))}>
                   {at + 1 < pool.items.length ? '다음 문항' : '마치기'}
                   <span className="sm" style={{ opacity: .7 }}>Enter</span>
                 </button>

@@ -16,9 +16,11 @@ import { store, useDerived } from '../store/useStore.js';
 
 import About from './screens/About.jsx';
 import Bank from './screens/Bank.jsx';
+import Done from './screens/Done.jsx';
 import Exam from './screens/Exam.jsx';
 import Exams from './screens/Exams.jsx';
 import Home from './screens/Home.jsx';
+import Kw from './screens/Kw.jsx';
 import Pool from './screens/Pool.jsx';
 import Question from './screens/Question.jsx';
 import Result from './screens/Result.jsx';
@@ -31,7 +33,8 @@ import Stats from './screens/Stats.jsx';
 const NAV = [
   { sec: '학습' },
   { to: '/',      icon: I.Home,     label: '홈',      on: ['home'] },
-  { to: '/bank',  icon: I.Book,     label: '문항',    on: ['bank', 'area', 'type', 'question'] },
+  { to: '/bank',  icon: I.Book,     label: '문항',    on: ['bank', 'area', 'type', 'question', 'done'] },
+  { to: '/kw',    icon: I.Tag,      label: '키워드',  on: ['kw'] },
   { to: '/exams', icon: I.Timer,    label: '회차',    on: ['exams', 'exam', 'sit', 'result'] },
   { to: '/review', icon: I.Refresh, label: '복습',    on: ['review'], count: 'due' },
   { to: '/wrong', icon: I.Pencil,   label: '오답노트', on: ['wrong'], count: 'wrong' },
@@ -185,6 +188,8 @@ function Screen({ route, db }) {
     case 'search':   return <Search db={db} />;
     case 'settings': return <Settings />;
     case 'about':    return <About db={db} />;
+    case 'kw':       return <Kw db={db} />;
+    case 'done':     return <Done db={db} />;
     default:
       return (
         <div className="empty">

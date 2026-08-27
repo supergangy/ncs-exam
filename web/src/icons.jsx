@@ -104,3 +104,9 @@ export const Calendar = p => (
 export const Text = p => (            // 글자 크기
   <Ico {...p}><path d="M4 6h16M9 6v14M15 10h5M17.5 10v10" /></Ico>
 );
+export const Tag = p => (             // 키워드 — 꼬리표. 구멍을 뚫어야 꼬리표로 읽힌다
+  <Ico {...p}>
+    <path d="M12.6 3.4H20v7.4l-9.3 9.3a2 2 0 0 1-2.8 0l-4.6-4.6a2 2 0 0 1 0-2.8z" />
+    <circle cx="16.4" cy="7.1" r="1.4" />
+  </Ico>
+);

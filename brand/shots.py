@@ -42,6 +42,17 @@ DAY = 86400000
 MOBILE = (375, 812)                  # 실기기와 같은 폭
 DESKTOP = (1440, 900)                # 팔레트까지 펼쳐지는 폭 (1200 이상)
 
+# 한 화면에 안 들어가는 것 — 아래를 봐야 하므로 세로만 늘려 찍는다.
+# 폭은 건드리지 않는다. 폭을 늘리면 다른 앱을 찍는 셈이다.
+TALL = {
+    "m-kw":     (375, 1500),
+    "m-done":   (375, 1400),
+    "m-more":   (375, 1000),
+    "m-home":   (375, 1500),
+    "d-kw":     (1440, 1500),
+    "d-done":   (1440, 1150),
+}
+
 # 찍을 화면 — (파일명, 진입점, 해시, 설명)
 SHOTS = [
     ("m-home",   "m/", "#/",                 "모바일 홈"),
@@ -52,6 +63,8 @@ SHOTS = [
     ("m-result", "m/", "#/result/r2_korail", "모바일 결과"),
     ("m-stats",  "m/", "#/stats",            "모바일 분석"),
     ("m-more",   "m/", "#/more",             "모바일 더보기"),
+    ("m-kw",     "m/", "#/kw",               "모바일 키워드"),
+    ("m-done",   "m/", "#/done",             "모바일 마침"),
 
     ("d-home",   "",   "#/",                 "PC 홈"),
     ("d-bank",   "",   "#/s/수리능력/확률",   "PC 문항 은행"),
@@ -61,6 +74,8 @@ SHOTS = [
     ("d-result", "",   "#/result/r2_korail", "PC 결과"),
     ("d-stats",  "",   "#/stats",            "PC 분석"),
     ("d-search", "",   "#/search",           "PC 검색"),
+    ("d-kw",     "",   "#/kw",               "PC 키워드"),
+    ("d-done",   "",   "#/done",             "PC 마침"),
 ]
 
 
@@ -115,7 +130,31 @@ def seed() -> dict:
            "flag": {str(r3[3]["no"]): True, str(r3[8]["no"]): True},
            "at_no": r3[3]["no"]}
 
-    return {"att": att, "srs": srs, "exams": exams, "sit": sit, "mark": {}, "solo": None,
+    # 방금 푼 묶음 — 「마침」 화면이 빈 상태로 찍히지 않게. 갈래를 **전부** 지나게 짠다:
+    #   맞음 · 두 번 만에 맞음 · 틀림 둘 · 건너뛰었으나 예전에 틀린 것 · 아예 안 푼 것
+    # 마지막 둘 때문에 「오답노트」가 「이번에 틀림」보다 커진다 (건너뛴 1개 포함).
+    pool = [i for i in items if i["sj"] == "수리능력" and i["ty"] == "확률"][:7]
+    solo_t = now - 35 * 60000
+    wrong = lambda it: (it["an"] % len(it["ch"])) + 1
+    plan = [("ok",), ("miss", "ok"), ("miss",), ("miss",), ("ok",), ("old",), ("none",)]
+    for it, how in zip(pool, plan):
+        if how == ("none",):
+            att.pop(it["id"], None)
+            continue
+        if how == ("old",):          # 예전에 틀린 채로 남아 있고 이번엔 건너뛰었다
+            att[it["id"]] = [{"c": wrong(it), "k": 0, "t": now - 3 * DAY, "m": 41000}]
+            continue
+        tries = []
+        for j, r in enumerate(how):
+            tries.append({"c": it["an"] if r == "ok" else wrong(it),
+                          "k": 1 if r == "ok" else 0,
+                          "t": solo_t + (2 + j * 3) * 60000, "m": 38000 + j * 9000})
+        att[it["id"]] = tries
+
+    solo = {"key": "sj=수리능력&ty=확률", "ids": [i["id"] for i in pool],
+            "at": len(pool) - 1, "t": solo_t}
+
+    return {"att": att, "srs": srs, "exams": exams, "sit": sit, "mark": {}, "solo": solo,
             "pref": {"goal": 25, "examAt": now + 18 * DAY}, "admin": False, "seen": 0, "ts": 1.0}
 
 
@@ -153,25 +192,56 @@ def serve() -> socketserver.TCPServer:
     return srv
 
 
-def shoot(name: str, entry: str, hash_: str) -> pathlib.Path:
-    dst = OUT / ("%s.png" % name)
-    w, h = MOBILE if entry else DESKTOP
-    subprocess.run(
-        [str(CHROME), "--headless=new", "--disable-gpu", "--hide-scrollbars",
-         "--virtual-time-budget=9000", "--window-size=%d,%d" % (w, h),
-         "--screenshot=" + str(dst),
-         "http://127.0.0.1:%d/%sindex.html%s" % (PORT, entry, hash_)],
-        capture_output=True, timeout=120)
-    return dst
+def shoot_all(shots) -> list[pathlib.Path]:
+    """전부 한 번에 찍는다 — `brand/shot.mjs` 가 DevTools 규약으로 찍는다.
+
+    **`--window-size` 로 찍지 않는다.** Chrome headless 는 창을 500px 아래로 만들지
+    않아서, 375 를 달라 해도 뷰포트는 500 이고 사진만 375 로 잘린다 — 탭 넷 중
+    하나와 오른쪽 배지들이 사라진 채 저장됐다(2026-08-27 실측: client 500).
+    `Emulation.setDeviceMetricsOverride` 는 레이아웃 폭 자체를 정한다.
+    """
+    spec, paths = [], []
+    for name, entry, hash_, _label in shots:
+        dst = OUT / ("%s.png" % name)
+        w, h = (MOBILE if entry else DESKTOP)
+        spec.append({
+            "out": str(dst),
+            "url": "http://127.0.0.1:%d/%sindex.html%s" % (PORT, entry, hash_),
+            "w": TALL.get(name, (w, h))[0], "h": TALL.get(name, (w, h))[1],
+            "scale": 2, "mobile": bool(entry),
+        })
+        paths.append(dst)
+
+    f = OUT / "_shot_spec.json"
+    f.write_text(json.dumps({"shots": spec}, ensure_ascii=False), encoding="utf-8")
+    r = subprocess.run(["node", str(ROOT / "brand" / "shot.mjs"), str(f)],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=600)
+    if r.returncode:
+        print((r.stdout or "") + (r.stderr or ""))
+        raise SystemExit("찍지 못했다")
+    f.unlink(missing_ok=True)
+    return paths
 
 
 def sheet(paths, cols: int = 4, name: str = "screens.png") -> pathlib.Path:
     gap, pad = 12, 26
     ims = [(Image.open(p), label) for p, label in paths if p.exists()]
+    if not ims:
+        raise SystemExit("붙일 사진이 없다")
+
+    # 배율 2로 찍으므로 줄여 붙인다. 폭은 첫 장 기준으로 통일하고 세로는 비율대로 —
+    # **크기가 같다고 가정하면 안 된다.** 긴 화면은 세로를 늘려 찍는다(TALL)
+    cw = ims[0][0].width // 2
+    def fit(im):
+        h = max(1, round(im.height * cw / im.width))
+        return im.resize((cw, h), Image.LANCZOS)
+    ims = [(fit(im), label) for im, label in ims]
+
     rows = (len(ims) + cols - 1) // cols
-    cw, ch = ims[0][0].width, ims[0][0].height
+    rh = [max(im.height for im, _ in ims[r * cols:(r + 1) * cols]) for r in range(rows)]
     sh = Image.new("RGB", (cols * cw + (cols - 1) * gap,
-                           rows * (ch + pad) + (rows - 1) * gap), (255, 255, 255))
+                           sum(h + pad for h in rh) + (rows - 1) * gap), (255, 255, 255))
     from PIL import ImageDraw, ImageFont
     d = ImageDraw.Draw(sh)
     # PIL 기본 폰트는 한글을 못 그린다 — 시트 라벨이 두부가 된다
@@ -180,8 +250,9 @@ def sheet(paths, cols: int = 4, name: str = "screens.png") -> pathlib.Path:
     except OSError:
         font = None
     for k, (im, label) in enumerate(ims):
-        x = (k % cols) * (cw + gap)
-        y = (k // cols) * (ch + pad + gap)
+        r, c = k // cols, k % cols
+        x = c * (cw + gap)
+        y = sum(rh[i] + pad + gap for i in range(r))
         d.text((x + 2, y + 5), label, fill=(71, 85, 105), font=font)
         sh.paste(im, (x, y + pad))
     out = OUT / name
@@ -205,13 +276,14 @@ def main() -> int:
     prepare()
     srv = serve()
     try:
+        shoot_all(SHOTS)
         m_made, d_made = [], []
-        for name, entry, hash_, label in SHOTS:
-            p = shoot(name, entry, hash_)
-            ok = p.exists() and p.stat().st_size > 3000
+        for (name, entry, _h, label), path in zip(SHOTS, [OUT / (n + ".png")
+                                                          for n, *_ in SHOTS]):
+            ok = path.exists() and path.stat().st_size > 3000
             print("  %-10s %-16s %s" % (name, label, "찍음" if ok else "!! 실패"))
             if ok:
-                (m_made if entry else d_made).append((p, label))
+                (m_made if entry else d_made).append((path, label))
         if m_made:
             out = sheet(m_made, cols=4, name="m-screens.png")
             print("  %s  %s" % (out.name, Image.open(out).size))

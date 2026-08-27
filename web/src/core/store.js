@@ -51,6 +51,23 @@ export function createStore({ get, set, now = Date.now } = {}) {
     /** 마지막 시도가 오답인 것만 오답노트에 남긴다 — 다시 맞히면 빠진다 */
     isWrong(id) { const l = S.last(id); return !!l && !l.k; },
 
+    /** `since` 이후의 시도만 본다 — 「이번에 이 묶음을 어떻게 풀었나」.
+     *
+     *  배포본은 이것을 **모듈 변수**(`let DONE`)에 들고 있어서, 마침 화면에서
+     *  새로 고치면 값이 사라지고 홈으로 튀었다. `solo.t`(묶음을 잡은 시각) 이후의
+     *  시도를 기록에서 다시 세면 새로 고쳐도, 나중에 다시 열어도 같은 값이 나온다.
+     *
+     *  @returns { n, ok, ms } | null
+     *    n   이번에 시도한 횟수
+     *    ok  **마지막** 시도가 정답인가 (다시 풀어 맞혔으면 맞음이다)
+     *    ms  이번 시도들에 걸린 시간의 합 */
+    passOf(id, since) {
+      const a = (d.att[id] || []).filter(x => x.t >= since);
+      if (!a.length) return null;
+      return { n: a.length, ok: !!a[a.length - 1].k,
+               ms: a.reduce((t, x) => t + (x.m | 0), 0) };
+    },
+
     record(id, chosen, ok, ms) {
       const t = now();
       (d.att[id] ||= []).push({ c: chosen, k: ok ? 1 : 0, t, m: ms | 0 });

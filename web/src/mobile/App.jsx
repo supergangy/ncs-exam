@@ -16,16 +16,17 @@ import { store } from '../store/useStore.js';
 import About from './screens/About.jsx';
 import Area from './screens/Area.jsx';
 import Exam from './screens/Exam.jsx';
+import Done from './screens/Done.jsx';
 import Exams from './screens/Exams.jsx';
 import Home from './screens/Home.jsx';
 import More from './screens/More.jsx';
+import Kw from './screens/Kw.jsx';
 import Pool from './screens/Pool.jsx';
 import Question from './screens/Question.jsx';
 import Result from './screens/Result.jsx';
 import Search from './screens/Search.jsx';
 import Settings from './screens/Settings.jsx';
 import Sit from './screens/Sit.jsx';
-import Soon from './screens/Soon.jsx';
 import Stats from './screens/Stats.jsx';
 import Type from './screens/Type.jsx';
 
@@ -108,7 +109,7 @@ function Tabs({ route }) {
   );
 }
 
-/** 주소 → 화면. 아직 옮기지 않은 화면은 `Soon` 이 무엇이 올지 알려 준다. */
+/** 주소 → 화면. `router/useHash.js` 의 `ROUTES` 와 짝이 맞아야 한다. */
 function Screen({ route, db }) {
   switch (route.name) {
     case 'home':
@@ -145,6 +146,10 @@ function Screen({ route, db }) {
       return <Settings />;
     case 'about':
       return <About db={db} />;
+    case 'kw':
+      return <Kw db={db} />;
+    case 'done':
+      return <Done db={db} />;
     case 'notfound':
       return (
         <div className="empty">
@@ -153,6 +158,13 @@ function Screen({ route, db }) {
         </div>
       );
     default:
-      return <Soon name={route.name} params={route.params} />;
+      // `ROUTES` 의 이름을 **전부** 위에서 다룬다. 여기 오면 라우터에 이름을
+      // 더하고 화면을 잊은 것이다 — 조용히 빈 화면을 주지 않는다
+      return (
+        <div className="empty">
+          <p>화면이 없습니다 — <code>{route.name}</code></p>
+          <button className="btn btn-tint" onClick={() => go('/')}>홈으로</button>
+        </div>
+      );
   }
 }

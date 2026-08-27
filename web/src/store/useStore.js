@@ -33,6 +33,7 @@ const API = {
   last: id => S.last(id),
   tried: id => S.tried(id),
   isWrong: id => S.isWrong(id),
+  passOf: (id, since) => S.passOf(id, since),
   marked: id => S.marked(id),
   mark: id => S.mark(id),
   due: items => S.due(items),

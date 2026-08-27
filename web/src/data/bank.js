@@ -22,7 +22,18 @@ export function wrap(raw) {
     subjects: raw.subjects || [],
     types: raw.types || [],
 
-    kwName: k => at(raw.keywords, k, String(k)),
+    /** 키워드 표. 항목은 `{ t: 이름, n: 문항 수 }` 다 */
+    keywords: raw.keywords || [],
+    /** 키워드 **이름만** 준다.
+     *
+     *  항목이 객체라 그대로 넘기면 `core/search.js` 가 `'[object Object]'` 를 훑고
+     *  **키워드로는 아무것도 안 걸린다** — 실제로 그랬다. 시험이 놓친 까닭은
+     *  `kwName` 을 손으로 만든 가짜로 갈아 끼워 검사했기 때문이다.
+     *  지금은 `test/core.test.js` 가 이 `wrap()` 을 실제 bank.json 으로 돌린다. */
+    kwName: k => at(raw.keywords, k, null)?.t ?? String(k),
+    /** 이름과 문항 수를 함께 — 키워드 목록 화면이 쓴다 */
+    kw: k => at(raw.keywords, k, null),
+    byKw: k => raw.items.filter(i => (i.kw || []).includes(+k)),
     passage: i => at(raw.passages, i, { body: '' }),
     // 회차 식별자는 `tag` 다 (`r1_public`). items 의 `rd` 가 이 값을 가리킨다 —
     // `r.id` 로 찾으면 늘 null 이 나온다

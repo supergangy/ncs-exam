@@ -17,6 +17,9 @@ import { progress, apply, FILTERS } from '../src/core/progress.js';
 import { choiceStates, gradeOne, gradeAll, byArea, shuffle, CH, MAX_MS }
   from '../src/core/grade.js';
 import { createStore, memory } from '../src/core/store.js';
+import { group, narrow, tally } from '../src/core/keywords.js';
+import { wrap } from '../src/data/bank.js';
+import { makePool } from '../src/data/pool.js';
 
 // ── 글자 ─ 두 번 물린 자리다. 회귀로 못 박는다 ──────────────────────
 test('문자 참조를 푼다 — 「보기」 꺾쇠가 글자로 나오면 안 된다', () => {
@@ -232,14 +235,44 @@ test('저장한 것을 다시 읽는다', () => {
   assert.ok(B.tried('a'));
 });
 
+// ── 묶음 마침 ─ 새로 고쳐도 같은 값이 나와야 한다 ──────────────────
+test('passOf — since 이전의 시도는 세지 않는다', () => {
+  let t = 1000;
+  const S = createStore({ ...memory(), now: () => t }).load();
+  S.record('a', 1, false, 5000);            // 지난주에 틀렸다
+  const since = t = 100000;                 // 여기서 묶음을 잡았다
+  assert.equal(S.passOf('a', since), null, '이전 시도가 새 나왔다');
+
+  t = 100500; S.record('a', 2, false, 500);
+  t = 101000; S.record('a', 3, true, 700);
+  const p = S.passOf('a', since);
+  assert.equal(p.n, 2, '이번 시도만 센다');
+  assert.equal(p.ok, true, '마지막이 정답이면 맞음이다');
+  assert.equal(p.ms, 1200, '이번 시도들의 시간만 더한다');
+});
+
+test('passOf — 다시 풀어 맞히면 「이번엔 맞음」이지만 오답노트에서도 빠진다', () => {
+  let t = 1000;
+  const S = createStore({ ...memory(), now: () => t }).load();
+  t = 2000; S.record('a', 1, false, 100);
+  t = 3000; S.record('a', 2, true, 100);
+  assert.equal(S.passOf('a', 1500).ok, true);
+  assert.equal(S.isWrong('a'), false);
+});
+
+test('passOf — 시도가 없으면 null. 없는 문항에도 터지지 않는다', () => {
+  const S = createStore({ ...memory(), now: () => 5000 }).load();
+  assert.equal(S.passOf('없는것', 0), null);
+});
+
 // ── 실제 데이터 ─ 인공 문항만으로는 모자라다 ────────────────────────
 test('실제 bank.json 으로 돌린다', () => {
   const bank = JSON.parse(readFileSync(new URL('../../app/data/bank.json', import.meta.url), 'utf8'));
-  const db = {
-    items: bank.items,
-    kwName: k => (bank.kw || {})[k] ?? String(k),
-    passage: i => (bank.passages || [])[i] || { body: '' },
-  };
+  // **`wrap()` 을 쓴다.** 여기에 `{ items, kwName, passage }` 를 손으로 만들어
+  // 넣었더니, 실제 `data/bank.js` 의 `kwName` 이 이름 대신 `{ t, n }` 객체를
+  // 돌려주는 것을 이 시험이 놓쳤다 — 키워드로는 아무것도 안 걸리는 상태였다.
+  // 가짜를 끼우면 검사하는 것은 core 뿐이고, 화면이 쓰는 것은 wrap 이다.
+  const db = wrap(bank);
   assert.ok(db.items.length > 700, '문항이 ' + db.items.length + '개뿐이다');
 
   // 모든 문항의 정답이 선지 범위 안에 있고 발문이 비지 않았다
@@ -256,6 +289,13 @@ test('실제 bank.json 으로 돌린다', () => {
   for (const q of ['비중', '다음', '것은']) {
     assert.ok(search(q, db).length > 0, q + ' 가 한 건도 안 걸린다');
   }
+
+  // 키워드 이름이 **글자**로 나온다. 객체가 새면 '[object Object]' 가 된다
+  assert.equal(typeof db.kwName(0), 'string');
+  assert.ok(!db.kwName(0).includes('object'), db.kwName(0));
+  // 그 이름으로 검색이 걸린다 — kwName 이 객체였을 때 0건이던 자리다
+  const kwHit = search(db.kwName(0), db).filter(h => h.where === '키워드');
+  assert.ok(kwHit.length > 0, db.kwName(0) + ' 가 키워드로 안 걸린다');
 
   // 전 문항을 실제로 채점해 본다 — 정답만 고르면 100%
   const all = gradeAll(db.items, db.items.map(i => i.an));

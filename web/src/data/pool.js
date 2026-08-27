@@ -13,11 +13,21 @@ export function makePool(db, st, query = '') {
   const get = k => q.get(k) || null;
 
   const sj = get('sj'), ty = get('ty'), rd = get('rd'), id = get('id'), pool = get('pool');
+  const kw = get('kw');
 
   if (id) {
     const it = db.byId(id);
     return { key: 'id=' + id, title: '문항', sub: it ? `${it.sj} · ${it.ty}` : '',
              items: it ? [it] : [] };
+  }
+
+  if (kw !== null && kw !== '') {
+    // 키워드 묶음 — 배포본과 같은 주소다 (`#/q?kw=12`). 첨자를 넘긴다.
+    //   **이름이 아니라 첨자**인 이유는 이름에 `/`·`+` 가 들어갈 수 있어서다.
+    const idx = Number(kw);
+    const name = db.kwName(idx);
+    return { key: 'kw=' + idx, title: name, sub: '키워드',
+             items: Number.isInteger(idx) ? db.byKw(idx) : [] };
   }
 
   if (pool === 'wrong') {

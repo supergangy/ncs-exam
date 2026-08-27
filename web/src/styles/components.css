@@ -220,3 +220,42 @@
   font-weight: var(--w-semi);
   letter-spacing: -.3px;
 }
+
+/* ── 칩 — 키워드처럼 **수가 많고 길이가 들쭉날쭉한 것**을 흘려 담는다 ──
+ * 배지와 다르다. 배지는 상태를 알리고 못 누른다. 칩은 **누르는 것**이라
+ * 손가락이 닿을 높이(28px 이상)를 지키고 hover·focus 를 준다.
+ */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .2rem 1rem 1rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  min-height: 30px;
+  padding: 0 .55rem;
+  background: var(--surf);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: var(--t-sm);
+  font-weight: var(--w-semi);
+  line-height: 1;
+  /* 이름 안에서 줄이 갈리면 칩 높이가 무너진다 — 긴 것은 줄지 않고 그대로 둔다 */
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--acc-ln); background: var(--acc-bg); }
+/* 개수 — 이름보다 약하게. 숫자만 tabular 로 두어 자리가 흔들리지 않게 */
+.chip > b {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  font-weight: var(--w-semi);
+  color: var(--faint);
+}
+/* 과목을 가로지르는 표 — 색을 쓰지 않는다. 326개 중 7개라 눈에 띌 필요가 없다 */
+.chip > em { font-style: normal; color: var(--faint); font-size: var(--t-xs); }
