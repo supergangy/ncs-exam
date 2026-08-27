@@ -7,9 +7,27 @@
 <title>NCS PASS</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<script>
+  /* 좁은 화면으로 들어오면 모바일 판으로 보낸다.
+   *
+   * 두 판은 코드가 서로 엮이지 않는다 — 이 스크립트는 **어느 문으로 들어갈지만**
+   * 정한다. 한 번 보낸 뒤에는 다시 판단하지 않는다(`?pc=1` 로 돌아올 수 있다).
+   * 렌더 전에 넘겨야 PC 화면이 한 번 번쩍이지 않는다.
+   */
+  (function () {
+    try {
+      if (location.search.includes('pc=1')) { sessionStorage.setItem('ncspass.pc', '1'); return; }
+      if (sessionStorage.getItem('ncspass.pc')) return;
+      if (matchMedia('(max-width: 767px)').matches) {
+        location.replace('./m/' + location.hash);
+      }
+    } catch (e) { /* 못 보내면 PC 판으로 둔다 — 안 보이는 것보다 낫다 */ }
+  })();
+</script>
 </head>
 <body>
 <div id="root"></div>
-<script type="module" src="/src/main.jsx"></script>
+<script type="module" src="/src/desktop/main.jsx"></script>
 </body>
 </html>

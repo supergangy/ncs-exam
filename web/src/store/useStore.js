@@ -39,11 +39,17 @@ const API = {
   daysUntil: id => S.daysUntil(id),
   untilText: id => S.untilText(id),
   get d() { return S.d; },
+  get pref() { return S.pref; },
+  solo: () => S.solo(),
 
   // 쓰기 — 모두 알린다
   record: mutate((id, chosen, ok, ms) => S.record(id, chosen, ok, ms)),
   toggle: mutate((id, k) => S.toggle(id, k)),
   importAll: mutate(env => S.importAll(env)),
+  setSolo: mutate((key, ids, at) => S.setSolo(key, ids, at)),
+  soloAt: mutate(at => S.soloAt(at)),
+  clearSolo: mutate(() => S.clearSolo()),
+  setPref: mutate(patch => S.setPref(patch)),
   reset: mutate(() => S.reset()),
   exportMap: at => S.exportMap(at),
 };

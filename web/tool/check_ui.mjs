@@ -66,6 +66,13 @@ const FIXED_OK = /tabbar|bottom-?sheet|sheet|scrim|overlay|backdrop|drawer/i;
 const EXEMPT = {
   'src/store/useStore.js': ['저장소 직접 접근'],   // 저장소 어댑터 그 자체
   'src/data/bank.js': ['시각 직접 읽기'],          // 없지만 앞으로 캐시 시각을 쓸 자리
+  'src/hooks/useElapsed.js': ['시각 직접 읽기'],   // 「지금」을 읽는 유일한 자리 — 화면들은 이 훅을 쓴다
+
+  // 레이아웃 골격 파일 — 상주 머리말·하단 버튼 줄·하단 탭이 여기 있다.
+  // 이 셋은 fixed 여야 하고, **화면 CSS 에는 fixed 가 없어야 한다.**
+  // 그래서 파일 단위로만 열어 둔다.
+  'src/mobile/mobile.css': ['position:fixed'],
+  'src/desktop/desktop.css': ['position:fixed'],
 };
 
 /** 윈도우 경로 구분자를 / 로 — 이스케이프를 피해 split/join 으로 한다 */
@@ -120,7 +127,7 @@ for (const f of files) {
     if (/position\s*:\s*fixed/.test(code)) {
       // 같은 파일 안에 허용 이름이 있으면 넘긴다 — 선택자가 위에 있을 수 있다
       const near = lines.slice(Math.max(0, i - 6), i + 2).join(' ');
-      if (!FIXED_OK.test(near) && !FIXED_OK.test(f)) {
+      if (!FIXED_OK.test(near) && !FIXED_OK.test(f) && !exempt(f, 'position:fixed')) {
         say(bad, f, n, 'position:fixed — 하단 탭과 바텀시트에만 허용된다');
       }
     }

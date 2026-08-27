@@ -1,4 +1,9 @@
-/** **배선 확인용 화면. Build 결과로 갈아치울 자리다.**
+/** PC 판 — **아직 배선 확인 화면이다.** 시안 `question-engine-desktop` ·
+ *  `test-analytics-desktop` 을 옮기는 것이 다음 몫이다.
+ *
+ *  모바일 판과 코드를 엮지 않는다. 여기서 무엇을 고쳐도 `mobile/` 은 바뀌지 않는다.
+ *
+ *  아래는 옮기기 전까지 남겨 두는 것 — 배선이 맞는지 보여 준다.
  *
  *  꾸미지 않았다 — 여기서 확인하는 것은 모양이 아니라 **배선**이다.
  *  ① 문항 764개가 실제로 읽히나 ② 라우터가 갈리나 ③ 기록이 남나
@@ -7,12 +12,12 @@
  *  껍데기가 오면 이 파일만 지운다. `core/`·`store/`·`router/`·`data/` 는 그대로 쓴다.
  */
 import { useEffect, useState } from 'react';
-import { loadBank } from './data/bank.js';
-import { useHash, go } from './router/useHash.js';
-import { useStore } from './store/useStore.js';
-import { plain, CIRC } from './core/text.js';
-import { choiceStates, gradeOne, CH } from './core/grade.js';
-import { progress, progText } from './core/progress.js';
+import { loadBank } from '../data/bank.js';
+import { useHash, go } from '../router/useHash.js';
+import { useStore } from '../store/useStore.js';
+import { plain, CIRC } from '../core/text.js';
+import { choiceStates, gradeOne, CH } from '../core/grade.js';
+import { progress, progText } from '../core/progress.js';
 
 const S = {
   wrap: { maxWidth: 860, margin: '0 auto', padding: '24px 20px 64px' },

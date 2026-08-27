@@ -1,0 +1,113 @@
+/** 모바일 판 — 상주 머리말 · 본문 · 하단 탭.
+ *
+ *  **PC 판과 코드를 엮지 않는다.** 여기서 무엇을 고쳐도 `desktop/` 은 바뀌지 않는다.
+ *  공유하는 것은 화면이 없는 것들뿐이다 — `core/`(로직) · `data/`(문항) ·
+ *  `store/`(기록) · `router/`(주소) · `styles/`(토큰·부품) · `icons.jsx`.
+ *
+ *  주소는 **배포본과 같다.** 사용자가 북마크한 `#/t/수리능력` 이 여기서도 열려야 한다.
+ */
+import { useEffect, useState } from 'react';
+
+import { loadBank } from '../data/bank.js';
+import * as I from '../icons.jsx';
+import { useHash, go } from '../router/useHash.js';
+
+import Area from './screens/Area.jsx';
+import Home from './screens/Home.jsx';
+import Question from './screens/Question.jsx';
+import Soon from './screens/Soon.jsx';
+import Type from './screens/Type.jsx';
+
+/** 하단 탭 넷 — 시안 구성(Home · Tests · Analytics · Profile)에 맞춘다.
+ *  복습·오답노트는 홈의 연습 방식 카드와 「더보기」에서 들어간다. */
+const TABS = [
+  { to: '/',      icon: I.Home,  label: '홈',     on: ['home', 'area', 'type', 'question'] },
+  { to: '/exams', icon: I.Exam,  label: '회차',   on: ['exams', 'exam', 'sit', 'result'] },
+  { to: '/stats', icon: I.Chart, label: '분석',   on: ['stats'] },
+  { to: '/more',  icon: I.More,  label: '더보기', on: ['more', 'settings', 'about', 'search',
+                                                      'wrong', 'review', 'marks', 'kw'] },
+];
+
+/** 하단에 버튼 줄이 있는 화면 — 탭 + 버튼 몫을 함께 비워야 마지막 줄이 가려지지 않는다 */
+const HAS_FOOT = new Set(['question', 'sit']);
+
+export default function App() {
+  const [db, setDb] = useState(null);
+  const [err, setErr] = useState(null);
+  const route = useHash();
+
+  // 모바일 판은 `/m/` 아래에서 돈다 — 문항은 한 칸 위에 있다
+  useEffect(() => { loadBank('../data/bank.json').then(setDb).catch(e => setErr(e.message)); }, []);
+
+  // 화면을 옮기면 위로 올린다 — 스크롤이 남아 있으면 새 화면 중간이 보인다
+  useEffect(() => { window.scrollTo(0, 0); }, [route.hash]);
+
+  return (
+    <>
+      <Header db={db} />
+      <main className={'view' + (HAS_FOOT.has(route.name) ? ' has-foot' : '')}>
+        {err ? <p className="empty">문항을 읽지 못했습니다 — {err}</p>
+             : !db ? <p className="empty">문항을 읽는 중…</p>
+             : <Screen route={route} db={db} />}
+      </main>
+      <Tabs route={route} />
+    </>
+  );
+}
+
+function Header({ db }) {
+  return (
+    <header className="top">
+      <img className="top-logo" src="../icon-192.png" alt="" />
+      <span className="top-name">NCS PASS</span>
+      <div className="top-right">
+        {db && <span className="badge badge-flat sm">{db.n}문항</span>}
+        <button className="btn btn-ghost narrow" style={{ padding: '0 .5rem' }}
+                onClick={() => go('/search')} aria-label="검색">
+          <I.Search />
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function Tabs({ route }) {
+  return (
+    <nav className="tabs" aria-label="주요 화면">
+      {TABS.map(t => {
+        const Icon = t.icon;
+        const here = t.on.includes(route.name);
+        return (
+          <button key={t.to} className="tab" onClick={() => go(t.to)}
+                  aria-current={here ? 'page' : undefined}>
+            <Icon />
+            {t.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** 주소 → 화면. 아직 옮기지 않은 화면은 `Soon` 이 무엇이 올지 알려 준다. */
+function Screen({ route, db }) {
+  switch (route.name) {
+    case 'home':
+      return <Home db={db} />;
+    case 'area':
+      return <Area db={db} area={route.params[0]} />;
+    case 'type':
+      return <Type db={db} area={route.params[0]} type={route.params[1]} />;
+    case 'question':
+      return <Question db={db} query={route.params[0]} />;
+    case 'notfound':
+      return (
+        <div className="empty">
+          <p>없는 주소입니다 — <code>{route.hash}</code></p>
+          <button className="btn btn-tint" onClick={() => go('/')}>홈으로</button>
+        </div>
+      );
+    default:
+      return <Soon name={route.name} params={route.params} />;
+  }
+}

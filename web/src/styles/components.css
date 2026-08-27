@@ -44,6 +44,10 @@
   transition: filter .12s, background-color .12s, border-color .12s;
 }
 .btn:disabled, .btn[aria-disabled="true"] { cursor: not-allowed; }
+/* 단추 안의 아이콘 — 크기를 정하지 않으면 SVG 가 기본 크기(300×150)로 부풀거나
+   flex 안에서 0 으로 눌린다. 글자 옆에 서는 크기로 못박는다. */
+.btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.badge svg { width: 14px; height: 14px; flex: 0 0 auto; }
 
 /* Primary — 시안 bg #6366F1 · 흰 글자 Bold */
 .btn-primary { background: var(--acc); color: var(--surf); }

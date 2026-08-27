@@ -21,6 +21,8 @@ const blank = () => ({
   sit: null,    // 응시 중인 회차 (하나만. 나가도 이어진다)
   mark: {},     // 북마크(b)·확인 필요(f)·메모
   solo: null,   // 풀던 묶음 (하나만)
+  // 사용자가 정하는 것 — 나머지는 att 에서 세어 낸다 (core/goal.js)
+  pref: { goal: 25, examAt: null },   // 하루 목표 문항 수 · 시험일
   admin: false, seen: 0, ts: 1.0,
 });
 
@@ -103,6 +105,35 @@ export function createStore({ get, set, now = Date.now } = {}) {
                                    exams: Object.keys(d.exams).length,
                                    mark: Object.keys(d.mark).length } };
     },
+
+    // ── 풀던 묶음 ─────────────────────────────────────────────────
+    /** 하나만 둔다. 앱을 닫았다 열어도 그 자리에서 이어진다.
+     *
+     *  **id 목록을 함께 저장한다.** 「복습 대기」·「오답노트」는 다시 만들면
+     *  순서와 구성이 달라진다 — 풀던 중에 하나를 맞히면 목록에서 빠지므로
+     *  위치(at)만 저장하면 다른 문항으로 튄다. */
+    solo() { return d.solo; },
+    setSolo(key, ids, at = 0) {
+      d.solo = { key, ids, at, t: now() };
+      save();
+      return d.solo;
+    },
+    soloAt(at) {
+      if (!d.solo) return null;
+      d.solo.at = at;
+      save();
+      return d.solo;
+    },
+    clearSolo() { d.solo = null; save(); },
+
+    // ── 설정 ──────────────────────────────────────────────────────
+    /** 목표·시험일. 넘긴 칸만 바꾼다 */
+    setPref(patch) {
+      d.pref = { ...d.pref, ...patch };
+      save();
+      return d.pref;
+    },
+    get pref() { return d.pref || { goal: 25, examAt: null }; },
 
     reset() { d = blank(); save(); },
   };
