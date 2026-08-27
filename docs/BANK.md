@@ -306,8 +306,15 @@ DB를 손으로 고치지 않는다. `reviews/db.json` ↔ `--rebuild` 와 같�
 `app/` 의 산출물만 별도 **공개** 저장소로 옮겨 GitHub Pages 로 띄운다.
 집필·검증 파이프라인(`bank/`·`reviews/`·`tools/`)이 있는 이 저장소는 계속 비공개다.
 
-- 배포 URL: https://supergangy.github.io/ncs-exam-app/
-- 소스: https://github.com/supergangy/ncs-exam-app (public)
+- 배포 URL: https://supergangy.github.io/ncs-pass-app/
+- 소스: https://github.com/supergangy/ncs-pass-app (public)
+- **옛 주소** https://supergangy.github.io/ncs-exam-app/ 는 안내 페이지만 남겼다.
+  이력서·포트폴리오·PDF 에 그 주소가 박혀 있어 살려 둔다.
+  안내 페이지에는 **자기 자신을 등록 해제하는 `sw.js`** 를 같이 올렸다 —
+  예전에 방문한 브라우저에는 옛 워커가 남아 캐시에서 옛 앱을 계속 내주므로,
+  리다이렉트 페이지만 올리면 그 화면이 보이지 않는다.
+- `localStorage` 는 origin 단위다. `supergangy.github.io` 안에서 경로만 바뀌었으므로
+  **기존 사용자의 학습 기록은 새 주소에서 그대로 보인다.**
 - 접근 제한 없음 — 사용자 결정. `data/admin.json` 도 정적 파일이라
   URL을 알면 누구나 받을 수 있다 (`app/README.md` 에 이미 적힌 대로,
   클라이언트 암호 확인은 보안 장치가 아니다)
@@ -334,7 +341,7 @@ python tools/export_bank.py                      # bank.json · admin.json 갱�
 rm -rf /tmp/deploy && mkdir /tmp/deploy
 cp -r app/* /tmp/deploy/
 cd /tmp/deploy && git init -q -b main
-git remote add origin https://github.com/supergangy/ncs-exam-app.git
+git remote add origin https://github.com/supergangy/ncs-pass-app.git
 git add -A && git commit -q -m "재배포 — <바뀐 것>"
 git push -f origin main                           # 이력을 안 남기고 매번 새로 편다
 ```
