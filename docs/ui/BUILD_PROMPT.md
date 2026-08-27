@@ -76,7 +76,7 @@ Google AI Studio **Build** 에 넣을 프롬프트다. 도면 3장과 짝을 이
       --ink:#0f172a; --mute:#64748b; --faint:#94a3b8;
       --line:#e2e8f0; --hair:#f1f5f9;
       --bg:#f6f7f9; --surf:#ffffff;
-      --acc:#3b5bdb; --acc-bg:#eef2ff; --acc-ln:#c7d2fe;
+      --acc:#6366f1; --acc-bg:#eef2ff; --acc-ln:#c7d2fe;
       --ok:#0f7b4f; --ok-bg:#ecfdf5;
       --bad:#c2334d; --bad-bg:#fff1f2;
       --warn:#a45a12; --warn-bg:#fffbeb;
@@ -180,7 +180,7 @@ CSS Grid 로 짠다. `grid-template-columns: 240px minmax(560px, 1fr) 260px`.
 
 ## Header 에 들어갈 것
 
-    [로고] 기출은행  v1.9.0  764문항 | 문항 회차 복습 오답 정보 | [검색]
+    [로고] NCS PASS  v1.9.0  764문항 | 문항 회차 복습 오답 정보 | [검색]
 
 - 버전과 문항 수를 **상주 표시**한다. 배포본이 뒤처지면 사용자가 바로 안다
 - 값은 `props` 로 받는다. 하드코딩하지 마라

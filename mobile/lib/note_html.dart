@@ -88,7 +88,7 @@ String buildNoteHtml(
     ..writeln('<title>${_esc(title)}</title>')
     ..writeln('<style>$noteCss</style>')
     ..writeln('<h1 class="title">${_esc(title)}</h1>')
-    ..writeln('<div class="sub">NCS 기출은행 · '
+    ..writeln('<div class="sub">NCS PASS · '
         '${at.year}년 ${at.month}월 ${at.day}일 · ${items.length}문항</div>');
 
   for (var i = 0; i < items.length; i++) {

@@ -1,4 +1,4 @@
-# 변경 이력 — NCS 기출은행 앱
+# 변경 이력 — NCS PASS 앱
 
 APK 는 GitHub Releases 에 버전별로 올린다 (`gh release list`).
 저장소에 커밋하지 않는다 — 55MB 짜리가 판올림마다 히스토리에 영구히 쌓인다.

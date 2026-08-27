@@ -32,3 +32,6 @@ web/node_modules/
 web/dist/
 docs/*.render.html
 web/public/data/
+
+# 로고 중간 산출물 — 배포된 것은 app/ web/public/ mobile/ 에 있다
+brand/out/

@@ -151,4 +151,4 @@ jobs:
               --notes "노트를 채워 주세요. APK 는 붙어 있습니다."
           fi
           gh release upload "$tag" \
-            "${{ steps.name.outputs.file }}#NCS 기출은행 $tag (Android APK)" --clobber
+            "${{ steps.name.outputs.file }}#NCS PASS $tag (Android APK)" --clobber

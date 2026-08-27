@@ -54,7 +54,7 @@ def s1_layout() -> str:
     o.append(f"<rect x='{X}' y='{Y+61}' width='{BW}' height='1' fill='{LINE}'/>")
     o.append(f"<rect x='{X+24}' y='{Y+22}' width='18' height='18' rx='5' "
              f"fill='url(#pg)'/>")
-    o.append(t(X + 50, Y + 37, "기출은행", 15, INK, weight="700", ls="-.3"))
+    o.append(t(X + 50, Y + 37, "NCS PASS", 15, INK, weight="700", ls="-.3"))
     o.append(t(X + 126, Y + 37, "v1.9.0", 11.5, FAINT, font=MONO))
     o.append(t(X + 180, Y + 37, "764문항", 11.5, FAINT, font=MONO))
     cx = X + 300
@@ -88,14 +88,14 @@ def s1_layout() -> str:
     o.append(card(TX, Y, 228, 176))
     o.append(box(TX, Y, 228, 40, SURF, None, R))
     o.append(f"<rect x='{TX}' y='{Y+39}' width='228' height='1' fill='{LINE}'/>")
-    o.append(t(TX + 16, Y + 25, "≡   기출은행", 11.5, MUTE, weight="600"))
+    o.append(t(TX + 16, Y + 25, "≡   NCS PASS", 11.5, MUTE, weight="600"))
     o.append(zone(TX + 14, Y + 52, 136, 110, "문항"))
     o.append(zone(TX + 158, Y + 52, 56, 110, "번호"))
 
     o.append(t(TX, Y + 212, "모바일  < 768", 13, MUTE, weight="700"))
     o.append(card(TX, Y + 226, 228, 238))
     o.append(box(TX, Y + 226, 228, 40, SURF, None, R))
-    o.append(t(TX + 16, Y + 251, "기출은행", 12, INK, weight="700"))
+    o.append(t(TX + 16, Y + 251, "NCS PASS", 12, INK, weight="700"))
     o.append(box(TX + 14, Y + 276, 200, 30, HAIR, None, 15))
     o.append(t(TX + 114, Y + 296, "◀    12 / 40    ▶", 11, MUTE, "middle",
                font=MONO))
@@ -266,7 +266,7 @@ def s3_responsive() -> str:
     o.append(box(TX, Y, TW, 54, SURF, None, R))
     o.append(hline(TX, Y + 53, TW))
     o.append(t(TX + 22, Y + 34, "≡", 17, MUTE, weight="700"))
-    o.append(t(TX + 48, Y + 33, "기출은행", 14, INK, weight="700"))
+    o.append(t(TX + 48, Y + 33, "NCS PASS", 14, INK, weight="700"))
     o.append(t(TX + 118, Y + 33, "v1.9.0", 10.5, FAINT, font=MONO))
     o.append(t(TX + TW - 22, Y + 33, "12 / 40", 12, ACC, "end", "700", MONO))
 
@@ -316,7 +316,7 @@ def s3_responsive() -> str:
     o.append(box(MX, Y, MW, 50, SURF, None, R))
     o.append(hline(MX, Y + 49, MW))
     o.append(dot(MX + 18, Y + 17, 16))
-    o.append(t(MX + 42, Y + 31, "기출은행", 13, INK, weight="700"))
+    o.append(t(MX + 42, Y + 31, "NCS PASS", 13, INK, weight="700"))
     o.append(t(MX + MW - 18, Y + 31, "12 / 40", 11, ACC, "end", "700", MONO))
 
     o.append(box(MX + 16, Y + 62, MW - 32, 38, HAIR, None, 19))
@@ -353,7 +353,7 @@ def s3_responsive() -> str:
     o.append(t(SX, Y - 16, "모바일  ·  번호판 시트", 13, MUTE, weight="700"))
     o.append(card(SX, Y, MW, 690))
     o.append(box(SX, Y, MW, 50, SURF, None, R))
-    o.append(t(SX + 18, Y + 31, "기출은행", 13, INK, weight="700"))
+    o.append(t(SX + 18, Y + 31, "NCS PASS", 13, INK, weight="700"))
     o.append(box(SX + 16, Y + 66, MW - 32, 196, HAIR, None, RS))
     o.append(t(SX + MW / 2, Y + 168, "본문 — 어둡게 덮는다", 11, FAINT, "middle"))
 

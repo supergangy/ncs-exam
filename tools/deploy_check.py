@@ -30,7 +30,7 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-BASE = "https://supergangy.github.io/ncs-exam-app"
+BASE = "https://supergangy.github.io/ncs-pass-app"
 LOCAL_BANK = ROOT / "app" / "data" / "bank.json"
 LOCAL_SW = ROOT / "app" / "sw.js"
 VER = re.compile(r"const VERSION = '([^']+)'")

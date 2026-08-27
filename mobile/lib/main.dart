@@ -13,16 +13,16 @@ import 'screens/wrong_screen.dart';
 import 'screens/more_screen.dart';
 
 void main() {
-  runApp(const NcsBankApp());
+  runApp(const NcsPassApp());
 }
 
-class NcsBankApp extends StatelessWidget {
-  const NcsBankApp({super.key});
+class NcsPassApp extends StatelessWidget {
+  const NcsPassApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NCS 기출은행',
+      title: 'NCS PASS',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),

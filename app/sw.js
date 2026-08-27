@@ -5,7 +5,7 @@
  *
  * 콘텐츠를 새로 배포할 때는 아래 VERSION 을 올린다. 옛 캐시는 activate 에서 지운다.
  */
-const VERSION = 'ncsbank-v11';
+const VERSION = 'ncsbank-v12';
 const SHELL = [
   './',
   './index.html',
@@ -15,6 +15,8 @@ const SHELL = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
+  './icon-maskable-512.png',
+  './favicon-32.png',
   './data/bank.json',
 ];
 

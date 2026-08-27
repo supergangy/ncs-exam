@@ -33,7 +33,7 @@ MONO = "SF Mono, Consolas, D2Coding, monospace"
 INK, MUTE, FAINT = "#0f172a", "#64748b", "#94a3b8"
 LINE, HAIR = "#e2e8f0", "#f1f5f9"
 BG, SURF = "#f6f7f9", "#ffffff"
-ACC, ACC_BG, ACC_LN = "#3b5bdb", "#eef2ff", "#c7d2fe"
+ACC, ACC_BG, ACC_LN = "#6366f1", "#eef2ff", "#c7d2fe"
 OK, OK_BG = "#0f7b4f", "#ecfdf5"
 BAD, BAD_BG = "#c2334d", "#fff1f2"
 WARN, WARN_BG = "#a45a12", "#fffbeb"
@@ -147,7 +147,7 @@ def arrow(x1, y1, x2, y2, tone=WARN):
             f"marker-end='url(#ah)' fill='none'/>")
 
 
-def head(title, subtitle, tag="NCS 기출은행 · 웹 UI 명세"):
+def head(title, subtitle, tag="NCS PASS · 웹 UI 명세"):
     return "".join([
         box(0, 0, W, 96, SURF, None, 0),
         f"<rect x='0' y='95' width='{W}' height='1' fill='{LINE}'/>",

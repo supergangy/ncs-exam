@@ -43,12 +43,12 @@ body {
 }
 h1 {
   font-size: 23pt; margin: 0 0 3mm; letter-spacing: -.6px;
-  border-bottom: 2.4pt solid #3b5bdb; padding-bottom: 3mm;
+  border-bottom: 2.4pt solid #6366f1; padding-bottom: 3mm;
 }
 h1 + p { font-size: 11.5pt; color: #64748b; margin: 0 0 8mm; }
 h2 {
   font-size: 14pt; margin: 10mm 0 3.5mm; padding-left: 3mm;
-  border-left: 3.6pt solid #3b5bdb; color: #0f172a; letter-spacing: -.3px;
+  border-left: 3.6pt solid #6366f1; color: #0f172a; letter-spacing: -.3px;
   break-after: avoid;
 }
 h3 {
@@ -83,10 +83,10 @@ pre code { background: none; color: inherit; padding: 0; }
 
 blockquote {
   margin: 0 0 4mm; padding: 2.6mm 3.4mm; background: #eef2ff;
-  border-left: 3pt solid #3b5bdb; border-radius: 3pt; font-size: 9.4pt;
+  border-left: 3pt solid #6366f1; border-radius: 3pt; font-size: 9.4pt;
 }
 blockquote p { margin: 0; }
-blockquote strong { color: #3b5bdb; }
+blockquote strong { color: #6366f1; }
 
 ul, ol { margin: 0 0 3.4mm; padding-left: 6.5mm; }
 li { margin-bottom: 1mm; }

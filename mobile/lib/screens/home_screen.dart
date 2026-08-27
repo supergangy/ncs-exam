@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
     final repo = Repo.instance;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('기출은행'),
+        title: const Text('NCS PASS'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),

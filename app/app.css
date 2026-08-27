@@ -1,4 +1,4 @@
-/* NCS 기출은행 — 모바일 우선. 데스크톱은 가운데 한 단으로 좁힌다. */
+/* NCS PASS — 모바일 우선. 데스크톱은 가운데 한 단으로 좁힌다. */
 
 :root {
   --bg: #f4f5f7;
@@ -7,8 +7,8 @@
   --ink: #16181d;
   --dim: #5d6470;
   --faint: #8d94a0;
-  --brand: #1c4e80;
-  --brand-soft: #e8eff7;
+  --brand: #6366f1;
+  --brand-soft: #eef2ff;
   --ok: #17734a;
   --ok-soft: #e4f4ec;
   --no: #b3261e;
@@ -29,8 +29,8 @@
     --ink: #e8eaee;
     --dim: #a2a9b6;
     --faint: #767e8c;
-    --brand: #7aa9dd;
-    --brand-soft: #1e2a38;
+    --brand: #818cf8;
+    --brand-soft: #252a4a;
     --ok: #6cc496;
     --ok-soft: #16281f;
     --no: #f08b84;

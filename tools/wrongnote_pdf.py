@@ -34,7 +34,7 @@ class Shim:
     """`build.build_html` 이 읽는 회차 설정 자리. 오답노트는 회차가 아니므로 흉내만 낸다."""
 
     def __init__(self, n: int, title: str):
-        self.BRAND = "NCS 기출은행"
+        self.BRAND = "NCS PASS"
         self.EXAM_TITLE = "오답노트"
         self.EXAM_ROUND = title
         self.TOTAL_Q = n

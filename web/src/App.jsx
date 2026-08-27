@@ -58,7 +58,7 @@ export default function App() {
         </p>
         <h1 style={{ font: '700 22px/1.3 var(--font)', letterSpacing: '-.4px',
                      margin: '8px 0 4px' }}>
-          기출은행 <span style={S.meta}>v2.0.0 · {db.n}문항</span>
+          NCS PASS <span style={S.meta}>v2.0.0 · {db.n}문항</span>
         </h1>
         <p style={{ color: 'var(--mute)', margin: 0, fontSize: 13 }}>
           지금 주소 <code>{route.hash}</code> → <b>{route.name}</b>

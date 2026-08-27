@@ -95,11 +95,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         '${now.day.toString().padLeft(2, '0')}';
     try {
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/ncsbank-backup-$stamp.json');
+      final file = File('${dir.path}/ncspass-backup-$stamp.json');
       await file.writeAsString(
           const JsonEncoder.withIndent('  ').convert(Store.instance.exportMap(now)));
       await Share.shareXFiles([XFile(file.path)],
-          text: 'NCS 기출은행 기록 백업 — 새 기기에서 설정 › 기록 › 백업 불러오기');
+          text: 'NCS PASS 기록 백업 — 새 기기에서 설정 › 기록 › 백업 불러오기');
     } catch (e) {
       _toast('내보내지 못했습니다: $e');
     }

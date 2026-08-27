@@ -1,4 +1,4 @@
-/* NCS 기출은행 — 완전 내장형.
+/* NCS PASS — 완전 내장형.
  *
  * 문항은 `data/bank.json` 하나에 다 들어 있다. 서버에 물어보지 않는다.
  * 사용자 기록(푼 것·틀린 것·복습 일정)은 이 기기의 localStorage 에만 남는다.
@@ -214,7 +214,7 @@ function updateBadges() {
 
 // ─────────────────────────────────────────────────────── 화면: 홈
 route(/^\/$/, () => {
-  setTitle('기출은행');
+  setTitle('NCS PASS');
   const f = document.createDocumentFragment();
 
   // 상단 우측 — 돋보기
