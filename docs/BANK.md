@@ -333,26 +333,43 @@ python tools/deploy_check.py
 로컬과 배포본의 문항 수·영역별 차이·`sw.js` 캐시 버전을 함께 보여 준다.
 벌어져 있으면 exit 1 이다.
 
-### 재제작 판 — `/next/` 에 나란히 둔다
+### 재제작 판이 루트다 (2026-08-28)
 
-React 로 다시 만든 판은 **기존 판을 덮지 않고 하위 경로에 올린다.**
+`/next/` 에서 시험한 뒤 **루트로 옮겼다.**
 
 | 주소 | 무엇 |
 |---|---|
-| `…/ncs-pass-app/` | 기존 판 (바닐라 `app/`). 쓰던 사람의 앱이다 |
-| `…/ncs-pass-app/next/m/` | 재제작 **모바일** 판 — 화면 15개 |
-| `…/ncs-pass-app/next/` | 재제작 **PC** 판 — 화면 14개 |
+| `…/ncs-pass-app/` | **PC** 판 — 화면 14개. 좁은 화면(≤768px)이면 `./m/` 로 보낸다 |
+| `…/ncs-pass-app/m/` | **모바일** 판 — 화면 15개 |
+| `…/ncs-pass-app/next/` | 이정표만 남았다 — 안내 페이지 + 자기를 지우는 워커 |
 
 `router/useHash.js` 의 주소 19개를 **양쪽이 전부** 다룬다. 「아직 안 옮겼습니다」
 화면(`Soon.jsx`)은 지웠고, 어느 판이든 이름이 남으면 빈 화면 대신
 「화면이 없습니다 — <이름>」을 낸다. 라우터에 이름만 더하고 화면을 잊는 것을 막는다.
 
-두 판은 **주소를 나눈다.** `next/index.html` 이 좁은 화면(≤768px)이면
-`./m/` 로 보내고, 상주 머리말의 「모바일 판」 단추로도 갈 수 있다.
-반대 방향은 두지 않았다 — 모바일에서 PC 판을 열면 쓸 수 없다.
+**북마크가 깨지지 않는다.** 옛 바닐라 판의 주소 17개(`/`·`/t/:영역`·`/s/:영역/:유형`·
+`/q?…`·`/exams`·`/exam/:회차`·`/sit/:회차`·`/result/:회차`·`/review`·`/wrong`·
+`/marks`·`/kw`·`/done`·`/stats`·`/search`·`/settings`·`/more`)가 그대로 열린다.
+`localStorage` 도 출처 단위라 **푼 기록이 이어진다.**
 
-옮기는 것은 아직 안 한다. 실기기(안드로이드·아이폰·윈도우 크롬)에서
-확인한 뒤 루트로 옮긴다. 기존 판은 **쓰던 사람의 앱**이라 덮으면 되돌릴 수 없다.
+옛 판에만 있던 것은 **관리자 모드**(출제이유서를 문항 밑에 펼치는 숨은 화면)다.
+재제작 판에는 아직 없다. `data/admin.json`(584KB)은 서버에 남겨 두었다 —
+화면만 다시 만들면 된다.
+
+#### 옮길 때 무엇을 조심했나
+
+옛 루트 워커 `ncsbank-v12` 는 **캐시 먼저**(stale-while-revalidate)다. 그래서
+되돌아온 사용자는 **옛 앱을 한 번 더 본다** — 캐시의 옛 `index.html` 이 먼저 나가고,
+그 사이 새 워커가 설치·활성화되며 옛 캐시를 지운다. 다음 방문이 새 앱이다.
+그 「한 번 더」는 없앨 수 없다. **캐시에 이미 든 HTML 은 바꿀 수 없다.**
+
+옛 앱이 부르는 것은 해시 없는 `app.js`·`app.css` 다. 새 워커가 옛 캐시를 지우는
+순간 아직 안 온 요청이 그물로 떨어지므로 **그 둘을 서버에 한 세대 남겼다.**
+
+`/next/` 는 안내 페이지만 올려선 안 된다 — 그 경로의 워커가 캐시에서 옛 앱을 계속
+내주므로 안내가 보이지 않는다(옛 `ncs-exam-app` 주소에서 배운 것). **자기를 지우는
+워커**를 함께 올렸다. 캐시 저장소는 **출처 단위**라 전부 지우면 루트 앱 캐시까지
+날아가므로, 항목이 **모두 `/next/` 인 캐시**만 골라 지운다.
 
 `localStorage` 는 origin 단위라 **두 판이 같은 기록을 본다.** 새 판에서 푼 것이
 기존 판에도 보이고 그 반대도 같다 — 옮겨 갈 때 기록이 이어진다는 뜻이기도 하다.
@@ -416,27 +433,20 @@ PC 판을 처음 올리자 배포본이 **하얀 화면**이 되었다(2026-08-2
 
 ### 다시 배포하는 법
 
-**기존 판(루트)** — 손으로 한다.
-
 ```bash
 python tools/export_bank.py                      # bank.json · admin.json 갱신
-# sw.js 의 VERSION 을 올린다 — 안 올리면 옛 캐시가 계속 나간다
-rm -rf /tmp/deploy && mkdir /tmp/deploy
-cp -r app/* /tmp/deploy/
-cd /tmp/deploy && git init -q -b main
-git remote add origin https://github.com/supergangy/ncs-pass-app.git
-git add -A && git commit -q -m "재배포 — <바뀐 것>"
-git push -f origin main                           # 이력을 안 남기고 매번 새로 편다
-```
-
-**재제작 판(`next/`)** — 스크립트로 한다. `rm -rf next && cp -r dist next` 로
-하면 흰 화면이 된다(위 절).
-
-```bash
 cd web && npx vite build && node tool/make_sw.mjs && cd ..
-python tools/deploy_next.py --dry                # 남길 것·지울 것을 먼저 본다
-python tools/deploy_next.py
+python tools/deploy_web.py --dry                 # 남길 것·지울 것을 먼저 본다
+python tools/deploy_web.py
 ```
+
+**손으로 옮기지 마라.** `rm -rf * && cp -r dist/* .` 로 하면 흰 화면이 된다(위 절).
+스크립트가 한 세대를 남기고, `sw.js` 의 판은 파일 목록·크기·생성기 바이트에서
+저절로 나온다 — 올리는 것을 잊을 수 없다.
+
+옛 바닐라 판(`app/`)은 저장소에 그대로 있다. 되돌리려면
+`python tools/deploy_web.py --restore-from <커밋>` 이 아니라, 그 커밋을 직접
+배포 저장소에 되돌려야 한다 — 이력은 남아 있다.
 
 실제 크롬(GitHub Pages, HTTPS)에서 서비스 워커가 정상 등록·활성화되고
 9개 파일이 캐시되는 것을 확인했다 — `ncsbank-v3`. 내장 미리보기 브라우저가

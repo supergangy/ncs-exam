@@ -3,7 +3,7 @@
 
 ## 왜 있는가
 
-웹 배포는 `app/` 을 **별도 공개 저장소로 옮기는 수동 절차**다(docs/BANK.md 6절).
+웹 배포는 산출물을 **별도 공개 저장소로 옮기는 절차**다(docs/BANK.md 6절).
 파이프라인에 묶여 있지 않으므로 문항을 늘리고 커밋해도 배포본은 그대로다.
 
 실제로 그렇게 벌어졌다 — 로컬 764문항인데 **배포본이 540에서 멈춰** 있었고,
@@ -11,7 +11,8 @@
 커밋 기록만 보면 알 수 없다(2026-08-18).
 
 `sw.js` 의 캐시 버전도 함께 본다. 파일을 새로 올려도 **버전이 같으면
-브라우저가 옛 캐시를 계속 쓴다.**
+브라우저가 옛 캐시를 계속 쓴다.** 로컬 값은 `web/dist/sw.js` 에서 읽는다 —
+루트에 나가는 워커가 그것이다(2026-08-28 에 루트를 재제작 판으로 옮겼다).
 
     python tools/deploy_check.py
 
@@ -32,7 +33,10 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE = "https://supergangy.github.io/ncs-pass-app"
 LOCAL_BANK = ROOT / "app" / "data" / "bank.json"
-LOCAL_SW = ROOT / "app" / "sw.js"
+# 루트에 나가는 워커는 **만들어지는 것**이다 (`web/tool/make_sw.mjs`).
+#   2026-08-28 에 루트를 재제작 판으로 옮겼다. 옛 `app/sw.js` 를 보면
+#   늘 「버전이 다르다」가 나와 이 검사가 쓸모없어진다.
+LOCAL_SW = ROOT / "web" / "dist" / "sw.js"
 VER = re.compile(r"const VERSION = '([^']+)'")
 
 
@@ -93,10 +97,9 @@ def main() -> int:
     print()
     print(f"   [벌어짐] 문항 {gap:+}개. 재배포가 필요하다.")
     if same_ver:
-        print("   **sw 캐시 버전을 올려야** 브라우저가 새 파일을 받는다 "
-              "(app/sw.js 의 VERSION).")
+        print("   빌드가 오래됐다 — cd web && npx vite build && node tool/make_sw.mjs")
     print()
-    print("   재배포 — docs/BANK.md 6절")
+    print("   재배포 — python tools/deploy_web.py  (docs/BANK.md 6절)")
     return 1
 
 
