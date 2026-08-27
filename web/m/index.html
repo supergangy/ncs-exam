@@ -6,7 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#6366F1">
 <title>NCS PASS</title>
-<link rel="manifest" href="../manifest.webmanifest">
+<!-- public 에 두어 Vite 가 해시를 붙이지 않게 한다 — manifest 의 상대 경로는
+     그 파일 위치 기준이라, a/ 로 옮겨지면 start_url 이 어긋난다 -->
+<link rel="manifest" href="../m-manifest.webmanifest">
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png">
 <meta name="apple-mobile-web-app-capable" content="yes">

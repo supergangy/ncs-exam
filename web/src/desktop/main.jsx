@@ -9,6 +9,10 @@ import { createRoot } from 'react-dom/client';
 import '../styles/fonts.css';
 import '../styles/tokens.css';
 import '../styles/components.css';
+import { registerSW } from '../sw-register.js';
 import App from './App.jsx';
 
 createRoot(document.getElementById('root')).render(<App />);
+
+// 오프라인 — 껍데기와 문항을 캐시에 담는다. 캐시 전략은 `dist/sw.js` 가 갖는다
+registerSW();
