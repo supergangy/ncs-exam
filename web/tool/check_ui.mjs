@@ -147,12 +147,34 @@ for (const f of files) {
   });
 }
 
+// ── 짝이 맞나 ─────────────────────────────────────────────────────
+/** 발문을 그리는 화면은 **지문도 그려야 한다.**
+ *
+ *  네 화면(모바일·PC 의 문항 풀이와 응시)이 전부 `it.pg` 를 빠뜨리고 있었다.
+ *  발문이 「윗글에서 추론할 수 있는」이라 부르는데 윗글이 없었다 — 지문이 붙은
+ *  63문항이 못 푸는 상태였고, 응시 화면은 **시간까지 재면서** 그것을 냈다.
+ *  화면마다 손으로 적으면 또 하나에서 빠진다. 그래서 여기서 센다.
+ */
+const PAIR = [
+  [/className="stem"/, /<Passage[ />]/,
+   '발문을 그리는데 <Passage /> 가 없다 — 지문이 붙은 문항을 못 푼다'],
+];
+for (const f of files) {
+  const src = readFileSync(f, 'utf8');
+  for (const [need, must, why] of PAIR) {
+    if (need.test(src) && !must.test(src)) {
+      bad.push(`${slash(relative(ROOT, f))}  ${why}`);
+    }
+  }
+}
+
 // ── 있어야 하는 것 ─────────────────────────────────────────────────
 const MUST = [
   ['src/core/text.js', '순수 로직'],
   ['src/store/useStore.js', '기록 훅'],
   ['src/router/useHash.js', '해시 라우터'],
   ['src/data/bank.js', '문항 데이터'],
+  ['src/Passage.jsx', '지문 부품 — 발문을 그리는 네 화면이 함께 쓴다'],
 ];
 for (const [p, what] of MUST) {
   if (!existsSync(join(ROOT, p))) bad.push(`${p} 이 없다 — ${what}`);

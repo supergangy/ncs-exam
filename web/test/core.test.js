@@ -290,6 +290,21 @@ test('실제 bank.json 으로 돌린다', () => {
     assert.ok(search(q, db).length > 0, q + ' 가 한 건도 안 걸린다');
   }
 
+  // 지문이 붙은 문항은 **실제 글로 풀린다.** 화면 넷이 이것을 안 그리고 있었다 —
+  // 발문이 「윗글에서」라 부르는데 윗글이 없었다
+  const withPg = db.items.filter(i => i.pg != null);
+  assert.ok(withPg.length > 50, '지문 문항이 ' + withPg.length + '개뿐이다');
+  for (const it of withPg) {
+    const pg = db.passage(it.pg);
+    assert.ok(pg && plain(pg.body).length > 50,
+              it.id + ' 의 지문 ' + it.pg + ' 이 비었다');
+  }
+  // 발문이 「윗글」이라 부르는 것이 「다음」이라 부르는 것보다 훨씬 많다 —
+  // 그래서 지문을 **발문 위**에 둔다 (`src/Passage.jsx`)
+  const up = withPg.filter(i => /윗글|위 글|위 표|위 자료|위 공고문|위의/.test(plain(i.st)));
+  assert.ok(up.length > withPg.length * 0.3,
+            `「윗~」이 ${up.length}/${withPg.length} 뿐 — 지문 자리를 다시 보라`);
+
   // 키워드 이름이 **글자**로 나온다. 객체가 새면 '[object Object]' 가 된다
   assert.equal(typeof db.kwName(0), 'string');
   assert.ok(!db.kwName(0).includes('object'), db.kwName(0));

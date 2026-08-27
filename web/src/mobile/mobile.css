@@ -166,6 +166,25 @@
 /* ── 문항 ────────────────────────────────────────────────── */
 .qmeta { display: flex; align-items: center; gap: .5rem; font-size: var(--t-sm); color: var(--mute); }
 .stem { margin: .8rem 0 1rem; font-size: var(--t-h3); font-weight: var(--w-bold); line-height: 1.55; }
+/* 지문 — 발문 **위**에 온다. 여러 문항이 함께 보는 글이라 읽는 글꼴로 둔다.
+   자료(회색 상자)와 달리 배경을 깔지 않는다 — 본문이지 참고 자료가 아니다. */
+.lead { margin: .2rem 0 .5rem; font-size: var(--t-sm); color: var(--mute); }
+.passage {
+  margin: 0 0 .9rem;
+  padding-left: .7rem;
+  border-left: 3px solid var(--acc-ln);
+  font-size: var(--t-body);
+  line-height: 1.75;
+  overflow-x: auto;
+}
+/* 문단 첫 줄 들여쓰기 — 지문은 여러 문단이 이어진다 */
+.passage p { margin: 0 0 .55rem; text-indent: 1em; }
+.passage p:first-child { text-indent: 0; }
+.passage p:last-child { margin-bottom: 0; }
+.passage table { border-collapse: collapse; font-size: var(--t-sm); }
+.passage th, .passage td { border: 1px solid var(--line); padding: .3rem .5rem; }
+.passage svg, .passage img { max-width: 100%; height: auto; }
+
 /* 자료(표·SVG)는 좁은 화면에서 넘친다 — 스스로 스크롤하게 두고 본문은 흔들지 않는다 */
 .material {
   margin: .8rem 0;

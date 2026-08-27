@@ -18,6 +18,7 @@ import { choiceStates, gradeOne, CH, MAX_MS } from '../../core/grade.js';
 import { CIRC, mmss, plain } from '../../core/text.js';
 import { makePool } from '../../data/pool.js';
 import { useElapsed } from '../../hooks/clock.js';
+import Passage from '../../Passage.jsx';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
 import { useStore } from '../../store/useStore.js';
@@ -168,6 +169,7 @@ export default function Question({ db, query }) {
             </button>
           </div>
 
+          <Passage db={db} it={it} />
           <h1 className="stem" style={{ fontSize: size + 'px' }}
               dangerouslySetInnerHTML={{ __html: it.st }} />
 

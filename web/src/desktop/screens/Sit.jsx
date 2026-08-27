@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { gradeAll } from '../../core/grade.js';
 import { mmss } from '../../core/text.js';
 import { useNow } from '../../hooks/clock.js';
+import Passage from '../../Passage.jsx';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
 import { useStore } from '../../store/useStore.js';
@@ -118,6 +119,7 @@ export default function Sit({ db, tag }) {
             </button>
           </div>
 
+          <Passage db={db} it={it} />
           <h1 className="stem" dangerouslySetInnerHTML={{ __html: it.st }} />
           {it.mt && <div className="material" dangerouslySetInnerHTML={{ __html: it.mt }} />}
 
