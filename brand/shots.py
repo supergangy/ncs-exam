@@ -37,19 +37,30 @@ WORK = ROOT / "brand" / "out" / "_shots"
 CHROME = pathlib.Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
 
 PORT = 8802
-W, H = 375, 812                      # 실기기와 같은 폭. 세로는 창 안에 둔다
 DAY = 86400000
 
-# 찍을 화면 — (파일명, 해시, 설명)
+MOBILE = (375, 812)                  # 실기기와 같은 폭
+DESKTOP = (1440, 900)                # 팔레트까지 펼쳐지는 폭 (1200 이상)
+
+# 찍을 화면 — (파일명, 진입점, 해시, 설명)
 SHOTS = [
-    ("home",   "#/",                 "홈"),
-    ("area",   "#/t/수리능력",        "영역"),
-    ("solve",  "#/q?sj=수리능력",     "문항 풀이"),
-    ("exams",  "#/exams",            "회차 목록"),
-    ("sit",    "#/sit/r3_korail",    "응시"),
-    ("result", "#/result/r2_korail", "결과"),
-    ("stats",  "#/stats",            "분석"),
-    ("more",   "#/more",             "더보기"),
+    ("m-home",   "m/", "#/",                 "모바일 홈"),
+    ("m-area",   "m/", "#/t/수리능력",        "모바일 영역"),
+    ("m-solve",  "m/", "#/q?sj=수리능력",     "모바일 문항"),
+    ("m-exams",  "m/", "#/exams",            "모바일 회차"),
+    ("m-sit",    "m/", "#/sit/r3_korail",    "모바일 응시"),
+    ("m-result", "m/", "#/result/r2_korail", "모바일 결과"),
+    ("m-stats",  "m/", "#/stats",            "모바일 분석"),
+    ("m-more",   "m/", "#/more",             "모바일 더보기"),
+
+    ("d-home",   "",   "#/",                 "PC 홈"),
+    ("d-bank",   "",   "#/s/수리능력/확률",   "PC 문항 은행"),
+    ("d-solve",  "",   "#/q?sj=수리능력",     "PC 문항 풀이"),
+    ("d-exams",  "",   "#/exams",            "PC 회차"),
+    ("d-sit",    "",   "#/sit/r3_korail",    "PC 응시"),
+    ("d-result", "",   "#/result/r2_korail", "PC 결과"),
+    ("d-stats",  "",   "#/stats",            "PC 분석"),
+    ("d-search", "",   "#/search",           "PC 검색"),
 ]
 
 
@@ -118,11 +129,15 @@ def prepare() -> None:
     inject = ("<script>try{localStorage.setItem('ncsbank.v1',"
               + json.dumps(blob) + ")}catch(e){}</script>")
 
-    p = WORK / "m" / "index.html"
-    s = p.read_text(encoding="utf-8")
-    # 첫 module 스크립트 앞에 넣는다 — 앱이 store 를 읽기 전이어야 한다
-    at = s.index("<script type=\"module\"")
-    p.write_text(s[:at] + inject + s[at:], encoding="utf-8")
+    # 두 진입점 모두 — 앱이 store 를 읽기 전에 심어야 한다
+    for rel in ("m/index.html", "index.html"):
+        p = WORK / rel
+        s = p.read_text(encoding="utf-8")
+        at = s.index("<script type=\"module\"")
+        s = s[:at] + inject + s[at:]
+        # PC 진입점은 좁은 화면이면 모바일로 보낸다 — 찍을 때는 그 길을 막는다
+        s = s.replace("location.replace('./m/' + location.hash);", "/* 촬영 중 */;")
+        p.write_text(s, encoding="utf-8")
 
 
 def serve() -> socketserver.TCPServer:
@@ -138,18 +153,19 @@ def serve() -> socketserver.TCPServer:
     return srv
 
 
-def shoot(name: str, hash_: str) -> pathlib.Path:
-    dst = OUT / ("m-%s.png" % name)
+def shoot(name: str, entry: str, hash_: str) -> pathlib.Path:
+    dst = OUT / ("%s.png" % name)
+    w, h = MOBILE if entry else DESKTOP
     subprocess.run(
         [str(CHROME), "--headless=new", "--disable-gpu", "--hide-scrollbars",
-         "--virtual-time-budget=9000", "--window-size=%d,%d" % (W, H),
+         "--virtual-time-budget=9000", "--window-size=%d,%d" % (w, h),
          "--screenshot=" + str(dst),
-         "http://127.0.0.1:%d/m/index.html%s" % (PORT, hash_)],
+         "http://127.0.0.1:%d/%sindex.html%s" % (PORT, entry, hash_)],
         capture_output=True, timeout=120)
     return dst
 
 
-def sheet(paths: list[tuple[pathlib.Path, str]], cols: int = 4) -> pathlib.Path:
+def sheet(paths, cols: int = 4, name: str = "screens.png") -> pathlib.Path:
     gap, pad = 12, 26
     ims = [(Image.open(p), label) for p, label in paths if p.exists()]
     rows = (len(ims) + cols - 1) // cols
@@ -168,7 +184,7 @@ def sheet(paths: list[tuple[pathlib.Path, str]], cols: int = 4) -> pathlib.Path:
         y = (k // cols) * (ch + pad + gap)
         d.text((x + 2, y + 5), label, fill=(71, 85, 105), font=font)
         sh.paste(im, (x, y + pad))
-    out = OUT / "m-screens.png"
+    out = OUT / name
     sh.save(out)
     return out
 
@@ -189,16 +205,19 @@ def main() -> int:
     prepare()
     srv = serve()
     try:
-        made = []
-        for name, hash_, label in SHOTS:
-            p = shoot(name, hash_)
+        m_made, d_made = [], []
+        for name, entry, hash_, label in SHOTS:
+            p = shoot(name, entry, hash_)
             ok = p.exists() and p.stat().st_size > 3000
-            print("  %-8s %-22s %s" % (name, label, "찍음" if ok else "!! 실패"))
+            print("  %-10s %-16s %s" % (name, label, "찍음" if ok else "!! 실패"))
             if ok:
-                made.append((p, label))
-        out = sheet(made)
-        print()
-        print("  %s  %s" % (out.name, Image.open(out).size))
+                (m_made if entry else d_made).append((p, label))
+        if m_made:
+            out = sheet(m_made, cols=4, name="m-screens.png")
+            print("  %s  %s" % (out.name, Image.open(out).size))
+        if d_made:
+            out = sheet(d_made, cols=2, name="d-screens.png")
+            print("  %s  %s" % (out.name, Image.open(out).size))
     finally:
         srv.shutdown()
         if not args.keep:

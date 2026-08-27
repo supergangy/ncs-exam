@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client';
 import '../styles/fonts.css';
 import '../styles/tokens.css';
 import '../styles/components.css';
+import './desktop.css';
 import { registerSW } from '../sw-register.js';
 import App from './App.jsx';
 

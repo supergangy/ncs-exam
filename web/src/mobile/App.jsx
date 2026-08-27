@@ -112,6 +112,8 @@ function Tabs({ route }) {
 function Screen({ route, db }) {
   switch (route.name) {
     case 'home':
+    // PC 의 「문항 은행」 주소. 모바일에서는 홈이 그 일을 한다
+    case 'bank':
       return <Home db={db} />;
     case 'area':
       return <Area db={db} area={route.params[0]} />;

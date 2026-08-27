@@ -30,6 +30,9 @@ export const ROUTES = [
   ['kw',       /^\/kw$/],
   ['done',     /^\/done$/],
   ['question', /^\/q(?:\?(.*))?$/],          // 문항 풀이
+  // PC 의 「문항 은행」 — 영역·유형·문항을 한 화면에 펼친다.
+  // 모바일은 홈이 그 일을 하므로 홈으로 보낸다
+  ['bank',     /^\/bank$/],
 ];
 
 const read = () => location.hash.replace(/^#/, '') || '/';

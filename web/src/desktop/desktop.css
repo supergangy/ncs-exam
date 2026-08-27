@@ -1,0 +1,270 @@
+/* PC 판 레이아웃 — 시안 `question-engine-desktop` · `test-analytics-desktop` 기준.
+ *
+ * 부품(버튼·배지·선지·막대)은 `styles/components.css` 가 갖는다. 여기 있는 것은
+ * **PC 에만 필요한 것**뿐이다 — 좌측 항해, 상주 머리말, 우측 팔레트, 그 셋이 만드는 격자.
+ *
+ * 3단 구성이고 **접히는 순서가 정해져 있다.**
+ *   1200px↑  항해 240 · 본문 · 팔레트 260
+ *   1024~    항해 240 · 본문            (팔레트는 본문 아래로 내려온다)
+ *   768~     항해 68(아이콘만) · 본문
+ *   768↓     `index.html` 이 모바일 판으로 보낸다
+ *
+ * 본문은 `--body-min`(560px) 아래로 접지 않는다 — 문항 발문과 선지가 읽히는 폭이다.
+ */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--nav-w) minmax(var(--body-min), 1fr);
+  min-height: 100%;
+}
+
+/* ── 좌측 항해 ───────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  padding: 1rem .7rem;
+  background: var(--surf);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .3rem .5rem 1rem;
+}
+.nav-brand img { width: 30px; height: 30px; border-radius: 8px; }
+.nav-brand b { font-size: var(--t-h3); letter-spacing: -.3px; }
+
+.nav-sec {
+  margin: .9rem .55rem .3rem;
+  font-size: var(--t-xs);
+  font-weight: var(--w-bold);
+  letter-spacing: .5px;
+  color: var(--faint);
+  text-transform: uppercase;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 .55rem;
+  border: 0;
+  border-radius: var(--rx);
+  background: none;
+  color: var(--mute);
+  font: inherit;
+  font-weight: var(--w-semi);
+  text-align: left;
+  cursor: pointer;
+}
+.nav-item svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.nav-item:hover { background: var(--hair); color: var(--ink); }
+.nav-item[aria-current="page"] { background: var(--acc-bg); color: var(--acc); }
+.nav-item .n {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  font-weight: var(--w-reg);
+}
+.nav-foot { margin-top: auto; }
+
+/* ── 상주 머리말 ───────────────────────────────────────────
+   **이름을 `.bar` 로 두지 마라.** 부품의 진행 막대가 `.bar` 다 —
+   나중에 로드되는 이 파일이 그것을 덮어 캡슐처럼 부풀린다(실제로 그랬다). */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  height: 62px;
+  padding: 0 1.5rem;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar .search { flex: 1; max-width: 26rem; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+
+/* ── 본문 ───────────────────────────────────────────────── */
+.main { min-width: 0; }
+.page {
+  max-width: 1180px;
+  padding: 1.5rem 1.5rem 4rem;
+}
+.page-head { margin-bottom: 1.25rem; }
+.page-head .h1 { margin-bottom: .25rem; }
+
+/* 문항 풀이 — 본문 + 우측 팔레트 */
+.split {
+  display: grid;
+  grid-template-columns: minmax(var(--body-min), 1fr) var(--pad-w);
+  gap: 1.25rem;
+  align-items: start;
+}
+.aside { position: sticky; top: 78px; display: flex; flex-direction: column; gap: .75rem; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+.cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.stack { display: flex; flex-direction: column; gap: 1rem; }
+.pad { padding: 1.1rem 1.25rem; }
+
+/* ── 문항 은행 — 영역 | 유형 | 문항을 한 화면에 ──────────────
+   PC 의 이점이 여기 있다. 모바일은 세 화면을 오가지만 여기서는 한눈에 보인다. */
+.bank {
+  display: grid;
+  grid-template-columns: 15rem 17rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.bank-col { display: flex; flex-direction: column; max-height: calc(100vh - 10rem); }
+.bank-col > .rows { overflow-y: auto; }
+.bank-h {
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  padding: .8rem 1.25rem .6rem;
+  border-bottom: 1px solid var(--line);
+}
+.bank .row-item[aria-current="true"] { background: var(--acc-bg); color: var(--acc); }
+.bank .row-item[aria-current="true"] .row-sub { color: var(--acc); opacity: .8; }
+
+@media (max-width: 1399px) {
+  /* 문항 목록을 아래로 내린다 — 영역·유형 고르기가 먼저다 */
+  .bank { grid-template-columns: 14rem minmax(0, 1fr); }
+  .bank-col:last-child { grid-column: 1 / -1; max-height: none; }
+}
+@media (max-width: 899px) {
+  .bank { grid-template-columns: 1fr; }
+  .bank-col { max-height: none; }
+}
+
+/* ── 지표 타일 ───────────────────────────────────────────── */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.tile { padding: 1rem 1.15rem; }
+.tile-k { font-size: var(--t-sm); color: var(--faint); }
+.tile-v {
+  margin-top: .2rem;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.75rem;
+  font-weight: var(--w-bold);
+  letter-spacing: -1px;
+  line-height: 1.15;
+}
+.tile-s { margin-top: .1rem; font-size: var(--t-sm); color: var(--mute); }
+
+/* ── 목록 줄 ─────────────────────────────────────────────── */
+.rows { display: flex; flex-direction: column; }
+.row-item {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  width: 100%;
+  padding: .7rem 1.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  background: var(--surf);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.row-item:last-child { border-bottom: 0; }
+.row-item:hover { background: var(--hair); }
+.row-t { flex: 1; min-width: 0; }
+.row-sub { font-size: var(--t-sm); color: var(--mute); }
+.row-n {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-sm);
+  color: var(--faint);
+}
+.chev { flex: 0 0 auto; width: 18px; height: 18px; color: var(--faint); }
+
+/* ── 문항 ────────────────────────────────────────────────── */
+.qhead { display: flex; align-items: center; gap: .6rem; margin-bottom: .9rem; }
+.stem {
+  margin: 1rem 0 1.25rem;
+  font-size: 1.15rem;
+  font-weight: var(--w-bold);
+  line-height: 1.6;
+  letter-spacing: -.2px;
+}
+/* 자료(표·SVG)는 스스로 스크롤한다 — 본문 폭을 흔들지 않는다 */
+.material {
+  margin: 1rem 0;
+  padding: .9rem 1rem;
+  border-radius: var(--rx);
+  background: var(--hair);
+  font-size: var(--t-body);
+  overflow-x: auto;
+}
+.material table { border-collapse: collapse; }
+.material th, .material td { border: 1px solid var(--line); padding: .35rem .6rem; }
+
+/* 팔레트 — PC 는 넓으므로 한 줄에 8칸 */
+.palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: .3rem; }
+.pal {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surf);
+  color: var(--mute);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  cursor: pointer;
+}
+.pal:hover { border-color: var(--acc-ln); }
+.pal.done { background: var(--acc-bg); border-color: var(--acc-ln); color: var(--acc); }
+.pal.flag { background: var(--warn-tint); border-color: var(--warn-vivid); color: var(--warn); }
+.pal.here { outline: 2px solid var(--acc); outline-offset: 1px; }
+
+/* 팔레트 범례 — 색만으로 전하지 않는다 */
+.legend { display: flex; flex-wrap: wrap; gap: .5rem 1rem; font-size: var(--t-xs); color: var(--mute); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .3rem; }
+
+/* ── 빈 상태 · 알림 ──────────────────────────────────────── */
+.empty { padding: 4rem 1rem; text-align: center; color: var(--mute); }
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem .8rem;
+  border-radius: var(--rx);
+  background: var(--ok-tint);
+  color: var(--ok);
+  font-size: var(--t-sm);
+  font-weight: var(--w-semi);
+}
+
+/* ── 접히는 순서 ─────────────────────────────────────────── */
+@media (max-width: 1199px) {
+  /* 팔레트를 본문 아래로 내린다 — 본문 폭을 먼저 지킨다 */
+  .split { grid-template-columns: 1fr; }
+  .aside { position: static; }
+  .palette { grid-template-columns: repeat(12, 1fr); }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 899px) {
+  .shell { grid-template-columns: 68px minmax(0, 1fr); }
+  .nav { padding: 1rem .5rem; }
+  .nav-brand { justify-content: center; padding: .3rem 0 1rem; }
+  .nav-brand b, .nav-sec, .nav-item span, .nav-item .n { display: none; }
+  .nav-item { justify-content: center; padding: 0; }
+  .cols, .cols-3 { grid-template-columns: 1fr; }
+  .page { padding: 1.25rem 1rem 3rem; }
+  .topbar { padding: 0 1rem; }
+}

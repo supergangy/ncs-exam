@@ -1,164 +1,196 @@
-/** PC 판 — **아직 배선 확인 화면이다.** 시안 `question-engine-desktop` ·
- *  `test-analytics-desktop` 을 옮기는 것이 다음 몫이다.
+/** PC 판 — 좌측 항해 · 상주 머리말 · 본문(+선택적 우측 팔레트).
  *
- *  모바일 판과 코드를 엮지 않는다. 여기서 무엇을 고쳐도 `mobile/` 은 바뀌지 않는다.
+ *  **모바일 판과 코드를 엮지 않는다.** 여기서 무엇을 고쳐도 `mobile/` 은 바뀌지 않는다.
+ *  공유하는 것은 화면이 없는 것들뿐이다 — `core/` · `data/` · `store/` · `router/` ·
+ *  `styles/`(토큰·부품) · `icons.jsx` · `hooks/`.
  *
- *  아래는 옮기기 전까지 남겨 두는 것 — 배선이 맞는지 보여 준다.
- *
- *  꾸미지 않았다 — 여기서 확인하는 것은 모양이 아니라 **배선**이다.
- *  ① 문항 764개가 실제로 읽히나 ② 라우터가 갈리나 ③ 기록이 남나
- *  ④ core 의 채점·진도가 화면에서 부르면 도나
- *
- *  껍데기가 오면 이 파일만 지운다. `core/`·`store/`·`router/`·`data/` 는 그대로 쓴다.
+ *  주소는 **모바일 판과 같다.** 북마크한 `#/t/수리능력` 이 어느 판에서도 열려야 한다.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import { streak, xp, level } from '../core/goal.js';
 import { loadBank } from '../data/bank.js';
+import * as I from '../icons.jsx';
 import { useHash, go } from '../router/useHash.js';
-import { useStore } from '../store/useStore.js';
-import { plain, CIRC } from '../core/text.js';
-import { choiceStates, gradeOne, CH } from '../core/grade.js';
-import { progress, progText } from '../core/progress.js';
+import { store, useDerived } from '../store/useStore.js';
 
-const S = {
-  wrap: { maxWidth: 860, margin: '0 auto', padding: '24px 20px 64px' },
-  card: { background: 'var(--surf)', borderRadius: 'var(--r)',
-          boxShadow: 'var(--sh)', padding: '20px 22px', marginBottom: 16 },
-  meta: { font: '11.5px/1.5 var(--mono)', color: 'var(--faint)' },
-  stem: { font: '700 20px/1.5 var(--font)', letterSpacing: '-.3px',
-          margin: '14px 0 16px' },
-  ch: { display: 'block', width: '100%', minHeight: 'var(--tap)',
-        textAlign: 'left', padding: '11px 14px', marginBottom: 8,
-        borderRadius: 'var(--rs)', cursor: 'pointer' },
-  h: { font: '700 14px/1.4 var(--font)', margin: '0 0 10px' },
-};
+import About from './screens/About.jsx';
+import Bank from './screens/Bank.jsx';
+import Exam from './screens/Exam.jsx';
+import Exams from './screens/Exams.jsx';
+import Home from './screens/Home.jsx';
+import Pool from './screens/Pool.jsx';
+import Question from './screens/Question.jsx';
+import Result from './screens/Result.jsx';
+import Search from './screens/Search.jsx';
+import Settings from './screens/Settings.jsx';
+import Sit from './screens/Sit.jsx';
+import Stats from './screens/Stats.jsx';
 
-/** 선지 상태를 꾸밈으로 옮긴다 — **색과 테두리 굵기를 함께** 바꾼다 */
-const look = st => ({
-  [CH.idle]:  { background: 'var(--surf)',  border: '1px solid var(--line)', color: 'var(--ink)' },
-  [CH.pick]:  { background: 'var(--acc-bg)', border: '2px solid var(--acc)',  color: 'var(--acc)' },
-  [CH.right]: { background: 'var(--ok-bg)',  border: '2px solid var(--ok)',   color: 'var(--ok)' },
-  [CH.wrong]: { background: 'var(--bad-bg)', border: '2px solid var(--bad)',  color: 'var(--bad)' },
-  [CH.plain]: { background: 'var(--surf)',  border: '1px solid var(--line)', color: 'var(--mute)' },
-}[st]);
+/** 좌측 항해 — 묶음별로. 모바일 탭 넷보다 넓게 펼 수 있다 */
+const NAV = [
+  { sec: '학습' },
+  { to: '/',      icon: I.Home,     label: '홈',      on: ['home'] },
+  { to: '/bank',  icon: I.Book,     label: '문항',    on: ['bank', 'area', 'type', 'question'] },
+  { to: '/exams', icon: I.Timer,    label: '회차',    on: ['exams', 'exam', 'sit', 'result'] },
+  { to: '/review', icon: I.Refresh, label: '복습',    on: ['review'], count: 'due' },
+  { to: '/wrong', icon: I.Pencil,   label: '오답노트', on: ['wrong'], count: 'wrong' },
+  { sec: '기록' },
+  { to: '/stats', icon: I.Chart,    label: '분석',    on: ['stats'] },
+  { to: '/marks', icon: I.Bookmark, label: '표시함',  on: ['marks'], count: 'marks' },
+];
+const NAV_FOOT = [
+  { to: '/settings', icon: I.Gear, label: '설정', on: ['settings'] },
+  { to: '/about',    icon: I.Exam, label: '정보', on: ['about'] },
+];
+
+/** 우측 팔레트를 쓰는 화면 — 본문 폭을 먼저 지키고 1200px 아래에서는 아래로 내린다 */
+const SPLIT = new Set(['question', 'sit']);
 
 export default function App() {
   const [db, setDb] = useState(null);
   const [err, setErr] = useState(null);
   const route = useHash();
-  const st = useStore();
 
   useEffect(() => { loadBank().then(setDb).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, [route.hash]);
 
-  if (err) return <p style={S.wrap}>문항을 읽지 못했다 — {err}</p>;
-  if (!db) return <p style={S.wrap}>문항을 읽는 중…</p>;
-
-  const areas = db.areas();
-  const all = progress(db.items, id => st.last(id));
+  // 설정에서 고른 화면 밝기를 다시 씌운다 (`system` 이면 속성을 지워 기기 설정에 맡긴다)
+  useEffect(() => {
+    const t = store.pref.theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    else delete document.documentElement.dataset.theme;
+  }, []);
 
   return (
-    <div style={S.wrap}>
-      <div style={S.card}>
-        <p style={S.meta}>
-          배선 확인 화면 · Build 결과로 갈아치울 자리
-        </p>
-        <h1 style={{ font: '700 22px/1.3 var(--font)', letterSpacing: '-.4px',
-                     margin: '8px 0 4px' }}>
-          NCS PASS <span style={S.meta}>v2.0.0 · {db.n}문항</span>
-        </h1>
-        <p style={{ color: 'var(--mute)', margin: 0, fontSize: 13 }}>
-          지금 주소 <code>{route.hash}</code> → <b>{route.name}</b>
-          {route.params.length ? ' · ' + route.params.join(' / ') : ''}
-        </p>
+    <div className="shell">
+      <Nav db={db} route={route} />
+      <div className="main">
+        <Bar db={db} />
+        {err ? <p className="empty">문항을 읽지 못했습니다 — {err}</p>
+             : !db ? <p className="empty">문항을 읽는 중…</p>
+             : <div className={'page' + (SPLIT.has(route.name) ? ' page-split' : '')}>
+                 <Screen route={route} db={db} />
+               </div>}
       </div>
-
-      <div style={S.card}>
-        <h2 style={S.h}>진도 — core/progress.js 가 셌다</h2>
-        <p style={{ margin: 0, color: 'var(--mute)', fontSize: 13 }}>
-          전체 {progText(all)} · 복습 대기 {st.due(db.items).length}개
-        </p>
-        <div style={{ height: 8, background: 'var(--hair)', borderRadius: 4,
-                      marginTop: 10, overflow: 'hidden' }}>
-          <div style={{ width: all.fill + '%', height: '100%',
-                        background: 'linear-gradient(90deg,var(--acc),var(--vivid))' }} />
-        </div>
-      </div>
-
-      <div style={S.card}>
-        <h2 style={S.h}>영역 {areas.length}개 — data/bank.js 가 묶었다</h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {areas.map(a => (
-            <button key={a.area} onClick={() => go('/t/' + a.area)}
-              style={{ ...S.ch, width: 'auto', marginBottom: 0,
-                       ...look(route.params[0] === a.area ? CH.pick : CH.idle) }}>
-              {a.area} <span style={S.meta}>{a.n}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <Probe db={db} st={st} area={route.name === 'area' ? route.params[0] : null} />
     </div>
   );
 }
 
-/** 한 문항을 실제로 풀어 본다 — 채점과 기록이 도는지 보는 곳 */
-function Probe({ db, st, area }) {
-  const pool = area ? db.byArea(area) : db.items;
-  const it = pool[0];
-  const [chosen, setChosen] = useState(null);
-  const [graded, setGraded] = useState(false);
+function Nav({ db, route }) {
+  const counts = useDerived(s => (db ? {
+    due: s.due(db.items).length,
+    wrong: db.items.filter(i => s.isWrong(i.id)).length,
+    marks: db.items.filter(i => s.marked(i.id)).length,
+  } : {}), [db]);
 
-  useEffect(() => { setChosen(null); setGraded(false); }, [it?.id]);
-  if (!it) return null;
-
-  const states = choiceStates(it.an, chosen, graded, it.ch.length);
-  const res = graded ? gradeOne(it, chosen, null) : null;
-
-  const pick = n => {
-    if (graded) return;
-    setChosen(n);
-    setGraded(true);
-    // **판정을 여기서 하지 않는다.** core 가 준 결과를 그대로 넘긴다
-    const r = gradeOne(it, n, null);
-    st.record(it.id, n, r.ok, r.ms);
+  const item = it => {
+    const Icon = it.icon;
+    const here = it.on.includes(route.name);
+    const n = it.count ? counts[it.count] : null;
+    return (
+      <button key={it.to} className="nav-item" onClick={() => go(it.to)}
+              aria-current={here ? 'page' : undefined} title={it.label}>
+        <Icon />
+        <span>{it.label}</span>
+        {n ? <span className="n">{n}</span> : null}
+      </button>
+    );
   };
 
   return (
-    <div style={S.card}>
-      <p style={S.meta}>{it.sj} · {it.ty} · {it.id}</p>
-      {it.mt && (
-        <div style={{ background: 'var(--hair)', borderRadius: 'var(--rs)',
-                      padding: '12px 14px', margin: '12px 0', overflowX: 'auto',
-                      fontSize: 13 }}
-             dangerouslySetInnerHTML={{ __html: it.mt }} />
-      )}
-      <h2 style={S.stem}>{it.st}</h2>
-      {it.ch.map((c, i) => (
-        <button key={i} onClick={() => pick(i + 1)} disabled={graded}
-          style={{ ...S.ch, ...look(states[i]) }}>
-          <b style={{ marginRight: 8 }}>{CIRC[i]}</b>
-          <span dangerouslySetInnerHTML={{ __html: c }} />
-        </button>
-      ))}
-      {res && (
-        <p aria-live="polite" style={{ margin: '12px 0 0', fontWeight: 700,
-             color: res.ok ? 'var(--ok)' : 'var(--bad)' }}>
-          {res.verdict} — 정답 {CIRC[it.an - 1]}
-          {!res.ok && ` (고른 것 ${CIRC[chosen - 1]})`}
-          <span style={{ ...S.meta, marginLeft: 10, fontWeight: 400 }}>
-            기록됨 · 다시 {st.untilText(it.id)}
-          </span>
-        </p>
-      )}
-      {graded && it.ex && (
-        <details style={{ marginTop: 12, fontSize: 13.5, color: 'var(--mute)' }}>
-          <summary style={{ cursor: 'pointer', color: 'var(--ink)' }}>해설</summary>
-          <div dangerouslySetInnerHTML={{ __html: it.ex }} />
-        </details>
-      )}
-      <p style={{ ...S.meta, marginTop: 14 }}>
-        발문은 순수 텍스트다 — {plain(it.st).length}자
-      </p>
-    </div>
+    <nav className="nav" aria-label="주요 화면">
+      <div className="nav-brand">
+        <img src="icon-192.png" alt="" />
+        <b>NCS PASS</b>
+      </div>
+      {NAV.map((it, i) => (it.sec
+        ? <div key={'s' + i} className="nav-sec">{it.sec}</div>
+        : item(it)))}
+      <div className="nav-foot">{NAV_FOOT.map(item)}</div>
+    </nav>
   );
+}
+
+/** 상주 머리말 — 시안처럼 검색·연속일·경험치를 둔다.
+ *
+ *  검색 칸은 **누르면 검색 화면으로 가는 문**이다. 여기서 결과를 드롭다운으로
+ *  띄우면 화면이 둘로 갈리고, 넓은 화면에서는 본문에 펼치는 것이 읽기 낫다.
+ *  `Ctrl/⌘ K` 도 같은 곳으로 보낸다.
+ */
+function Bar({ db }) {
+  const g = useDerived(s => ({
+    streak: streak(s.d.att),
+    xp: xp(s.d.att, s.d.exams),
+  }), []);
+  const btn = useRef(null);
+
+  useEffect(() => {
+    const onKey = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        go('/search');
+      }
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
+
+  const lv = level(g.xp);
+  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
+
+  return (
+    <header className="topbar">
+      <div className="search" style={{ maxWidth: '24rem' }}>
+        <button ref={btn} className="field" onClick={() => go('/search')}
+                style={{ display: 'flex', alignItems: 'center', gap: '.5rem',
+                         cursor: 'pointer', color: 'var(--faint)', textAlign: 'left' }}>
+          <I.Search style={{ width: 16, height: 16 }} />
+          발문·선지·해설에서 찾기
+          <span className="search-key" style={{ position: 'static', marginLeft: 'auto' }}>
+            {mac ? '⌘' : 'Ctrl'} K
+          </span>
+        </button>
+      </div>
+
+      <div className="topbar-right">
+        {db && <span className="badge badge-flat">{db.n}문항</span>}
+        {g.streak > 0 && (
+          <span className="badge pill-streak"><I.Flame />{g.streak}일 연속</span>
+        )}
+        <span className="badge pill-xp"><I.Star />{g.xp.toLocaleString()} XP · Lv.{lv.lv}</span>
+        <a className="btn btn-ghost" href="./m/" style={{ minHeight: 34, padding: '0 .6rem' }}>
+          모바일 판
+        </a>
+      </div>
+    </header>
+  );
+}
+
+function Screen({ route, db }) {
+  switch (route.name) {
+    case 'home':     return <Home db={db} />;
+    case 'bank':     return <Bank db={db} />;
+    case 'area':     return <Bank db={db} area={route.params[0]} />;
+    case 'type':     return <Bank db={db} area={route.params[0]} type={route.params[1]} />;
+    case 'question': return <Question db={db} query={route.params[0]} />;
+    case 'exams':    return <Exams db={db} />;
+    case 'exam':     return <Exam db={db} tag={route.params[0]} />;
+    case 'sit':      return <Sit db={db} tag={route.params[0]} />;
+    case 'result':   return <Result db={db} tag={route.params[0]} />;
+    case 'stats':    return <Stats db={db} />;
+    case 'wrong':    return <Pool db={db} kind="wrong" />;
+    case 'review':   return <Pool db={db} kind="review" />;
+    case 'marks':    return <Pool db={db} kind="marks" />;
+    case 'search':   return <Search db={db} />;
+    case 'settings': return <Settings />;
+    case 'about':    return <About db={db} />;
+    default:
+      return (
+        <div className="empty">
+          <p>없는 주소입니다 — <code>{route.hash}</code></p>
+          <button className="btn btn-tint" onClick={() => go('/')}>홈으로</button>
+        </div>
+      );
+  }
 }
