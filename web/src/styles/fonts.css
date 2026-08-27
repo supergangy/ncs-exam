@@ -1,0 +1,62 @@
+/* 폰트 — **PC 진입점에서만 불러온다.**
+ *
+ * 모바일·APK 는 시스템 폰트로 충분하다. 안드로이드에는 Noto Sans KR,
+ * iOS·macOS 에는 Apple SD Gothic Neo 가 이미 있다. 아쉬운 것은 Windows(맑은 고딕)뿐이고
+ * 그게 곧 PC 웹이다. 그래서 508KB 를 PC 에만 지운다.
+ *
+ * `unicode-range` 를 손으로 짜지 않는다. **family 를 나눠 스택에 순서대로 두면**
+ * 브라우저가 글자마다 앞에서부터 찾는다 — 이게 폰트 스택의 본래 동작이고,
+ * 범위를 손으로 적다 빠뜨리는 실수가 없다.
+ *
+ *   Pretendard   한글 2,540자 + 라틴          447 KB
+ *   NCS Gap      Pretendard 가 못 가진 122자   31 KB
+ *                — 한자 108자(157회) · ㉠~㉯(245회) · ∈≡⊃⊕─═▤
+ *   Plex Mono    타이머·문항번호용 라틴        30 KB
+ *
+ * 셋 다 없는 ≒ ⋈ ⌊ ⌋ 는 시스템으로 떨어진다 (문항 전체에서 25회).
+ * 세 폰트 모두 OFL 이며 라이선스 원문은 같은 폴더에 둔다.
+ */
+
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("/fonts/Pretendard-subset.woff2") format("woff2");
+  font-weight: 45 930;                 /* 서브셋의 wght 축 실측값 */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Pretendard 뒤에 세워 두는 메움 폰트. 스택에서 Pretendard 다음에 온다. */
+@font-face {
+  font-family: "NCS Gap";
+  src: url("/fonts/NotoSansKR-gap.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 수식 넷만 담은 1.2KB. 같은 「NCS Gap」 이름에 범위를 좁혀 얹으면
+   폰트가 한 벌처럼 동작한다. ⋈ 는 관계대수 조인이라 폴백에서 깨지면 뜻이 바뀐다. */
+@font-face {
+  font-family: "NCS Gap";
+  src: url("/fonts/NotoSansMath-gap.woff2") format("woff2");
+  unicode-range: U+2252, U+22C8, U+230A-230B;   /* ≒ ⋈ ⌊ ⌋ */
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-400-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-600-latin.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}

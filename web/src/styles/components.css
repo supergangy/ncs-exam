@@ -1,0 +1,216 @@
+/* 공통 부품 — 시안 `component-kit` 을 옮긴 것.
+ *
+ * **색 값을 직접 쓰지 않는다.** 전부 `var(--…)` 다 (`tool/check_ui.mjs` 가 검사).
+ * 시안 실측값은 주석에 남긴다 — 나중에 시안과 견줄 때 근거가 된다.
+ *
+ * 모바일과 PC 는 화면 구성이 다르지만 **부품의 모양은 같다.**
+ * 크기만 다르며, 그 차이는 각 레이아웃 CSS 가 이 클래스를 덮어 조정한다.
+ */
+
+/* ── 타이포 ─────────────────────────────────────────────────
+   시안: H1 28 Bold · H2 20 Bold · H3 16 Bold · Body 14 Regular · Mono 14 */
+.h1 { font-size: var(--t-h1); font-weight: var(--w-bold); letter-spacing: -.6px; line-height: 1.3; margin: 0; }
+.h2 { font-size: var(--t-h2); font-weight: var(--w-bold); letter-spacing: -.4px; line-height: 1.35; margin: 0; }
+.h3 { font-size: var(--t-h3); font-weight: var(--w-bold); letter-spacing: -.2px; line-height: 1.4; margin: 0; }
+.sm { font-size: var(--t-sm); }
+.xs { font-size: var(--t-xs); }
+.muted { color: var(--mute); }
+.faint { color: var(--faint); }
+
+/* ── 카드 ───────────────────────────────────────────────── */
+.card {
+  background: var(--surf);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--sh-sm);
+}
+
+/* ── 버튼 — 시안 높이 39px · 글자 14px ─────────────────────
+   기본은 40px 로 두고, 모바일 레이아웃이 터치 목표(--tap 44px)로 늘린다. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45em;
+  min-height: 40px;
+  padding: 0 1.15rem;
+  border: 1px solid transparent;
+  border-radius: var(--rs);
+  font-size: var(--t-body);
+  font-weight: var(--w-bold);
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: filter .12s, background-color .12s, border-color .12s;
+}
+.btn:disabled, .btn[aria-disabled="true"] { cursor: not-allowed; }
+
+/* Primary — 시안 bg #6366F1 · 흰 글자 Bold */
+.btn-primary { background: var(--acc); color: var(--surf); }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* Outline — 시안 bg 흰색 · 글자 #475569 SemiBold */
+.btn-outline {
+  background: var(--surf);
+  color: var(--mute);
+  border-color: var(--line);
+  font-weight: var(--w-semi);
+}
+.btn-outline:hover:not(:disabled) { border-color: var(--acc-ln); color: var(--ink); }
+
+/* Tinted — 시안이 「Ghost」라 부르지만 실제로는 배경이 있다 (bg #EEF2FF) */
+.btn-tint { background: var(--acc-bg); color: var(--acc); }
+.btn-tint:hover:not(:disabled) { border-color: var(--acc-ln); }
+
+/* Ghost — 배경 없는 진짜 유령. 시안에는 없지만 목록 안 보조 동작에 필요하다 */
+.btn-ghost { background: transparent; color: var(--mute); }
+.btn-ghost:hover:not(:disabled) { background: var(--hair); color: var(--ink); }
+
+/* Destructive — 시안 bg #EF4444 · 흰 글자 */
+.btn-danger { background: var(--bad-vivid); color: var(--surf); }
+.btn-danger:hover:not(:disabled) { filter: brightness(1.06); }
+
+/* Disabled — 시안 bg #E2E8F0 · 글자 #94A3B8 */
+.btn:disabled, .btn[aria-disabled="true"] {
+  background: var(--line);
+  color: var(--faint);
+  border-color: transparent;
+  filter: none;
+}
+
+/* ── 배지 — 시안 높이 21px · 글자 12px Bold ────────────────
+ * 시안은 tint 배경에 vivid 글자를 얹는다. 그 조합의 대비는 2.26:1 로
+ * AA(4.5)에 못 미친다 — 그래서 **면은 시안의 tint, 글자는 진한 값**을 쓴다.
+ *   ok  #0f7b4f on #d1fae5 → 4.7:1
+ *   bad #c2334d on #fee2e2 → 4.5:1
+ *   warn #a45a12 on #fef3c7 → 4.8:1
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3em;
+  padding: .18em .55em;
+  border-radius: 999px;
+  font-size: var(--t-sm);
+  font-weight: var(--w-bold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge-ok   { background: var(--ok-tint);   color: var(--ok); }
+.badge-bad  { background: var(--bad-tint);  color: var(--bad); }
+.badge-warn { background: var(--warn-tint); color: var(--warn); }
+.badge-acc  { background: var(--acc-bg);    color: var(--acc); }
+.badge-flat { background: var(--hair);      color: var(--mute); }
+
+/* 게임화 — 시안: 스트릭은 amber, XP 는 indigo */
+.pill-streak { background: var(--warn-tint); color: var(--warn); }
+.pill-xp     { background: var(--acc-bg);    color: var(--acc); }
+
+/* ── MCQ 선지 — 시안 줄 높이 62px · 마커 원 24px · 마커 글자 12px Bold ──
+ * 상태 넷을 클래스로 가른다. 마커 원만 vivid 색이고, 줄 배경은 tint 다.
+ * 줄 위의 본문은 --ink(14.5:1) · 설명은 --mute(6.7:1) 로 충분하다.
+ */
+.opt {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  width: 100%;
+  padding: .85rem 1rem;
+  background: var(--surf);
+  border: 1px solid var(--line);
+  border-radius: var(--rs);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .12s, border-color .12s;
+}
+.opt:hover:not(.opt-correct):not(.opt-wrong) { border-color: var(--acc-ln); }
+
+/* 마커에는 **원문자를 넣지 않는다** — 원 안에 원이 겹쳐 보인다.
+   본문 표기는 ①②③ 을 쓰되 이 자리에는 1·2·3 이나 ✓·✗ 만 넣는다. */
+.opt-mark {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--mute);
+  font-size: var(--t-sm);
+  font-weight: var(--w-bold);
+  line-height: 1;
+}
+.opt-body { min-width: 0; }
+/* span 을 쓰더라도 줄을 나눈다 — 버튼 안에서는 <div> 를 쓸 수 없다 */
+.opt-label { display: block; font-size: var(--t-body); }
+.opt-why { display: block; margin-top: .2rem; font-size: var(--t-sm); color: var(--mute); }
+
+/* 선택 — 아직 채점 전 */
+.opt-picked { background: var(--acc-bg); border-color: var(--acc); }
+.opt-picked .opt-mark { background: var(--acc); color: var(--surf); }
+
+/* 채점 결과 */
+.opt-correct { background: var(--ok-tint); border-color: var(--ok-vivid); cursor: default; }
+.opt-correct .opt-mark { background: var(--ok-vivid); color: var(--surf); }
+.opt-correct .opt-why { color: var(--ok); }
+
+.opt-wrong { background: var(--bad-tint); border-color: var(--bad-vivid); cursor: default; }
+.opt-wrong .opt-mark { background: var(--bad-vivid); color: var(--surf); }
+.opt-wrong .opt-why { color: var(--bad); }
+
+/* ── 입력 — 시안 높이 35px · 글자 14px ────────────────────── */
+.field {
+  width: 100%;
+  min-height: 38px;
+  padding: .45rem .75rem;
+  background: var(--surf);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--rx);
+  font: inherit;
+}
+.field::placeholder { color: var(--faint); }
+.field:focus { border-color: var(--acc); outline: none; box-shadow: 0 0 0 3px var(--acc-bg); }
+
+/* 검색 — 시안은 오른쪽에 ⌘K 를 붙인다 */
+.search { position: relative; display: flex; align-items: center; }
+.search .field { padding-right: 3.2rem; }
+.search-key {
+  position: absolute;
+  right: .5rem;
+  padding: .1rem .35rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--hair);
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  pointer-events: none;
+}
+
+/* ── 진행 막대 ─────────────────────────────────────────── */
+.bar {
+  height: 8px;
+  background: var(--hair);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--acc);
+  border-radius: inherit;
+  transition: width .3s;
+}
+.bar-ok > i   { background: var(--ok-vivid); }
+.bar-warn > i { background: var(--warn-vivid); }
+.bar-bad > i  { background: var(--bad-vivid); }
+
+/* ── 타이머·문항번호 — 자리가 흔들리면 견주기 어렵다 ──────── */
+.tick {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-semi);
+  letter-spacing: -.3px;
+}

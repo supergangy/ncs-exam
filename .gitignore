@@ -35,3 +35,8 @@ web/public/data/
 
 # 로고 중간 산출물 — 배포된 것은 app/ web/public/ mobile/ 에 있다
 brand/out/
+
+# 폰트 원본 — brand/fonts.py 가 다시 받는다 (13MB). 서브셋 결과는 web/public/fonts/ 에 있다
+brand/fonts-src/*.woff2
+brand/fonts-src/*.ttf
+brand/fonts-src/OFL-*.txt

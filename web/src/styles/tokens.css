@@ -1,51 +1,93 @@
-/* 디자인 토큰 — **색은 여기에만 있다.**
+/* 디자인 토큰 — **색과 크기는 여기에만 있다.**
  *
  * 컴포넌트 CSS 는 var(--…) 만 쓴다. 다크 모드를 이 파일의 토큰 교체로만
  * 하기 때문이다 — 컴포넌트 CSS 를 두 벌 쓰면 한쪽만 고쳐 어긋난다.
  * `tool/check_ui.mjs` 가 이 파일 밖의 색 값을 지적한다.
  *
- * 값의 출처는 `tools/ui_kit.py` 다. 도면과 화면이 같은 색이어야 한다.
+ * 값의 출처는 시안 `component-kit` 과 `tools/ui_kit.py` 다.
+ * 도면과 화면이 같은 색이어야 한다.
  */
 
 :root {
-  --ink: #0f172a;
-  --mute: #64748b;
-  --faint: #94a3b8;
-  --line: #e2e8f0;
-  --hair: #f1f5f9;
-  --bg: #f6f7f9;
-  --surf: #ffffff;
+  /* ── 글자·면 ─────────────────────────────────────────────── */
+  --ink: #0f172a;            /* 본문 — 시안 Navy */
+  --mute: #475569;           /* 부차 설명 (흰 배경 8.6:1) */
+  --faint: #94a3b8;          /* 라벨·각주 */
+  --line: #e2e8f0;           /* 경계 — 시안 Slate */
+  --hair: #f1f5f9;           /* 더 옅은 구분선 */
+  --bg: #f8fafc;             /* 바탕 */
+  --surf: #ffffff;           /* 카드 */
 
-  --acc: #6366f1;
+  /* ── 액센트 ──────────────────────────────────────────────── */
+  --acc: #6366f1;            /* 시안 Indigo. 흰 배경 4.57:1 — AA 는 넘지만
+                                여유가 없어 **본문 텍스트로는 쓰지 않는다** */
   --acc-bg: #eef2ff;
   --acc-ln: #c7d2fe;
-  --ok: #0f7b4f;
-  --ok-bg: #ecfdf5;
-  --bad: #c2334d;
+
+  /* ── 상태색은 세 벌이다 ───────────────────────────────────
+   * 시안의 밝은 색은 흰 배경 텍스트로 쓸 수 없다 —
+   *   #10b981 2.6:1 · #ef4444 3.8:1 · #f59e0b 2.2:1  (AA 기준 4.5)
+   * 그래서 읽는 글자에는 진한 값을, 배지·막대·아이콘에는 시안 값을 쓴다. */
+  --ok: #0f7b4f;             /* 텍스트 5.4:1 */
+  --ok-vivid: #10b981;       /* 배지·막대 — 시안 Green */
+  --ok-tint: #d1fae5;        /* 배지 배경 */
+  --ok-bg: #ecfdf5;          /* 넓은 면 */
+
+  --bad: #c2334d;            /* 텍스트 5.5:1 */
+  --bad-vivid: #ef4444;      /* 시안 Red */
+  --bad-tint: #fee2e2;
   --bad-bg: #fff1f2;
-  --warn: #a45a12;
+
+  --warn: #a45a12;           /* 텍스트 5.3:1 */
+  --warn-vivid: #f59e0b;     /* 시안 Amber — 스트릭 배지가 이 색이다 */
+  --warn-tint: #fef3c7;
   --warn-bg: #fffbeb;
-  --vivid: #5b21b6;          /* 게임화 액센트 — 진도·연속일에만 */
 
-  --r: 16px;
-  --rs: 11px;
+  --vivid: #5b21b6;          /* 진도·연속일 강조 */
+
+  /* ── 타이포 — 시안 component-kit 의 5단계 ────────────────── */
+  --t-h1: 28px;              /* 화면 제목 */
+  --t-h2: 20px;              /* 절 제목 */
+  --t-h3: 16px;              /* 카드 제목 */
+  --t-body: 14px;            /* 본문 */
+  --t-sm: 12.5px;            /* 라벨 */
+  --t-xs: 11.5px;            /* 각주 */
+
+  --w-reg: 400;
+  --w-semi: 600;
+  --w-bold: 700;
+
+  /* 한글은 Pretendard, 그가 못 가진 한자·㉠~㉯ 은 「NCS Gap」이 메운다.
+     둘 다 없는 ≒ ⋈ ⌊ ⌋ 는 시스템 폰트로 떨어진다 (문항 전체에서 25회).
+     PC 는 `fonts.css` 로 파일을 받고, 모바일은 이 스택의 시스템 폰트로 간다 —
+     안드로이드 Noto Sans KR · iOS Apple SD Gothic Neo 가 이미 기기에 있다. */
+  --font: "Pretendard Variable", Pretendard, "NCS Gap", -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Noto Sans KR", "맑은 고딕", "Malgun Gothic", sans-serif;
+  /* 타이머·문항번호·정답률 — 자리가 흔들리면 견주기 어렵다 */
+  --mono: "IBM Plex Mono", "SF Mono", Consolas, "D2Coding", monospace;
+
+  /* ── 모양·간격 ───────────────────────────────────────────── */
+  --r: 16px;                 /* 카드 */
+  --rs: 11px;                /* 버튼·배지 */
+  --rx: 8px;                 /* 작은 칩 */
   --sh: 0 1px 2px rgba(15, 23, 42, .04), 0 8px 24px rgba(15, 23, 42, .07);
+  --sh-sm: 0 1px 2px rgba(15, 23, 42, .05);
 
-  --nav-w: 240px;
-  --pad-w: 260px;
-  --body-min: 560px;        /* 문항 본문의 최소 폭. 이 아래로는 접지 않는다 */
-  --tap: 44px;              /* 터치 목표 최소 크기 */
-
-  --font: "Pretendard", -apple-system, "맑은 고딕", "Malgun Gothic", sans-serif;
-  --mono: "SF Mono", Consolas, "D2Coding", monospace;
+  --nav-w: 240px;            /* PC 좌측 항해 */
+  --pad-w: 260px;            /* PC 우측 팔레트 */
+  --body-min: 560px;         /* 문항 본문의 최소 폭. 이 아래로는 접지 않는다 */
+  --tap: 44px;               /* 터치 목표 최소 크기 */
+  --tab-h: 56px;             /* 모바일 하단 탭 */
+  --top-h: 60px;             /* 모바일 상단 머리말 — 시안 실측 */
 }
 
 /* 다크 모드 — **토큰만 바꾼다.** 규칙을 새로 쓰지 않는다.
-   기본값(system)은 미디어 질의로, 사용자가 고르면 data-theme 로 이긴다 */
+   기본값(system)은 미디어 질의로, 사용자가 고르면 data-theme 로 이긴다.
+   vivid 는 어두운 면에서 오히려 잘 보이므로 그대로 둔다. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --ink: #e8ecf4;
-    --mute: #97a3b6;
+    --mute: #a8b3c5;
     --faint: #6b7688;
     --line: #263041;
     --hair: #1a2130;
@@ -55,20 +97,26 @@
     --acc: #818cf8;
     --acc-bg: #1a2340;
     --acc-ln: #33417a;
+
     --ok: #4cc38a;
+    --ok-tint: #16452f;
     --ok-bg: #10291f;
     --bad: #f07a8f;
+    --bad-tint: #45202e;
     --bad-bg: #2b1520;
     --warn: #d8a24a;
+    --warn-tint: #453520;
     --warn-bg: #2a2013;
     --vivid: #a78bfa;
+
     --sh: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
+    --sh-sm: 0 1px 2px rgba(0, 0, 0, .35);
   }
 }
 
 :root[data-theme="dark"] {
   --ink: #e8ecf4;
-  --mute: #97a3b6;
+  --mute: #a8b3c5;
   --faint: #6b7688;
   --line: #263041;
   --hair: #1a2130;
@@ -78,14 +126,20 @@
   --acc: #818cf8;
   --acc-bg: #1a2340;
   --acc-ln: #33417a;
+
   --ok: #4cc38a;
+  --ok-tint: #16452f;
   --ok-bg: #10291f;
   --bad: #f07a8f;
+  --bad-tint: #45202e;
   --bad-bg: #2b1520;
   --warn: #d8a24a;
+  --warn-tint: #453520;
   --warn-bg: #2a2013;
   --vivid: #a78bfa;
+
   --sh: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
+  --sh-sm: 0 1px 2px rgba(0, 0, 0, .35);
 }
 
 * { box-sizing: border-box; }
@@ -96,7 +150,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 15px/1.6 var(--font);
+  font: var(--w-reg) var(--t-body)/1.65 var(--font);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -110,6 +164,7 @@ button { font: inherit; color: inherit; }
 
 /* 숫자는 자리를 맞춘다 — 표에서 자리가 흔들리면 견주기 어렵다 */
 .num, table td, .mono { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); }
 
 /* 모션을 줄이라고 한 사람에게는 움직이지 않는다 */
 @media (prefers-reduced-motion: reduce) {

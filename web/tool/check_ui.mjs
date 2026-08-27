@@ -93,9 +93,24 @@ for (const f of files) {
   const src = readFileSync(f, 'utf8');
   const lines = src.split(/\r?\n/);
 
+  let inBlock = false;                 // 여러 줄 /* … */ 안인가
   lines.forEach((ln, i) => {
     const n = i + 1;
-    const code = ln.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '');
+    let code = ln.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '');
+
+    // 블록 주석 안에는 스타일이 있을 수 없다. 주석에 적은 색 값·대비 근거를
+    // 위반으로 세지 않도록 여기서 걸러낸다.
+    if (inBlock) {
+      const end = code.indexOf('*/');
+      if (end < 0) return;
+      code = code.slice(end + 2);
+      inBlock = false;
+    }
+    const open = code.lastIndexOf('/*');
+    if (open >= 0) {
+      inBlock = true;
+      code = code.slice(0, open);
+    }
     if (!code.trim()) return;
 
     for (const [re, why] of LOGIC) {

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCS PASS — 부품 견본</title>
+<link rel="stylesheet" href="/src/styles/fonts.css">
+<link rel="stylesheet" href="/src/styles/tokens.css">
+<link rel="stylesheet" href="/src/styles/components.css">
+<style>
+  /* 견본 판 자체의 배치만 여기 둔다. 부품 스타일은 components.css 가 전부 갖는다. */
+  body { padding: 2rem; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  section { margin: 0 0 2.25rem; }
+  .sec-t {
+    font-size: var(--t-sm); font-weight: var(--w-bold); color: var(--faint);
+    letter-spacing: .4px; text-transform: uppercase; margin: 0 0 .8rem;
+    padding-bottom: .4rem; border-bottom: 1px solid var(--line);
+  }
+  .row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+  .col { display: flex; flex-direction: column; gap: .6rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .pad { padding: 1.1rem; }
+</style>
+<script>
+  // 견본을 다크로 보려면 ?dark — 토큰 교체만으로 되는지 확인하는 용도다
+  if (location.search.includes('dark')) document.documentElement.dataset.theme = 'dark';
+</script>
+</head>
+<body>
+<div class="wrap">
+
+  <section>
+    <div class="sec-t">1 · 타이포 계층</div>
+    <div class="col">
+      <div class="h1">오늘 풀 문항 25개</div>
+      <div class="h2">연습 방식을 고르세요</div>
+      <div class="h3">문항 팔레트</div>
+      <div>본문 — 유형과 키워드로 골라 한 문제씩 풉니다. 오프라인에서도 전부 동작합니다.</div>
+      <div class="sm muted">라벨 — 정답률 · 소요 시간 · 연속 학습일</div>
+      <div class="xs faint">각주 — 후기 4,410건을 영역·유형으로 분류한 결과입니다</div>
+      <div class="tick">01:42:15 · 문항 12 / 50 · 82.4%</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t">2 · 버튼</div>
+    <div class="row">
+      <button class="btn btn-primary">제출</button>
+      <button class="btn btn-outline">건너뛰기</button>
+      <button class="btn btn-tint">해설 보기</button>
+      <button class="btn btn-ghost">← 이전</button>
+      <button class="btn btn-danger">기록 지우기</button>
+      <button class="btn btn-primary" disabled>제출</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t">3 · 배지 · 게임화</div>
+    <div class="row">
+      <span class="badge badge-ok">합격 88%</span>
+      <span class="badge badge-bad">불합격 62%</span>
+      <span class="badge badge-warn">표시함</span>
+      <span class="badge badge-acc">개인 프로젝트</span>
+      <span class="badge badge-flat">미응시</span>
+      <span class="badge pill-streak">🔥 14일 연속</span>
+      <span class="badge pill-xp">★ 2,450 XP</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t">4 · 선지 4상태</div>
+    <div class="col">
+      <button class="opt">
+        <span class="opt-mark">1</span>
+        <span class="opt-body">
+          <span class="opt-label">경로 집약 방식으로 비용을 재계산한다</span>
+        </span>
+      </button>
+      <button class="opt opt-picked">
+        <span class="opt-mark">2</span>
+        <span class="opt-body">
+          <span class="opt-label">우선순위 힙으로 합의를 이룬다</span>
+        </span>
+      </button>
+      <button class="opt opt-correct">
+        <span class="opt-mark">✓</span>
+        <span class="opt-body">
+          <span class="opt-label">로그 구조 분할 경로를 쓴다</span>
+          <span class="opt-why">맞았습니다. 충돌이 로그 시간에 수렴합니다.</span>
+        </span>
+      </button>
+      <button class="opt opt-wrong">
+        <span class="opt-mark">✗</span>
+        <span class="opt-body">
+          <span class="opt-label">벨만-포드를 반복 적용한다</span>
+          <span class="opt-why">틀렸습니다. 지표가 순환하면 수렴하지 않습니다.</span>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t">5 · 입력 · 검색</div>
+    <div class="col" style="max-width:26rem">
+      <input class="field" placeholder="기관 이름으로 찾기">
+      <div class="search">
+        <input class="field" placeholder="발문·선지·해설 전문 검색">
+        <span class="search-key">Ctrl K</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t">6 · 진행 막대</div>
+    <div class="col" style="max-width:26rem">
+      <div><div class="sm muted">오늘 목표 18 / 25</div><div class="bar"><i style="width:72%"></i></div></div>
+      <div><div class="sm muted">수리능력 정답률 88%</div><div class="bar bar-ok"><i style="width:88%"></i></div></div>
+      <div><div class="sm muted">자원관리능력 62%</div><div class="bar bar-warn"><i style="width:62%"></i></div></div>
+      <div><div class="sm muted">정보능력 45%</div><div class="bar bar-bad"><i style="width:45%"></i></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t">7 · 카드</div>
+    <div class="grid2">
+      <div class="card pad">
+        <div class="sm faint">정답률</div>
+        <div class="h1 tick">82.4%</div>
+        <div class="sm muted">지난주 대비 +2.4%p</div>
+      </div>
+      <div class="card pad">
+        <div class="sm faint">남은 문항</div>
+        <div class="h1 tick">410</div>
+        <div class="sm muted">1,240 / 1,650 풀었습니다</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t">8 · 폰트 메움 확인 — Pretendard 가 못 가진 글자</div>
+    <div class="col">
+      <div>괄호한글 <b>㉠ ㉡ ㉢ ㉣ ㉤ ㉮ ㉯</b> — 「보기」 라벨로 245회 쓰인다 (NCS Gap 이 메움)</div>
+      <div>한자 <b>甲 乙 丙 丁 止 無 揚 志 向 求 之</b> — 157회 (NCS Gap 이 메움)</div>
+      <div>수식 <b>≒ ⋈ ⌊ ⌋ ∈ ≡ ⊃ ⊕ ≤ ≥ ≠ √</b> — ≒ ⋈ ⌊ ⌋ 도 NCS Gap 이 메움 (1.2KB)</div>
+      <div>선지번호 <b>① ② ③ ④ ⑤ ⑥ ⑦</b> · 단위 <b>㎡ ℃</b> · 화살표 <b>← ↑ → ↓ ↔</b></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
