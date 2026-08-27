@@ -24,7 +24,9 @@ export function wrap(raw) {
 
     kwName: k => at(raw.keywords, k, String(k)),
     passage: i => at(raw.passages, i, { body: '' }),
-    round: id => (raw.rounds || []).find(r => r.id === id) || null,
+    // 회차 식별자는 `tag` 다 (`r1_public`). items 의 `rd` 가 이 값을 가리킨다 —
+    // `r.id` 로 찾으면 늘 null 이 나온다
+    round: tag => (raw.rounds || []).find(r => r.tag === tag) || null,
 
     /** 영역 목록 — 문항 수와 함께. 내비가 쓴다 */
     areas() {

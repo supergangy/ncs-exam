@@ -106,6 +106,71 @@ export function createStore({ get, set, now = Date.now } = {}) {
                                    mark: Object.keys(d.mark).length } };
     },
 
+    // ── 회차 응시 ─────────────────────────────────────────────────
+    /** 응시 중인 회차 — **하나만.** 나가도 이어진다.
+     *
+     *  구조를 배포본과 맞춘다. 백업 파일에도 이 모양이 담겨 있고, 옛 판으로
+     *  응시하던 사람이 새 판에서 이어 풀 수 있어야 한다.
+     *
+     *    { tag, at, endsAt, ans: {문항no: 고른번호}, flag: {문항no: true}, at_no }
+     *
+     *  **키가 문항 번호(`no`)다.** 인덱스로 두면 문항 순서가 바뀔 때 답이 어긋난다.
+     *  `endsAt` 을 미리 못박아 두는 것도 배포본과 같다 — 회차 사양의 제한 시간이
+     *  나중에 바뀌어도 진행 중인 응시는 흔들리지 않는다.
+     */
+    sit() { return d.sit; },
+    startSit(tag, min) {
+      const t = now();
+      d.sit = { tag, at: t, endsAt: t + min * 60000, ans: {}, flag: {}, at_no: 1 };
+      save();
+      return d.sit;
+    },
+    sitPick(no, n) { if (d.sit) { d.sit.ans[no] = n; save(); } return d.sit; },
+    sitFlag(no) { if (d.sit) { d.sit.flag[no] = !d.sit.flag[no]; save(); } return d.sit; },
+    sitAt(no) { if (d.sit) { d.sit.at_no = no; save(); } return d.sit; },
+    dropSit() { d.sit = null; save(); },
+
+    /** 제출 — 성적을 이력에 쌓고 **낱개 진도에도 넣는다.**
+     *
+     *  `att` 에 들어가야 오답노트와 복습이 회차 문항을 본다. 소요 시간은 0 이다 —
+     *  회차에서는 문항을 자유롭게 오가므로 문항별 시간을 잴 수 없다.
+     *  **안 고른 문항도 오답으로 기록한다** — 시험은 빈칸이 오답이다.
+     *
+     *  @param result `core/grade.js` 의 `gradeAll` 결과
+     *  @param auto   시간이 다해 자동 제출된 것인가
+     */
+    submitSit(items, result, auto = false) {
+      if (!d.sit) return null;
+      const s = d.sit;
+      const t = now();
+      items.forEach((it, i) => {
+        const m = result.marks[i];
+        (d.att[it.id] ||= []).push({ c: m.chosen, k: m.ok ? 1 : 0, t, m: 0 });
+        d.srs[it.id] = schedule(d.srs[it.id], m.ok, t);
+      });
+      const rec = {
+        at: t, score: result.right, n: result.n,
+        sec: Math.round((t - s.at) / 1000),
+        auto: auto ? 1 : 0,
+        ans: { ...s.ans },          // 무엇을 골랐나 — 결과 화면이 이것으로 되짚는다
+      };
+      (d.exams[s.tag] ||= []).push(rec);
+      d.sit = null;
+      save();
+      return rec;
+    },
+
+    /** 회차 이력 — **배열이다.** 같은 회차를 여러 번 응시할 수 있다 */
+    examHistory(tag) {
+      const h = d.exams[tag];
+      return Array.isArray(h) ? h : (h ? [h] : []);   // 옛 판이 객체로 둔 경우도 받는다
+    },
+    /** 가장 최근 응시 */
+    exam(tag) {
+      const h = S.examHistory(tag);
+      return h.length ? h[h.length - 1] : null;
+    },
+
     // ── 풀던 묶음 ─────────────────────────────────────────────────
     /** 하나만 둔다. 앱을 닫았다 열어도 그 자리에서 이어진다.
      *

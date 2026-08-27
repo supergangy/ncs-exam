@@ -41,6 +41,8 @@
   line-height: 1;
   cursor: pointer;
   text-decoration: none;
+  /* 좁은 단추에서 글자가 두 줄로 갈라지면 높이가 무너진다 */
+  white-space: nowrap;
   transition: filter .12s, background-color .12s, border-color .12s;
 }
 .btn:disabled, .btn[aria-disabled="true"] { cursor: not-allowed; }

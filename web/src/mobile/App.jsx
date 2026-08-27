@@ -11,11 +11,22 @@ import { useEffect, useState } from 'react';
 import { loadBank } from '../data/bank.js';
 import * as I from '../icons.jsx';
 import { useHash, go } from '../router/useHash.js';
+import { store } from '../store/useStore.js';
 
+import About from './screens/About.jsx';
 import Area from './screens/Area.jsx';
+import Exam from './screens/Exam.jsx';
+import Exams from './screens/Exams.jsx';
 import Home from './screens/Home.jsx';
+import More from './screens/More.jsx';
+import Pool from './screens/Pool.jsx';
 import Question from './screens/Question.jsx';
+import Result from './screens/Result.jsx';
+import Search from './screens/Search.jsx';
+import Settings from './screens/Settings.jsx';
+import Sit from './screens/Sit.jsx';
 import Soon from './screens/Soon.jsx';
+import Stats from './screens/Stats.jsx';
 import Type from './screens/Type.jsx';
 
 /** 하단 탭 넷 — 시안 구성(Home · Tests · Analytics · Profile)에 맞춘다.
@@ -41,6 +52,14 @@ export default function App() {
 
   // 화면을 옮기면 위로 올린다 — 스크롤이 남아 있으면 새 화면 중간이 보인다
   useEffect(() => { window.scrollTo(0, 0); }, [route.hash]);
+
+  // 설정에서 고른 화면 밝기를 다시 씌운다. `system` 이면 속성을 지워
+  // `prefers-color-scheme` 에 맡긴다 (tokens.css 가 그렇게 짜여 있다)
+  useEffect(() => {
+    const t = store.pref.theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    else delete document.documentElement.dataset.theme;
+  }, []);
 
   return (
     <>
@@ -100,6 +119,30 @@ function Screen({ route, db }) {
       return <Type db={db} area={route.params[0]} type={route.params[1]} />;
     case 'question':
       return <Question db={db} query={route.params[0]} />;
+    case 'exams':
+      return <Exams db={db} />;
+    case 'exam':
+      return <Exam db={db} tag={route.params[0]} />;
+    case 'sit':
+      return <Sit db={db} tag={route.params[0]} />;
+    case 'result':
+      return <Result db={db} tag={route.params[0]} />;
+    case 'stats':
+      return <Stats db={db} />;
+    case 'more':
+      return <More db={db} />;
+    case 'wrong':
+      return <Pool db={db} kind="wrong" />;
+    case 'review':
+      return <Pool db={db} kind="review" />;
+    case 'marks':
+      return <Pool db={db} kind="marks" />;
+    case 'search':
+      return <Search db={db} />;
+    case 'settings':
+      return <Settings />;
+    case 'about':
+      return <About db={db} />;
     case 'notfound':
       return (
         <div className="empty">

@@ -90,9 +90,13 @@ export const Chevron = p => (
 export const Back = p => (
   <Ico {...p}><path d="M20 12H4" /><path d="M10 6 4 12l6 6" /></Ico>
 );
+/** 설정 — 이빨을 선으로 그리면 해(sun) 처럼 보인다.
+ *  점선 원으로 톱니를 만들고 축을 안에 둔다. */
 export const Gear = p => (
-  <Ico {...p}><circle cx="12" cy="12" r="3.2" />
-    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.2 2.2M16.8 16.8 19 19M19 5l-2.2 2.2M7.2 16.8 5 19" /></Ico>
+  <Ico {...p}>
+    <circle cx="12" cy="12" r="8.2" strokeDasharray="2.4 2.7" />
+    <circle cx="12" cy="12" r="3.4" />
+  </Ico>
 );
 export const Calendar = p => (
   <Ico {...p}><path d="M4 6h16v15H4z" /><path d="M4 10h16M9 3v4M15 3v4" /></Ico>

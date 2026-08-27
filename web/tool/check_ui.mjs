@@ -66,7 +66,7 @@ const FIXED_OK = /tabbar|bottom-?sheet|sheet|scrim|overlay|backdrop|drawer/i;
 const EXEMPT = {
   'src/store/useStore.js': ['저장소 직접 접근'],   // 저장소 어댑터 그 자체
   'src/data/bank.js': ['시각 직접 읽기'],          // 없지만 앞으로 캐시 시각을 쓸 자리
-  'src/hooks/useElapsed.js': ['시각 직접 읽기'],   // 「지금」을 읽는 유일한 자리 — 화면들은 이 훅을 쓴다
+  'src/hooks/clock.js': ['시각 직접 읽기'],        // 「지금」을 읽는 유일한 자리 — 화면들은 이것을 쓴다
 
   // 레이아웃 골격 파일 — 상주 머리말·하단 버튼 줄·하단 탭이 여기 있다.
   // 이 셋은 fixed 여야 하고, **화면 CSS 에는 fixed 가 없어야 한다.**

@@ -15,7 +15,7 @@ import { XP_OK, XP_TRY } from '../../core/goal.js';
 import { choiceStates, gradeOne, CH, MAX_MS } from '../../core/grade.js';
 import { CIRC, mmss } from '../../core/text.js';
 import { makePool } from '../../data/pool.js';
-import { useElapsed } from '../../hooks/useElapsed.js';
+import { useElapsed } from '../../hooks/clock.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
 import { useStore } from '../../store/useStore.js';
