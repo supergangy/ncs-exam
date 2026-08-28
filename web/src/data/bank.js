@@ -9,6 +9,9 @@
  */
 import { plain } from '../core/text.js';
 
+/** 아무것도 거르지 않는 체 — `keep` 을 안 넘겼을 때의 기본값 */
+const ALL = () => true;
+
 /** 첨자 표를 함수로 감싼다 — 없는 첨자에도 터지지 않게 */
 export function wrap(raw) {
   const at = (arr, i, fb) => (Array.isArray(arr) && arr[i] != null ? arr[i] : fb);
@@ -33,16 +36,20 @@ export function wrap(raw) {
     kwName: k => at(raw.keywords, k, null)?.t ?? String(k),
     /** 이름과 문항 수를 함께 — 키워드 목록 화면이 쓴다 */
     kw: k => at(raw.keywords, k, null),
-    byKw: k => raw.items.filter(i => (i.kw || []).includes(+k)),
+    byKw: (k, keep = ALL) => raw.items.filter(i => (i.kw || []).includes(+k) && keep(i)),
     passage: i => at(raw.passages, i, { body: '' }),
     // 회차 식별자는 `tag` 다 (`r1_public`). items 의 `rd` 가 이 값을 가리킨다 —
     // `r.id` 로 찾으면 늘 null 이 나온다
     round: tag => (raw.rounds || []).find(r => r.tag === tag) || null,
 
-    /** 영역 목록 — 문항 수와 함께. 내비가 쓴다 */
-    areas() {
+    /** 영역 목록 — 문항 수와 함께. 내비가 쓴다.
+     *
+     *  `keep` 은 **연습에서 보일 문항**을 고르는 함수다(`data/pool.js` 의 `practiceKeep`).
+     *  세는 수와 실제로 풀리는 목록이 어긋나면, 「104문항」을 보고 들어갔는데
+     *  43개만 나오는 일이 생긴다. 그래서 같은 체를 여기에도 통과시킨다. */
+    areas(keep = ALL) {
       const m = new Map();
-      for (const it of raw.items) {
+      for (const it of raw.items.filter(keep)) {
         const a = m.get(it.sj) || { area: it.sj, n: 0, types: new Map() };
         a.n++;
         a.types.set(it.ty, (a.types.get(it.ty) || 0) + 1);
@@ -54,8 +61,9 @@ export function wrap(raw) {
         .sort((x, y) => y.n - x.n);
     },
 
-    byArea: sj => raw.items.filter(i => i.sj === sj),
-    byType: (sj, ty) => raw.items.filter(i => i.sj === sj && i.ty === ty),
+    byArea: (sj, keep = ALL) => raw.items.filter(i => i.sj === sj && keep(i)),
+    byType: (sj, ty, keep = ALL) =>
+      raw.items.filter(i => i.sj === sj && i.ty === ty && keep(i)),
     byRound: rd => raw.items.filter(i => i.rd === rd)
                             .sort((a, b) => (a.no || 0) - (b.no || 0)),
     byId: id => raw.items.find(i => i.id === id) || null,

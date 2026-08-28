@@ -26,8 +26,9 @@ export default function Stats({ db }) {
   const m = useDerived(s => {
     const att = s.d.att;
     // 표본이 적은 영역은 뒤로 — 1문항 0% 가 21문항 43% 보다 약하다고 말할 수 없다
-    const areas = db.areas()
-      .map(a => ({ area: a.area, ...progress(db.byArea(a.area), s.last) }))
+    const keep = practiceKeep(db, s);
+    const areas = db.areas(keep)
+      .map(a => ({ area: a.area, ...progress(db.byArea(a.area, keep), s.last) }))
       .filter(a => a.done > 0)
       .sort((x, y) => (x.done >= MIN_N) - (y.done >= MIN_N) === 0
         ? x.rate - y.rate
@@ -39,7 +40,9 @@ export default function Stats({ db }) {
       ? Math.round(timed.reduce((s2, a) => s2 + a.m, 0) / timed.length) : 0;
 
     return {
-      all: progress(db.items, s.last),
+      // 영역 목록과 같은 체를 쓴다. 여기만 804 로 두면 「남은 804」인데
+      // 영역을 다 더해도 614 인 어긋남이 생긴다
+      all: progress(db.items.filter(keep), s.last),
       areas,
       trend: daily(att, DAYS),
       week: weekOverWeek(att),

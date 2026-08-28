@@ -9,6 +9,7 @@
  *  카드에서 끝나지만, 실제로는 「무엇을 풀지」 고르는 자리가 있어야 한다.
  */
 import { goalToday, streak, xp, level, examText, weekOverWeek, weakest } from '../../core/goal.js';
+import { practiceKeep } from '../../data/pool.js';
 import { progress } from '../../core/progress.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
@@ -19,17 +20,22 @@ export default function Home({ db }) {
 
   // 셈이 드는 것은 기록이 바뀔 때만 다시 센다
   const m = useDerived(s => {
-    const areas = db.areas().map(a => ({
-      ...a, ...progress(db.byArea(a.area), s.last),
+    const keep = practiceKeep(db, s);
+    const areas = db.areas(keep).map(a => ({
+      ...a, ...progress(db.byArea(a.area, keep), s.last),
     }));
     return {
       areas,
-      all: progress(db.items, s.last),
+      // 영역 목록과 같은 체를 쓴다. 여기만 804 로 두면 「남은 804」인데
+      // 영역을 다 더해도 614 인 어긋남이 생긴다
+      all: progress(db.items.filter(keep), s.last),
       goal: goalToday(s.d.att, s.pref.goal),
       streak: streak(s.d.att),
       xp: xp(s.d.att, s.d.exams),
       week: weekOverWeek(s.d.att),
       weak: weakest(areas, 5)[0] || null,
+      // 아직 안 본 회차라 감춘 문항 수 — 「사라졌다」로 읽히지 않게 적어 준다
+      locked: db.items.length - db.items.filter(keep).length,
       due: s.due(db.items).length,
       wrong: db.items.filter(i => s.isWrong(i.id)).length,
     };
@@ -99,6 +105,13 @@ export default function Home({ db }) {
 
       <div>
         <div className="h2" style={{ margin: '.9rem 0 .6rem' }}>영역</div>
+        {/* 감춘 것이 있으면 말한다. 안 그러면 문항이 사라진 줄 안다 */}
+        {m.locked > 0 && (
+          <p className="sm faint" style={{ margin: '-.2rem 0 .5rem' }}>
+            아직 응시하지 않은 회차의 {m.locked}문항은 여기 세지 않습니다 —
+            회차를 제출하면 합류합니다.
+          </p>
+        )}
         <div className="card rows">
           {m.areas.map(a => (
             <button key={a.area} className="row-item"

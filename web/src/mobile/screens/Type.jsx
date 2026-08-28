@@ -4,14 +4,14 @@
  *  「풀었나」보다 「맞혔나」가 중요하다.
  */
 import { progress, progText } from '../../core/progress.js';
-import { poolHref } from '../../data/pool.js';
+import { poolHref , practiceKeep } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
 import { useDerived } from '../../store/useStore.js';
 
 export default function Type({ db, area, type }) {
   const m = useDerived(s => {
-    const items = db.byType(area, type);
+    const items = db.byType(area, type, practiceKeep(db, s));
     return {
       items: items.map(it => ({
         it, last: s.last(it.id), flagged: !!s.marked(it.id)?.f,

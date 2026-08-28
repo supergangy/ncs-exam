@@ -11,7 +11,7 @@ import { goalToday, streak, xp, level, examText, weekOverWeek, weakest, daily }
   from '../../core/goal.js';
 import { pct, progress } from '../../core/progress.js';
 import { mmss } from '../../core/text.js';
-import { poolHref } from '../../data/pool.js';
+import { poolHref , practiceKeep } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
 import { useStore, useDerived } from '../../store/useStore.js';
@@ -23,12 +23,15 @@ const MIN_N = 5;
 export default function Home({ db }) {
   const st = useStore();
   const m = useDerived(s => {
-    const areas = db.areas().map(a => ({
-      area: a.area, types: a.types.length, ...progress(db.byArea(a.area), s.last),
+    const keep = practiceKeep(db, s);
+    const areas = db.areas(keep).map(a => ({
+      area: a.area, types: a.types.length, ...progress(db.byArea(a.area, keep), s.last),
     }));
     return {
       areas,
-      all: progress(db.items, s.last),
+      // 영역 목록과 같은 체를 쓴다. 여기만 804 로 두면 「남은 804」인데
+      // 영역을 다 더해도 614 인 어긋남이 생긴다
+      all: progress(db.items.filter(keep), s.last),
       goal: goalToday(s.d.att, s.pref.goal),
       streak: streak(s.d.att),
       xp: xp(s.d.att, s.d.exams),

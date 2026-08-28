@@ -143,3 +143,61 @@ test('실제 bank.json 의 키워드를 묶는다', () => {
     assert.equal(p.items.length, k.n, `${k.t} — 목록 ${k.n} vs 묶음 ${p.items.length}`);
   }
 });
+
+// ── 연습 풀이 회차를 미리 소진하지 않는다 ──────────────────────────
+//   의사소통 86문항 중 61개(71%)가 회차 문항이었다. 그대로 두면 영역 연습만
+//   돌려도 모의고사를 다 보게 된다 — 시간 재고 앉을 때 이미 본 문제가 된다.
+import { practiceKeep, lockedRounds } from '../src/data/pool.js';
+
+const round = {
+  keywords: [],
+  rounds: [{ tag: 'rA', title: 'A회' }, { tag: 'rB', title: 'B회' }],
+  items: [
+    { id: 'p1', sj: '수리능력', ty: '확률' },                  // 은행 문항
+    { id: 'p2', sj: '수리능력', ty: '확률' },
+    { id: 'a1', sj: '수리능력', ty: '확률', rd: 'rA', no: 1 },  // A회
+    { id: 'a2', sj: '수리능력', ty: '확률', rd: 'rA', no: 2 },
+    { id: 'b1', sj: '수리능력', ty: '확률', rd: 'rB', no: 1 },  // B회
+  ],
+};
+
+const stWith = (submitted) => ({
+  examHistory: tag => (submitted.includes(tag) ? [{ at: 1, score: 1, n: 1 }] : []),
+  last: () => null, marked: () => null, isWrong: () => false,
+  due: () => [], solo: () => null,
+});
+
+test('응시하지 않은 회차의 문항은 영역 연습에 나오지 않는다', () => {
+  const db = wrap({ ...round, n: round.items.length });
+  const p = makePool(db, stWith([]), 'sj=수리능력');
+  assert.deepEqual(p.items.map(i => i.id), ['p1', 'p2']);
+});
+
+test('제출한 회차의 문항은 곧바로 합류한다 — 아껴 둘 것이 아니라 복습할 것이다', () => {
+  const db = wrap({ ...round, n: round.items.length });
+  const p = makePool(db, stWith(['rA']), 'sj=수리능력');
+  assert.deepEqual(p.items.map(i => i.id), ['p1', 'p2', 'a1', 'a2']);
+  assert.deepEqual([...lockedRounds(db, stWith(['rA']))], ['rB']);
+});
+
+test('회차를 대놓고 고르면 체를 거치지 않는다 — 「연습 모드로 풀기」', () => {
+  const db = wrap({ ...round, n: round.items.length });
+  const p = makePool(db, stWith([]), 'rd=rA');
+  assert.deepEqual(p.items.map(i => i.id), ['a1', 'a2']);
+});
+
+test('내 기록으로 만든 묶음은 감추지 않는다 — 틀린 것은 회차 문항이라도 오답노트에', () => {
+  const db = wrap({ ...round, n: round.items.length });
+  const st = { ...stWith([]), isWrong: id => id === 'a1' };
+  assert.deepEqual(makePool(db, st, 'pool=wrong').items.map(i => i.id), ['a1']);
+});
+
+test('세는 곳과 푸는 곳이 같은 체를 쓴다 — 「104문항」이라 적고 43개를 내면 안 된다', () => {
+  const db = wrap({ ...round, n: round.items.length });
+  const st = stWith([]);
+  const keep = practiceKeep(db, st);
+  const shown = db.areas(keep).find(a => a.area === '수리능력');
+  const pool = makePool(db, st, 'sj=수리능력');
+  assert.equal(shown.n, pool.items.length);
+  assert.equal(shown.types[0].n, makePool(db, st, 'sj=수리능력&ty=확률').items.length);
+});

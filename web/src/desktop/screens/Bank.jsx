@@ -10,26 +10,28 @@
  *  (`core/progress.js` 의 필터 주석에 남은, 앱에서 배운 것).
  */
 import { progress, progText } from '../../core/progress.js';
-import { poolHref } from '../../data/pool.js';
+import { poolHref , practiceKeep } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
 import { useDerived } from '../../store/useStore.js';
 
 export default function Bank({ db, area = null, type = null }) {
   const m = useDerived(s => {
-    const areas = db.areas().map(a => ({
-      area: a.area, types: a.types, ...progress(db.byArea(a.area), s.last),
+    const keep = practiceKeep(db, s);
+    const areas = db.areas(keep).map(a => ({
+      area: a.area, types: a.types, ...progress(db.byArea(a.area, keep), s.last),
     }));
     const cur = areas.find(a => a.area === area) || null;
     const types = cur
-      ? cur.types.map(t => ({ ...t, ...progress(db.byType(area, t.ty), s.last) }))
+      ? cur.types.map(t => ({ ...t, ...progress(db.byType(area, t.ty, keep), s.last) }))
       : [];
     const items = area && type
-      ? db.byType(area, type).map(it => ({
+      ? db.byType(area, type, keep).map(it => ({
           it, last: s.last(it.id), flag: !!s.marked(it.id)?.f,
         }))
       : [];
-    return { areas, cur, types, items };
+    const locked = db.items.length - db.items.filter(keep).length;
+    return { areas, cur, types, items, locked };
   }, [db, area, type]);
 
   return (
@@ -37,9 +39,17 @@ export default function Bank({ db, area = null, type = null }) {
       <div className="page-head">
         <div className="h1">문항 은행</div>
         <div className="row-sub">
-          영역 {m.areas.length}개 · 문항 {db.n}개.
+          영역 {m.areas.length}개 · 문항 {db.n - m.locked}개.
           {' '}영역과 유형을 골라 한 문항씩 풉니다.
         </div>
+        {/* 감춘 것이 있으면 말한다. `db.n` 을 그대로 적으면 목록과 어긋난다 */}
+        {m.locked > 0 && (
+          <div className="sm faint" style={{ marginTop: '.3rem' }}>
+            아직 응시하지 않은 회차의 {m.locked}문항은 빼고 셌습니다 —
+            회차를 제출하면 여기 합류합니다. 먼저 풀어 보려면 회차 안내의
+            「연습 모드로 풀기」를 쓰세요.
+          </div>
+        )}
       </div>
 
       <div className="bank">

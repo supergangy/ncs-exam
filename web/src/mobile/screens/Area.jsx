@@ -4,19 +4,20 @@
  *  (`core/progress.js` 의 필터 주석에 남은, 앱에서 배운 것).
  */
 import { progress, progText } from '../../core/progress.js';
-import { poolHref } from '../../data/pool.js';
+import { poolHref , practiceKeep } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
 import { useDerived } from '../../store/useStore.js';
 
 export default function Area({ db, area }) {
   const m = useDerived(s => {
-    const items = db.byArea(area);
-    const a = db.areas().find(x => x.area === area);
+    const keep = practiceKeep(db, s);
+    const items = db.byArea(area, keep);
+    const a = db.areas(keep).find(x => x.area === area);
     return {
       p: progress(items, s.last),
       types: (a?.types || []).map(t => ({
-        ...t, p: progress(db.byType(area, t.ty), s.last),
+        ...t, p: progress(db.byType(area, t.ty, keep), s.last),
       })),
     };
   }, [db, area]);
