@@ -25,6 +25,27 @@ export function wrap(raw) {
     subjects: raw.subjects || [],
     types: raw.types || [],
 
+    /** 직렬별로 묶은 영역 목록 — `[{ tr, name, sub, areas }]`.
+     *
+     *  **고르게 하지 않고 묶어서 보인다.** 전산직 지원자도 NCS 직업기초를 보므로
+     *  둘 중 하나를 감추면 틀린다. 앱(`mobile/lib/screens/home_screen.dart`)도
+     *  같은 모양이다 — 직렬 카드 둘을 나란히 두고 들어가게 한다.
+     *
+     *  섞어 놓으면 사무직 지원자에게 데이터베이스론·네트워크가, 전산직에게
+     *  대인관계능력이 한 줄에 뒤섞여 나온다(영역 18개). */
+    byTrack(keep = ALL) {
+      const all = db.areas(keep);
+      // NCS 를 먼저 둔다 — 모든 지원자가 보는 것이고, 전공은 그 위에 얹힌다.
+      // `bank.json` 의 tracks 차례는 전산이 앞이라 그대로 쓰면 뒤집힌다
+      const order = ['ncs', 'cs'];
+      return [...(raw.tracks || [])]
+        .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
+        .map(t => ({ tr: t.id, name: t.name, sub: t.sub,
+                     areas: all.filter(a => a.tr === t.id) }))
+        .filter(g => g.areas.length)
+        .map(g => ({ ...g, n: g.areas.reduce((s2, a) => s2 + a.n, 0) }));
+    },
+
     /** 키워드 표. 항목은 `{ t: 이름, n: 문항 수 }` 다 */
     keywords: raw.keywords || [],
     /** 키워드 **이름만** 준다.
@@ -50,7 +71,9 @@ export function wrap(raw) {
     areas(keep = ALL) {
       const m = new Map();
       for (const it of raw.items.filter(keep)) {
-        const a = m.get(it.sj) || { area: it.sj, n: 0, types: new Map() };
+        // `tr` 을 함께 실어 보낸다 — 화면이 직렬로 묶는 데 쓴다.
+        // 한 영역의 문항은 모두 같은 직렬이다(전산 과목이 NCS 에 섞이지 않는다)
+        const a = m.get(it.sj) || { area: it.sj, tr: it.tr, n: 0, types: new Map() };
         a.n++;
         a.types.set(it.ty, (a.types.get(it.ty) || 0) + 1);
         m.set(it.sj, a);

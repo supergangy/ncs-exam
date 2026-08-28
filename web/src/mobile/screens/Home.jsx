@@ -24,8 +24,14 @@ export default function Home({ db }) {
     const areas = db.areas(keep).map(a => ({
       ...a, ...progress(db.byArea(a.area, keep), s.last),
     }));
+    // 직렬로 묶는다 — 섞어 놓으면 사무직에게 데이터베이스론이,
+    // 전산직에게 대인관계능력이 한 줄에 뒤섞여 나온다(영역 18개)
+    const byArea = new Map(areas.map(a => [a.area, a]));
+    const tracks = db.byTrack(keep)
+      .map(g => ({ ...g, areas: g.areas.map(a => byArea.get(a.area)) }));
     return {
       areas,
+      tracks,
       // 영역 목록과 같은 체를 쓴다. 여기만 804 로 두면 「남은 804」인데
       // 영역을 다 더해도 614 인 어긋남이 생긴다
       all: progress(db.items.filter(keep), s.last),
@@ -112,21 +118,30 @@ export default function Home({ db }) {
             회차를 제출하면 합류합니다.
           </p>
         )}
-        <div className="card rows">
-          {m.areas.map(a => (
-            <button key={a.area} className="row-item"
-                    onClick={() => go('/t/' + encodeURIComponent(a.area))}>
-              <span className="row-t">
-                {a.area}
-                <span className="row-sub" style={{ display: 'block' }}>
-                  {a.done ? `${a.done}/${a.n} · 정답률 ${a.rate}%` : `${a.n}문항`}
-                </span>
-              </span>
-              <span className="row-n">{a.types.length}유형</span>
-              <I.Chevron className="chev" />
-            </button>
-          ))}
-        </div>
+        {m.tracks.map(g => (
+          <div key={g.tr} style={{ marginBottom: '.9rem' }}>
+            <div className="qmeta" style={{ marginBottom: '.4rem' }}>
+              <b style={{ color: 'var(--ink)' }}>{g.name}</b>
+              <span className="faint">·</span>
+              <span>과목 {g.areas.length} · {g.n}문항</span>
+            </div>
+            <div className="card rows">
+              {g.areas.map(a => (
+                <button key={a.area} className="row-item"
+                        onClick={() => go('/t/' + encodeURIComponent(a.area))}>
+                  <span className="row-t">
+                    {a.area}
+                    <span className="row-sub" style={{ display: 'block' }}>
+                      {a.done ? `${a.done}/${a.n} · 정답률 ${a.rate}%` : `${a.n}문항`}
+                    </span>
+                  </span>
+                  <span className="row-n">{a.types.length}유형</span>
+                  <I.Chevron className="chev" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

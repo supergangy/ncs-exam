@@ -31,7 +31,12 @@ export default function Bank({ db, area = null, type = null }) {
         }))
       : [];
     const locked = db.items.length - db.items.filter(keep).length;
-    return { areas, cur, types, items, locked };
+    // 직렬로 묶는다 — 섞어 놓으면 사무직에게 데이터베이스론이,
+    // 전산직에게 대인관계능력이 한 칸에 뒤섞여 나온다(영역 18개)
+    const byName = new Map(areas.map(a => [a.area, a]));
+    const tracks = db.byTrack(keep)
+      .map(g => ({ ...g, areas: g.areas.map(a => byName.get(a.area)) }));
+    return { areas, cur, types, items, locked, tracks };
   }, [db, area, type]);
 
   return (
@@ -60,18 +65,23 @@ export default function Bank({ db, area = null, type = null }) {
             <span className="row-n">{m.areas.length}</span>
           </div>
           <div className="rows">
-            {m.areas.map(a => (
-              <button key={a.area} className="row-item"
-                      aria-current={a.area === area ? 'true' : undefined}
-                      onClick={() => go('/t/' + encodeURIComponent(a.area))}>
-                <span className="row-t">
-                  {a.area}
-                  <span className="row-sub" style={{ display: 'block' }}>
-                    {a.done ? `${a.done}/${a.n} · ${a.rate}%` : `${a.n}문항`}
-                  </span>
-                </span>
-                <I.Chevron className="chev" />
-              </button>
+            {m.tracks.map(g => (
+              <div key={g.tr}>
+                <div className="bank-sub">{g.name} · {g.n}문항</div>
+                {g.areas.map(a => (
+                  <button key={a.area} className="row-item"
+                          aria-current={a.area === area ? 'true' : undefined}
+                          onClick={() => go('/t/' + encodeURIComponent(a.area))}>
+                    <span className="row-t">
+                      {a.area}
+                      <span className="row-sub" style={{ display: 'block' }}>
+                        {a.done ? `${a.done}/${a.n} · ${a.rate}%` : `${a.n}문항`}
+                      </span>
+                    </span>
+                    <I.Chevron className="chev" />
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         </div>

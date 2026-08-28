@@ -201,3 +201,50 @@ test('세는 곳과 푸는 곳이 같은 체를 쓴다 — 「104문항」이라
   assert.equal(shown.n, pool.items.length);
   assert.equal(shown.types[0].n, makePool(db, st, 'sj=수리능력&ty=확률').items.length);
 });
+
+// ── 직렬로 묶는다 — 고르게 하지 않는다 ─────────────────────────────
+//   전산직 지원자도 NCS 직업기초를 본다. 둘 중 하나를 감추면 틀린다.
+//   섞어 두면 사무직에게 데이터베이스론이, 전산직에게 대인관계능력이
+//   한 줄에 뒤섞여 나온다(영역 18개).
+const twoTracks = {
+  keywords: [],
+  tracks: [{ id: 'cs', name: '전산직', sub: '직무 전공' },
+           { id: 'ncs', name: 'NCS 직업기초', sub: '직업기초능력' }],
+  rounds: [],
+  items: [
+    { id: 'n1', sj: '수리능력', ty: 'a', tr: 'ncs' },
+    { id: 'n2', sj: '수리능력', ty: 'a', tr: 'ncs' },
+    { id: 'n3', sj: '의사소통능력', ty: 'b', tr: 'ncs' },
+    { id: 'c1', sj: '운영체제', ty: 'c', tr: 'cs' },
+  ],
+};
+
+test('NCS 를 먼저 둔다 — 모든 지원자가 보는 것이다', () => {
+  const db = wrap({ ...twoTracks, n: twoTracks.items.length });
+  assert.deepEqual(db.byTrack().map(g => g.tr), ['ncs', 'cs']);
+});
+
+test('영역이 제 직렬에 들어간다', () => {
+  const db = wrap({ ...twoTracks, n: twoTracks.items.length });
+  const [ncs, cs] = db.byTrack();
+  assert.deepEqual(ncs.areas.map(a => a.area), ['수리능력', '의사소통능력']);
+  assert.deepEqual(cs.areas.map(a => a.area), ['운영체제']);
+  assert.equal(ncs.n, 3);
+  assert.equal(cs.n, 1);
+});
+
+test('묶어도 하나도 빠지지 않는다 — 감추는 것이 아니라 나누는 것이다', () => {
+  const db = wrap({ ...twoTracks, n: twoTracks.items.length });
+  const grouped = db.byTrack().flatMap(g => g.areas.map(a => a.area));
+  assert.deepEqual(grouped.sort(), db.areas().map(a => a.area).sort());
+});
+
+test('실제 bank.json — NCS 10과목 504 · 전산 8과목 300', () => {
+  const bank = JSON.parse(readFileSync(new URL('../../app/data/bank.json', import.meta.url),
+                                       'utf8'));
+  const db = wrap(bank);
+  const g = db.byTrack();
+  assert.deepEqual(g.map(x => [x.tr, x.areas.length, x.n]),
+                   [['ncs', 10, 504], ['cs', 8, 300]]);
+  assert.equal(g[0].n + g[1].n, db.n);
+});

@@ -23,6 +23,9 @@ export default function Kw({ db }) {
   const hit = tally(groups);
   const searching = dq.trim().length >= 2;
   const tagged = useMemo(() => db.items.filter(i => (i.kw || []).length).length, [db]);
+  // 키워드가 붙은 문항이 한 직렬에만 몰려 있나 — 그렇다면 그렇다고 적는다
+  const onlyCs = useMemo(
+    () => db.items.filter(i => (i.kw || []).length).every(i => i.tr === 'cs'), [db]);
   const spans = useMemo(
     () => all.reduce((s, g) => s + g.keys.filter(k => k.spans).length, 0), [all]);
 
@@ -34,6 +37,13 @@ export default function Kw({ db }) {
           과목이 달라도 같은 개념이면 함께 나옵니다. 키워드 {t.keys}개 ·
           과목 {t.areas}개 · 문항 {tagged}개에 붙어 있습니다.
         </div>
+        {/* 326개가 전부 전공 쪽이다. 안 적으면 사무직 지원자가 헤맨다 */}
+        {onlyCs && (
+          <div className="row-sub" style={{ marginTop: '.2rem' }}>
+            지금은 <b>전산직 전공 과목</b>에만 붙어 있습니다.
+            NCS 직업기초 과목에는 아직 없습니다.
+          </div>
+        )}
       </div>
 
       <div className="search" style={{ maxWidth: '30rem', marginBottom: '1rem' }}>
