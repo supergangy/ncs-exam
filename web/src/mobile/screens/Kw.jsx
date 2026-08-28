@@ -11,15 +11,21 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 
 import { group, narrow, tally } from '../../core/keywords.js';
-import { poolHref } from '../../data/pool.js';
+import { poolHref, practiceKeep } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
+import { useDerived } from '../../store/useStore.js';
 
 export default function Kw({ db }) {
   const [q, setQ] = useState('');
   const dq = useDeferredValue(q);
 
-  const all = useMemo(() => group(db), [db]);
+  // **거르는 곳과 세는 곳이 같아야 한다.** 아직 안 본 회차의 문항은 연습 목록에
+  // 나오지 않으므로 키워드 수에서도 빼야 한다 — 안 그러면 「호스트 10개」를 눌렀는데
+  // 8개가 나온다(전산 회차가 들어오며 시험이 잡았다).
+  const keep = useDerived(s => practiceKeep(db, s), [db]);
+  const all = useMemo(() => group({ items: db.items.filter(keep), keywords: db.keywords }),
+                      [db, keep]);
   // 첫 과목은 펼쳐 둔다 — 전부 접으면 무엇이 들었는지 한 번은 눌러 봐야 안다
   const [open, setOpen] = useState(() => null);
   const first = all[0]?.sj ?? null;
@@ -28,10 +34,11 @@ export default function Kw({ db }) {
   const t = tally(all);
   const hit = tally(groups);
   const searching = dq.trim().length >= 2;
-  const tagged = useMemo(() => db.items.filter(i => (i.kw || []).length).length, [db]);
+  const tagged = useMemo(() => db.items.filter(keep).filter(i => (i.kw || []).length).length, [db, keep]);
   // 키워드가 붙은 문항이 한 직렬에만 몰려 있나 — 그렇다면 그렇다고 적는다
   const onlyCs = useMemo(
-    () => db.items.filter(i => (i.kw || []).length).every(i => i.tr === 'cs'), [db]);
+    () => db.items.filter(keep).filter(i => (i.kw || []).length)
+            .every(i => i.tr === 'cs'), [db, keep]);
 
   return (
     <div className="stack">

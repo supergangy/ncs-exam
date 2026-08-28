@@ -36,6 +36,11 @@ OUT_ADMIN = ROOT / "app" / "data" / "admin.json"
 # 실제로 8월 12일부터 앱만 526문항에 멈춰 있었다(웹판은 540). 손으로 맞추는
 # 단계는 문서에도 없었고 빠뜨려도 아무도 알려 주지 않는다.
 OUT_MOBILE = ROOT / "mobile" / "assets" / "data"
+# 새로 지은 웹판(vite)이 쓰는 것. `web/public/` 은 gitignore 라 **여기서 만들지
+# 않으면 아무 데서도 안 만들어진다.** 2026-08-28 까지 손으로 옮기고 있었고,
+# 전산 회차를 넣을 때 웹만 804문항에 멈춰 있는 것으로 드러났다(앱은 844).
+# 위의 Flutter 사고와 같은 모양이다 — 손으로 맞추는 단계는 언젠가 빠뜨린다.
+OUT_WEB = ROOT / "web" / "public" / "data"
 # Flutter 판의 「PDF로 풀기」가 쓰는 것. 웹판은 PDF 를 오려 낼 수단이 없어 안 쓴다.
 OUT_EXAMS = ROOT / "mobile" / "assets" / "exams"
 
@@ -86,6 +91,16 @@ TRACKS = [
     {"id": "cs", "name": "전산직", "sub": "직무 전공"},
     {"id": "ncs", "name": "NCS 직업기초", "sub": "직업기초능력"},
 ]
+
+
+def track_of(subject: str) -> str:
+    """과목이 직렬을 정한다. **은행이든 회차든 같은 창구를 쓴다.**
+
+    r7_cs 가 나오기 전까지 회차는 전부 NCS 라 여기가 `"ncs"` 로 못 박혀 있었다.
+    전산 회차가 그 가정을 깼다 — 못 박은 자리를 남겨 두면 전산 회차 40문항이
+    NCS 직렬로 앱에 실린다.
+    """
+    return "cs" if SUBJECT_ALIAS.get(subject, subject) in CS_SUBJECTS else "ncs"
 
 # 은행은 `의사소통`, 회차는 `의사소통능력` 으로 적어 왔다. 같은 것이므로 합친다.
 SUBJECT_ALIAS = {
@@ -257,7 +272,7 @@ def load_bank() -> list[dict]:
     for it in load_all():
         q = it["questions"][0]
         subj = SUBJECT_ALIAS.get(it["subject"], it["subject"])
-        track = "cs" if subj in CS_SUBJECTS else "ncs"
+        track = track_of(subj)
         out.append({
             "id": it["id"],
             "src": "bank",
@@ -320,7 +335,7 @@ def load_rounds() -> tuple[list[dict], list[dict]]:
                         "src": "round",
                         "round": rd,
                         "no": no,
-                        "track": "ncs",
+                        "track": track_of(area),
                         # 영역은 **설정이 진실이다.** 본문의 area 키를 믿지 않는다
                         "subject": area,
                         "type": q.get("type") or "기타",
@@ -348,6 +363,10 @@ def load_rounds() -> tuple[list[dict], list[dict]]:
 
         if not items or not area_n:
             continue                     # 설정만 있고 문항이 없는 회차 (r5_nhis)
+        # 회차의 직렬은 **문항이 정한다.** 설정에 손으로 적게 두면 영역을 바꿀 때
+        # 따라오지 않는다. 한 회차가 두 직렬에 걸치면 그대로 둘 다 싣는다.
+        tracks = sorted({i["track"] for i in items if i["round"] == rd},
+                        key=lambda t: ("ncs", "cs").index(t))
         rounds.append({
             "tag": rd,
             "title": getattr(cfg, "EXAM_ROUND", rd),
@@ -355,6 +374,7 @@ def load_rounds() -> tuple[list[dict], list[dict]]:
             "org": org,
             "n": no,
             "min": getattr(cfg, "TOTAL_MIN", 0),
+            "tr": tracks,
             "areas": area_n,
         })
         # 설계 총량과도 대조한다
@@ -553,11 +573,13 @@ def main() -> int:
                    encoding="utf-8")
     OUT_ADMIN.write_text(json.dumps(admin, ensure_ascii=False, separators=(",", ":")),
                          encoding="utf-8")
-    # Flutter 판에 그대로 복사한다. 웹판과 같은 파일을 써야 1:1 대응이 유지된다.
+    # 앱과 웹에 그대로 복사한다. 세 곳이 같은 파일이어야 1:1 대응이 유지된다.
     import shutil
     OUT_MOBILE.mkdir(parents=True, exist_ok=True)
     for src in (OUT, OUT_ADMIN):
         shutil.copy2(src, OUT_MOBILE / src.name)
+    OUT_WEB.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(OUT, OUT_WEB / OUT.name)      # admin.json 은 서버에만 둔다
 
     kb = OUT.stat().st_size / 1024
     kb_a = OUT_ADMIN.stat().st_size / 1024
@@ -573,6 +595,7 @@ def main() -> int:
 
     print(f"■ {OUT.relative_to(ROOT)}  {kb:,.0f}KB   (학습자가 받는 것)")
     print(f"■ {(OUT_MOBILE / OUT.name).relative_to(ROOT)}  같은 파일   (Flutter 판)")
+    print(f"■ {(OUT_WEB / OUT.name).relative_to(ROOT)}  같은 파일   (웹판)")
     print(f"■ {OUT_ADMIN.relative_to(ROOT)}  {kb_a:,.0f}KB   "
           f"(위험도·출제이유서 {admin['n']}건 — 관리자 모드에서만 받는다)")
     print(f"   문항 {data['n']}건 · 지문 {len(data['passages'])}개 · "

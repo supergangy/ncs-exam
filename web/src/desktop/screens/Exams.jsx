@@ -11,18 +11,25 @@ import { go } from '../../router/useHash.js';
 import { useDerived } from '../../store/useStore.js';
 
 export default function Exams({ db }) {
-  const m = useDerived(s => ({
-    sit: s.sit(),
-    rows: db.rounds.map(r => ({
+  const m = useDerived(s => {
+    const row = r => ({
       r,
       n: db.byRound(r.tag).length,
       h: s.examHistory(r.tag),
       rec: s.exam(r.tag),
-    })),
-  }), [db]);
+    });
+    // 직렬로 묶는다 — 표 한 벌에 소제목 줄을 끼워 넣는다. 문항 은행과 같은 규율로,
+    // 전산 회차와 NCS 회차가 한 줄에 뒤섞이지 않게 한다
+    return {
+      sit: s.sit(),
+      groups: db.roundsByTrack().map(g => ({ ...g, rows: g.rounds.map(row) })),
+      rows: db.rounds.map(row),
+    };
+  }, [db]);
 
   const cur = m.sit ? db.round(m.sit.tag) : null;
   const tried = m.rows.filter(x => x.rec).length;
+  const many = m.groups.length > 1;      // 직렬이 하나뿐이면 소제목이 군더더기다
 
   return (
     <>
@@ -61,7 +68,19 @@ export default function Exams({ db }) {
             </tr>
           </thead>
           <tbody>
-            {m.rows.map(({ r, n, h, rec }) => (
+            {m.groups.flatMap(g => [
+              many && (
+                <tr key={'g' + g.tr}>
+                  <td colSpan={8} style={{ padding: '.9rem 1rem .35rem',
+                                           borderBottom: '1px solid var(--hair)' }}>
+                    <b className="sm">{g.name}</b>
+                    <span className="sm faint" style={{ marginLeft: '.5rem' }}>
+                      {g.sub} · 회차 {g.rows.length}개
+                    </span>
+                  </td>
+                </tr>
+              ),
+              ...g.rows.map(({ r, n, h, rec }) => (
               <tr key={r.tag} style={{ borderBottom: '1px solid var(--hair)' }}>
                 <td style={{ padding: '.7rem 1rem', fontWeight: 'var(--w-semi)' }}>{r.title}</td>
                 <td style={{ padding: '.7rem 1rem', color: 'var(--mute)' }}>{r.org}</td>
@@ -93,7 +112,8 @@ export default function Exams({ db }) {
                   </button>
                 </td>
               </tr>
-            ))}
+              )),
+            ])}
           </tbody>
         </table>
       </div>

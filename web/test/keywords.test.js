@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { group, narrow, tally } from '../src/core/keywords.js';
 import { plain } from '../src/core/text.js';
 import { wrap } from '../src/data/bank.js';
-import { makePool } from '../src/data/pool.js';
+import { makePool, practiceKeep } from '../src/data/pool.js';
 import { createStore, memory } from '../src/core/store.js';
 
 const fake = {
@@ -116,12 +116,22 @@ test('실제 bank.json 의 키워드를 묶는다', () => {
   const bank = JSON.parse(readFileSync(new URL('../../app/data/bank.json', import.meta.url),
                                        'utf8'));
   const db = wrap(bank);
-  const g = group(db);
+  const st = createStore(memory()).load();
+  // **화면과 같은 체를 쓴다.** 아직 안 본 회차의 문항은 연습 목록에 나오지 않으므로
+  // 키워드 수에서도 빠져야 한다 — 안 그러면 「호스트 10개」를 눌렀는데 8개가 나온다
+  const keep = practiceKeep(db, st);
+  const g = group({ items: db.items.filter(keep), keywords: db.keywords });
   const t = tally(g);
 
-  // 표에 있는 것이 전부 문항에 붙어 있다 (지금 배포본은 326/326)
-  assert.equal(t.keys, db.keywords.length,
-               `표 ${db.keywords.length}개 중 ${t.keys}개만 문항에 붙어 있다`);
+  // 체를 걷어 내면 표에 있는 것이 **전부** 문항에 붙어 있다 — 내보내기의 약속이다.
+  // 붙지 않은 키워드가 표에 남으면 눌러도 아무것도 안 나오는 칩이 생긴다
+  const raw = tally(group(db));
+  assert.equal(raw.keys, db.keywords.length,
+               `표 ${db.keywords.length}개 중 ${raw.keys}개만 문항에 붙어 있다`);
+
+  // 체를 씌우면 줄어들 수는 있어도 늘지는 않는다. 잠긴 회차에만 있는 키워드는
+  // 그동안 목록에서 빠진다 — `group()` 이 빈 것을 세우지 않기 때문이다
+  assert.ok(t.keys <= raw.keys, `걸러 낸 뒤 ${t.keys} > 원래 ${raw.keys}`);
 
   // 이름이 글자로 나온다 — 객체가 새면 목록이 '[object Object]' 로 찬다
   for (const k of g.flatMap(x => x.keys).slice(0, 50)) {
@@ -133,12 +143,11 @@ test('실제 bank.json 의 키워드를 묶는다', () => {
   // 과목 문항 수가 그 과목의 실제 문항 수를 넘지 않는다 —
   // 키워드별 수를 그냥 더하면 넘는다 (전자계산기구조가 118개로 나왔다)
   for (const x of g) {
-    const real = db.byArea(x.sj).length;
+    const real = db.byArea(x.sj, keep).length;
     assert.ok(x.n <= real, `${x.sj} — 키워드 문항 ${x.n} > 과목 문항 ${real}`);
   }
 
-  // 어느 키워드를 눌러도 문항이 나온다
-  const st = createStore(memory()).load();
+  // 어느 키워드를 눌러도 목록에 적힌 수만큼 나온다
   for (const k of g.flatMap(x => x.keys).slice(0, 30)) {
     const p = makePool(db, st, 'kw=' + k.idx);
     assert.equal(p.items.length, k.n, `${k.t} — 목록 ${k.n} vs 묶음 ${p.items.length}`);
@@ -148,7 +157,7 @@ test('실제 bank.json 의 키워드를 묶는다', () => {
 // ── 연습 풀이 회차를 미리 소진하지 않는다 ──────────────────────────
 //   의사소통 86문항 중 61개(71%)가 회차 문항이었다. 그대로 두면 영역 연습만
 //   돌려도 모의고사를 다 보게 된다 — 시간 재고 앉을 때 이미 본 문제가 된다.
-import { practiceKeep, lockedRounds } from '../src/data/pool.js';
+import { lockedRounds } from '../src/data/pool.js';
 
 const round = {
   keywords: [],
@@ -240,14 +249,47 @@ test('묶어도 하나도 빠지지 않는다 — 감추는 것이 아니라 나
   assert.deepEqual(grouped.sort(), db.areas().map(a => a.area).sort());
 });
 
-test('실제 bank.json — NCS 10과목 504 · 전산 8과목 300', () => {
+test('실제 bank.json — NCS 10과목 504 · 전산 8과목 340', () => {
   const bank = JSON.parse(readFileSync(new URL('../../app/data/bank.json', import.meta.url),
                                        'utf8'));
   const db = wrap(bank);
   const g = db.byTrack();
+  // 전산 340 = 은행 300 + 전산 회차(r7_cs) 40. 회차 문항도 과목이 있으므로
+  // 과목 목록에 함께 선다 — 직렬은 `export_bank.track_of` 가 과목에서 끌어낸다
   assert.deepEqual(g.map(x => [x.tr, x.areas.length, x.n]),
-                   [['ncs', 10, 504], ['cs', 8, 300]]);
+                   [['ncs', 10, 504], ['cs', 8, 340]]);
   assert.equal(g[0].n + g[1].n, db.n);
+});
+
+test('회차도 직렬로 묶인다 — NCS 6개 · 전산 1개', () => {
+  const bank = JSON.parse(readFileSync(new URL('../../app/data/bank.json', import.meta.url),
+                                       'utf8'));
+  const db = wrap(bank);
+  const g = db.roundsByTrack();
+  assert.deepEqual(g.map(x => [x.tr, x.rounds.length]), [['ncs', 6], ['cs', 1]]);
+  // 어느 회차도 빠지지 않는다
+  assert.equal(g.reduce((n, x) => n + x.rounds.length, 0), db.rounds.length);
+  assert.equal(g[1].rounds[0].tag, 'r7_cs');
+});
+
+test('회차에 tr 이 없으면 NCS 로 본다 — 옛 bank.json 대비', () => {
+  const db = wrap({
+    v: 1, items: [], tracks: [{ id: 'ncs', name: 'NCS 직업기초', sub: '직업기초능력' },
+                              { id: 'cs', name: '전산직', sub: '직무 전공' }],
+    rounds: [{ tag: 'old', title: '옛 회차' }, { tag: 'new', title: '새 회차', tr: ['cs'] }],
+  });
+  const g = db.roundsByTrack();
+  assert.deepEqual(g.map(x => [x.tr, x.rounds.map(r => r.tag)]),
+                   [['ncs', ['old']], ['cs', ['new']]]);
+});
+
+test('두 직렬에 걸친 회차는 양쪽에 다 선다', () => {
+  const db = wrap({
+    v: 1, items: [], tracks: [{ id: 'ncs', name: 'NCS 직업기초', sub: '직업기초능력' },
+                              { id: 'cs', name: '전산직', sub: '직무 전공' }],
+    rounds: [{ tag: 'both', title: '한 교시 회차', tr: ['ncs', 'cs'] }],
+  });
+  assert.deepEqual(db.roundsByTrack().map(x => x.rounds.length), [1, 1]);
 });
 
 // ── 목록에서 문항을 알아볼 수 있어야 한다 ─────────────────────────

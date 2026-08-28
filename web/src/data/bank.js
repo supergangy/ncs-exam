@@ -77,6 +77,28 @@ export function wrap(raw) {
         .map(g => ({ ...g, n: g.areas.reduce((s2, a) => s2 + a.n, 0) }));
     },
 
+    /** 직렬별로 묶은 회차 목록 — `[{ tr, name, sub, rounds }]`.
+     *
+     *  `byTrack` 과 같은 규율이다. 회차 일곱 개를 한 줄로 세우면 전산직 응시자가
+     *  NCS 여섯 개를 헤치고 자기 것을 찾아야 하고, 사무직 응시자는 전산 회차를
+     *  자기 시험인 줄 알고 열게 된다.
+     *
+     *  회차의 `tr` 은 **문항이 정한다**(`tools/export_bank.py` 의 `track_of`).
+     *  한 회차가 두 직렬에 걸치면 양쪽 묶음에 다 나온다 — NCS 와 전공을 한 교시에
+     *  치르는 회차를 나중에 넣더라도 화면을 고칠 일이 없다. */
+    roundsByTrack() {
+      const order = ['ncs', 'cs'];
+      const rs = raw.rounds || [];
+      return [...(raw.tracks || [])]
+        .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
+        .map(t => ({
+          tr: t.id, name: t.name, sub: t.sub,
+          // 옛 bank.json 에는 tr 이 없다. 없으면 NCS 로 본다 — 그때는 다 NCS 였다
+          rounds: rs.filter(r => (r.tr || ['ncs']).includes(t.id)),
+        }))
+        .filter(g => g.rounds.length);
+    },
+
     /** 키워드 표. 항목은 `{ t: 이름, n: 문항 수 }` 다 */
     keywords: raw.keywords || [],
     /** 키워드 **이름만** 준다.

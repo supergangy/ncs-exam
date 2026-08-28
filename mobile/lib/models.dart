@@ -68,14 +68,23 @@ class RoundArea {
 class RoundEntry {
   final String tag, title, brand, org;
   final int n, min;
+
+  /// 이 회차가 어느 직렬의 것인가 — `['ncs']` · `['cs']` · 둘 다.
+  ///
+  /// 내보내기가 **문항의 과목에서 끌어낸다**(`tools/export_bank.py` 의 `track_of`).
+  /// 옛 bank.json 에는 이 칸이 없다. 그때는 회차가 다 NCS 였으므로 그렇게 본다.
+  final List<String> tr;
+
   final List<RoundArea> areas;
   RoundEntry({
     required this.tag, required this.title, required this.brand,
-    required this.org, required this.n, required this.min, required this.areas,
+    required this.org, required this.n, required this.min,
+    required this.tr, required this.areas,
   });
   factory RoundEntry.fromJson(Map<String, dynamic> j) => RoundEntry(
         tag: j['tag'], title: j['title'], brand: j['brand'] ?? '',
         org: j['org'] ?? '', n: j['n'], min: j['min'],
+        tr: ((j['tr'] as List?) ?? const ['ncs']).cast<String>(),
         areas: (j['areas'] as List)
             .map((a) => RoundArea(a[0] as String, a[1] as int))
             .toList(),

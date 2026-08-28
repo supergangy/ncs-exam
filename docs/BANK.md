@@ -252,7 +252,7 @@ SELECT i.* FROM item i
 | **5** | 화면 (유형 목록 → 문항 → 채점 → 해설) | `app/` PWA | **됐다** |
 | **6** | 앱 — 콘텐츠 번들 + 기록 로컬 + 오답노트 PDF | PWA + `tools/wrongnote_pdf.py` | **됐다** |
 | **7** | 회차 모드 — 타이머·OMR·제출 후 채점 | `app/` `#/exams`~`#/result` | **됐다** |
-| **8** | Flutter 이식 | `mobile/` 화면 17개 · 804문항 번들 | **됐다** |
+| **8** | Flutter 이식 | `mobile/` 화면 17개 · 844문항 번들 | **됐다** |
 | **9** | Flutter APK 배포 | — | 남았다 |
 
 ### 하면서 달라진 것
