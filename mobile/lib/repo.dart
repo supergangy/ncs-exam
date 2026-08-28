@@ -7,6 +7,8 @@ library;
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'models.dart';
+import 'round_lock.dart';
+import 'store.dart';
 import 'text.dart';
 export 'models.dart';
 
@@ -128,23 +130,45 @@ class Repo {
     return out;
   }
 
+  /// 훑어보는 목록 — 직렬·과목·유형·키워드.
+  ///
+  /// **아직 안 본 회차의 문항은 내지 않는다.** 회차 문항은 은행에도 함께 있어서
+  /// 그대로 두면 과목 연습이 모의고사를 미리 태운다 — 의사소통 86문항 중
+  /// 61개(71%)가 회차 문항이다(2026-08-28 실측). 며칠 연습하면 시간 재고
+  /// 앉았을 때 **이미 본 문제**가 되고, 한 번 본 것은 되돌릴 수 없다.
+  ///
+  /// 제출하면 곧바로 합류한다 — 그때부터는 아껴 둘 것이 아니라 복습할 것이다.
+  /// 회차를 먼저 풀어 보고 싶으면 [roundItems] 를 쓰는 회차 화면이 그 길이다.
+  ///
+  /// 오답노트·복습·북마크는 이 창구를 쓰지 않는다(각자 Store 를 본다).
+  /// 내가 이미 푼 것이라 감출 이유가 없다.
+  ///
+  /// **호출부에 맡기지 않는다.** 화면 여섯 곳이 이 창구를 쓰는데, 넘기는 방식이면
+  /// 새 화면 하나에서 빠뜨리는 순간 그 화면만 조용히 새어 나간다.
+  /// 규칙은 `round_lock.dart` 에 순수하게 두어 `tool/check_pool.dart` 가 검사한다.
+  ///
+  /// **화면이 이 목록으로 수를 센다.** 그래서 여기서 거르면 「전체 n문항」도
+  /// 함께 맞는다 — 세는 곳과 푸는 곳이 어긋나지 않는다.
   List<Item> filter({String? tr, String? sj, String? ty, int? kw}) {
+    final lock = lockedRounds(bank.rounds, Store.instance.exams);
+    List<Item> keep(List<Item> xs) => withoutLocked(xs, lock);
+
     if (kw != null) {
       final base = _byKeyword[kw] ?? const <Item>[];
-      if (tr == null && sj == null && ty == null) return base;
-      return base.where((i) =>
+      if (tr == null && sj == null && ty == null) return keep(base);
+      return keep(base.where((i) =>
           (tr == null || i.tr == tr) &&
           (sj == null || i.sj == sj) &&
-          (ty == null || i.ty == ty)).toList();
+          (ty == null || i.ty == ty)).toList());
     }
     if (tr != null && sj != null && ty != null) {
-      return _byTrackSubjectType['$tr $sj $ty'] ?? const [];
+      return keep(_byTrackSubjectType['$tr $sj $ty'] ?? const []);
     }
-    if (tr != null && sj != null) return _byTrackSubject['$tr $sj'] ?? const [];
-    if (tr != null) return _byTrack[tr] ?? const [];
-    if (sj == null && ty == null) return bank.items;
-    return bank.items.where((i) =>
-        (sj == null || i.sj == sj) && (ty == null || i.ty == ty)).toList();
+    if (tr != null && sj != null) return keep(_byTrackSubject['$tr $sj'] ?? const []);
+    if (tr != null) return keep(_byTrack[tr] ?? const []);
+    if (sj == null && ty == null) return keep(bank.items);
+    return keep(bank.items.where((i) =>
+        (sj == null || i.sj == sj) && (ty == null || i.ty == ty)).toList());
   }
 }
 
