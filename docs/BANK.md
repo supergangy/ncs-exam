@@ -304,11 +304,25 @@ DB를 손으로 고치지 않는다. `reviews/db.json` ↔ `--rebuild` 와 같�
 
 ## 6. 배포 — 공개 저장소로 분리
 
-`app/` 의 산출물만 별도 **공개** 저장소로 옮겨 GitHub Pages 로 띄운다.
-집필·검증 파이프라인(`bank/`·`reviews/`·`tools/`)이 있는 이 저장소는 계속 비공개다.
+`app/` 의 산출물만 별도 저장소로 옮겨 GitHub Pages 로 띄운다.
+
+> **2026-08-28 정정.** 이 문서는 「이 저장소는 계속 비공개다」라고 적어 왔지만
+> `supergangy/ncs-exam` 은 **공개**다(`gh repo view`). 언제 왜 열렸는지는
+> 이력에 남아 있지 않다. 확인한 것은 이렇다 —
+>
+> - 후기·말뭉치 **원문은 들어가지 않았다.** `reviews/raw`·`corpus/raw`·
+>   `corpus/parsed` 는 추적 파일에도 **커밋 이력에도** 없다(`git log --all`).
+> - `reviews/db.json` 은 분류 결과와 글 제목만 담는다. 본문·글쓴이는 없다.
+> - 문항 원본(`bank/`·`rounds/`)과 출제이유서는 **공개돼 있다.** 배포 앱의
+>   `data/admin.json` 도 원래 공개이므로(아래 「접근 제한 없음 — 사용자 결정」)
+>   새로 열린 것은 **집필 소스**다.
+>
+> 그대로 둘지 닫을지는 정해야 한다. 닫으면 릴리스 APK 를 받는 경로도 함께
+> 막히므로(아래) 배포 저장소로 옮겨야 한다.
 
 - 배포 URL: https://supergangy.github.io/ncs-pass-app/
 - 소스: https://github.com/supergangy/ncs-pass-app (public)
+- **APK**: https://github.com/supergangy/ncs-exam 의 Releases. `mobile/CHANGELOG.md` 참조
 - **옛 주소** https://supergangy.github.io/ncs-exam-app/ 는 안내 페이지만 남겼다.
   이력서·포트폴리오·PDF 에 그 주소가 박혀 있어 살려 둔다.
   안내 페이지에는 **자기 자신을 등록 해제하는 `sw.js`** 를 같이 올렸다 —
