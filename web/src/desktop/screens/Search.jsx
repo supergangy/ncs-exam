@@ -11,13 +11,15 @@
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
 
 import { search } from '../../core/search.js';
-import { poolHref } from '../../data/pool.js';
+import { lockedRounds, poolHref } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
+import { useStore } from '../../store/useStore.js';
 
 const LIMIT = 120;
 
 export default function Search({ db }) {
+  const st = useStore();
   const [q, setQ] = useState('');
   const [where, setWhere] = useState(null);      // 걸린 곳으로 좁히기
   const box = useRef(null);
@@ -26,6 +28,9 @@ export default function Search({ db }) {
 
   useEffect(() => { box.current?.focus(); }, []);
 
+  // 검색은 **막지 않는다.** 낱말을 치고 그 줄을 고른 것은 대놓고 고른 것이다.
+  // 다만 아직 안 본 회차의 문항이면 표를 붙여 알려 준다
+  const lock = lockedRounds(db, st);
   const all = dq.trim().length >= 2 ? search(dq, db) : [];
   const counts = new Map();
   for (const h of all) counts.set(h.where, (counts.get(h.where) || 0) + 1);
@@ -86,6 +91,10 @@ export default function Search({ db }) {
                     <button key={it.id} className="row-item"
                             onClick={() => go(poolHref({ id: it.id }))}>
                       <span className="badge badge-flat" style={{ flex: '0 0 auto' }}>{w}</span>
+                      {/* 아직 안 본 회차의 문항 — 열면 그 회차를 태운다 */}
+                      {lock.has(it.rd) && (
+                        <span className="badge badge-warn" style={{ flex: '0 0 auto' }}>회차</span>
+                      )}
                       <span className="row-t">
                         <span style={{ display: 'block' }}>{db.line(it, 84)}</span>
                         <span className="row-sub" style={{ display: 'block' }}>

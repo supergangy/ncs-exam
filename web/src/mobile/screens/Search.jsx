@@ -9,13 +9,18 @@
 import { useDeferredValue, useState } from 'react';
 
 import { search } from '../../core/search.js';
-import { poolHref } from '../../data/pool.js';
+import { lockedRounds, poolHref } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
+import { useStore } from '../../store/useStore.js';
 
 export default function Search({ db }) {
+  const st = useStore();
   const [q, setQ] = useState('');
   const dq = useDeferredValue(q);
+  // 검색은 **막지 않는다.** 낱말을 치고 그 줄을 고른 것은 대놓고 고른 것이다.
+  // 다만 아직 안 본 회차의 문항이면 표를 붙여 알려 준다
+  const lock = lockedRounds(db, st);
   const hits = dq.trim().length >= 2 ? search(dq, db) : [];
   const slow = q !== dq;
 
@@ -58,6 +63,13 @@ export default function Search({ db }) {
                         <span className="badge badge-flat" style={{ marginRight: '.35rem' }}>
                           {where}
                         </span>
+                        {/* 아직 안 본 회차의 문항이면 알려 준다 — 검색은 막지 않되,
+                            눌러 열면 그 회차를 태운다는 것을 모르고 누르면 안 된다 */}
+                        {lock.has(it.rd) && (
+                          <span className="badge badge-warn" style={{ marginRight: '.35rem' }}>
+                            회차
+                          </span>
+                        )}
                         {snip || `${it.sj} · ${it.ty}`}
                       </span>
                     </span>
