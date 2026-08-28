@@ -132,9 +132,12 @@ export default function Bank({ db, area = null, type = null }) {
                             onClick={() => go(poolHref({ sj: area, ty: type }) + '&at=' + i)}>
                       <span className="row-n" style={{ minWidth: '1.6rem' }}>{i + 1}</span>
                       <span className="row-t">
+                        {/* **글자 수로 자르지 않는다.** 위 span 이 CSS 로 자르므로
+                            폭이 정하게 둔다 — QHD 에서 이 칸이 900px 인데 64자에서
+                            끊으면 줄의 절반이 빈다. 200 은 「자르지 않는다」는 뜻이다 */}
                         <span style={{ display: 'block', overflow: 'hidden',
                                        textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {db.line(it, 64)}
+                          {db.line(it, 200)}
                         </span>
                       </span>
                       {flag && <I.Flag style={{ width: 15, height: 15,

@@ -96,20 +96,43 @@
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
 
 /* ── 본문 ───────────────────────────────────────────────── */
+/*  넓은 화면에서 **왼쪽 절반만 쓰던 것**을 고쳤다.
+ *  1180px 로 못 박고 가운데 정렬도 없어서, QHD(2560) 100% 에서 화면의 56% 만
+ *  쓰고 오른쪽 1125px 이 비어 있었다(2026-08-28 실측).
+ *
+ *  넓어진 폭을 **아무 데나 주지 않는다.**
+ *    목록·표·격자(은행·분석·검색·회차·키워드)  넓어질수록 이득이다 → 준다
+ *    읽는 글줄(발문·선지·지문)                  길어지면 읽기 나빠진다 → 안 준다
+ *  그래서 `.page` 는 단계로 넓히고 **가운데로** 놓고, 읽는 화면(`.split`)은
+ *  `--read-w` 로 따로 묶어 남는 폭을 양옆으로 흘린다.
+ *
+ *  **브라우저 배율도 이 단계가 받는다.** 확대하면 CSS 픽셀 폭이 그만큼 줄어
+ *  아래 질의가 그대로 아래 단계를 고른다 — 배율용 규칙을 따로 두지 않는다.
+ */
 .main { min-width: 0; }
 .page {
-  max-width: 1180px;
+  --page-max: 1180px;
+  --read-w: 56rem;              /* 읽는 칸 — 이 이상 늘리면 글줄이 길어진다 */
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
   padding: 1.5rem 1.5rem 4rem;
 }
+@media (min-width: 1500px) { .page { --page-max: 1400px; } }
+@media (min-width: 1800px) { .page { --page-max: 1680px; --read-w: 62rem; } }
+@media (min-width: 2200px) { .page { --page-max: 1960px; } }
 .page-head { margin-bottom: 1.25rem; }
 .page-head .h1 { margin-bottom: .25rem; }
 
-/* 문항 풀이 — 본문 + 우측 팔레트 */
+/* 문항 풀이 — 본문 + 우측 팔레트.
+   본문은 `--read-w` 에서 멈추고 남는 폭은 양옆으로 간다. 화면이 넓다고 발문이
+   1600px 로 늘어나면 눈이 줄 끝에서 처음을 못 찾는다. */
 .split {
   display: grid;
-  grid-template-columns: minmax(var(--body-min), 1fr) var(--pad-w);
+  grid-template-columns: minmax(var(--body-min), var(--read-w)) var(--pad-w);
   gap: 1.25rem;
   align-items: start;
+  justify-content: center;
 }
 .aside { position: sticky; top: 78px; display: flex; flex-direction: column; gap: .75rem; }
 
@@ -138,6 +161,11 @@
 .bank .row-item[aria-current="true"] { background: var(--acc-bg); color: var(--acc); }
 .bank .row-item[aria-current="true"] .row-sub { color: var(--acc); opacity: .8; }
 
+/* 넓은 화면에서는 고르는 칸(영역·유형)도 함께 넓힌다 —
+   문항 칸만 커지면 한 줄이 지나치게 길어진다 */
+@media (min-width: 1800px) {
+  .bank { grid-template-columns: 18rem 22rem minmax(0, 1fr); }
+}
 @media (max-width: 1399px) {
   /* 문항 목록을 아래로 내린다 — 영역·유형 고르기가 먼저다 */
   .bank { grid-template-columns: 14rem minmax(0, 1fr); }

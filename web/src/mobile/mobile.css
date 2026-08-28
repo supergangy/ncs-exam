@@ -37,9 +37,15 @@
     calc(var(--tab-h) + env(safe-area-inset-bottom) + 1.2rem);
 }
 /* 하단에 버튼 줄이 있는 화면 — 탭 + 버튼 몫을 함께 비운다.
-   `--foot-h` 하나를 위치와 여백이 같이 본다 */
+   `--foot-h` 하나를 위치와 여백이 같이 본다.
+
+   **대비값을 반드시 준다.** 그 토큰이 정의돼 있지 않던 동안 이 calc() 가 통째로
+   무효가 되어 `padding-bottom` 이 **0** 이 되었고, 5번 선지가 제출 줄에 28px
+   깔렸다(2026-08-28 실측). var() 하나가 없으면 선언 전체가 unset 이 된다 —
+   앞의 `.view` 값으로 돌아가지도 않는다. */
 .view.has-foot {
-  padding-bottom: calc(var(--tab-h) + var(--foot-h) + env(safe-area-inset-bottom) + 1.2rem);
+  padding-bottom:
+    calc(var(--tab-h) + var(--foot-h, 62px) + env(safe-area-inset-bottom) + 1.2rem);
 }
 
 .stack { display: flex; flex-direction: column; gap: .75rem; }
@@ -52,7 +58,7 @@
   z-index: 25;
   display: flex;
   gap: .5rem;
-  min-height: var(--foot-h);
+  min-height: var(--foot-h, 62px);
   align-items: center;
   padding: .55rem .9rem;
   /* 탭 위에 앉는다 — 겹치면 버튼이 안 눌린다 */

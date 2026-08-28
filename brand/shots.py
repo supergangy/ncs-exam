@@ -41,10 +41,12 @@ DAY = 86400000
 
 MOBILE = (375, 812)                  # 실기기와 같은 폭
 DESKTOP = (1440, 900)                # 팔레트까지 펼쳐지는 폭 (1200 이상)
+WIDE = (2560, 1440)                  # QHD 100% — 넓은 화면에서 폭을 쓰는지 본다
 
-# 한 화면에 안 들어가는 것 — 아래를 봐야 하므로 세로만 늘려 찍는다.
-# 폭은 건드리지 않는다. 폭을 늘리면 다른 앱을 찍는 셈이다.
-TALL = {
+# 기본 크기(MOBILE·DESKTOP)로 안 되는 것 —
+#   세로가 모자란 화면은 세로만 늘린다. 폭을 늘리면 다른 앱을 찍는 셈이다.
+#   `w-*` 는 예외다 — **넓은 화면 자체가 볼거리**라 폭을 바꾼다.
+SIZE = {
     "m-pass":   (375, 1900),
     "d-pass":   (1440, 1200),
     "m-kw":     (375, 1500),
@@ -52,6 +54,8 @@ TALL = {
     "m-more":   (375, 1000),
     "m-home":   (375, 1500),
     "d-kw":     (1440, 1500),
+    "w-bank":   WIDE,
+    "w-solve":  WIDE,
     "d-done":   (1440, 1150),
 }
 
@@ -79,6 +83,9 @@ SHOTS = [
     ("d-search", "",   "#/search",           "PC 검색"),
     ("d-pass",   "",   "#/q?id=r1_public-01", "PC 지문"),
     ("d-kw",     "",   "#/kw",               "PC 키워드"),
+    # QHD — 「왼쪽 절반만 쓴다」를 고친 뒤로 여기서 확인한다
+    ("w-bank",   "",   "#/s/수리능력/확률",   "QHD 문항 은행"),
+    ("w-solve",  "",   "#/q?id=r1_public-01", "QHD 문항 풀이"),
     ("d-done",   "",   "#/done",             "PC 마침"),
 ]
 
@@ -211,8 +218,10 @@ def shoot_all(shots) -> list[pathlib.Path]:
         spec.append({
             "out": str(dst),
             "url": "http://127.0.0.1:%d/%sindex.html%s" % (PORT, entry, hash_),
-            "w": TALL.get(name, (w, h))[0], "h": TALL.get(name, (w, h))[1],
-            "scale": 2, "mobile": bool(entry),
+            "w": SIZE.get(name, (w, h))[0], "h": SIZE.get(name, (w, h))[1],
+            # 넓은 화면은 배율 1 로 — 2560×2 면 한 장이 몇 MB 다
+            "scale": 1 if SIZE.get(name, (w, h))[0] >= 2000 else 2,
+            "mobile": bool(entry),
         })
         paths.append(dst)
 
@@ -235,7 +244,7 @@ def sheet(paths, cols: int = 4, name: str = "screens.png") -> pathlib.Path:
         raise SystemExit("붙일 사진이 없다")
 
     # 배율 2로 찍으므로 줄여 붙인다. 폭은 첫 장 기준으로 통일하고 세로는 비율대로 —
-    # **크기가 같다고 가정하면 안 된다.** 긴 화면은 세로를 늘려 찍는다(TALL)
+    # **크기가 같다고 가정하면 안 된다.** 긴 화면은 세로를, 넓은 화면은 폭을 달리 찍는다(SIZE)
     cw = ims[0][0].width // 2
     def fit(im):
         h = max(1, round(im.height * cw / im.width))

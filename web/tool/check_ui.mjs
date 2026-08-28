@@ -147,6 +147,35 @@ for (const f of files) {
   });
 }
 
+// ── 없는 토큰을 쓰나 ───────────────────────────────────────────────
+/** `var(--x)` 를 쓰는데 `--x` 를 아무도 정의하지 않았으면 **치명**이다.
+ *
+ *  var() 하나가 풀리지 않으면 **그 선언 전체가 무효**가 되고, 앞의 값으로
+ *  돌아가지도 않는다(unset → 초기값). `--foot-h` 가 정의돼 있지 않던 동안
+ *  `.view.has-foot` 의 padding-bottom 이 통째로 **0** 이 되어, 모바일에서
+ *  5번 선지가 제출 줄에 28px 깔렸다(2026-08-28). 화면은 멀쩡해 보였다 —
+ *  줄 하나가 사라지는 것이 아니라 값 하나가 조용히 0 이 되기 때문이다.
+ *
+ *  대비값이 있는 `var(--x, 12px)` 는 세지 않는다 — 그것은 없어도 성립한다.
+ */
+const DEF = /(--[-\w]+)[ ]*:/g;
+const USE = /var\([ ]*(--[-\w]+)[ ]*\)/g;
+const defined = new Set();
+for (const f of files) {
+  for (const m of readFileSync(f, 'utf8').matchAll(DEF)) defined.add(m[1]);
+}
+for (const f of files) {
+  const lines = readFileSync(f, 'utf8').split(/\r?\n/);
+  lines.forEach((ln, i) => {
+    for (const m of ln.matchAll(USE)) {
+      if (!defined.has(m[1])) {
+        say(bad, f, i + 1,
+            `${m[1]} 를 쓰는데 아무 데도 정의가 없다 — 그 선언 전체가 무효가 된다`);
+      }
+    }
+  });
+}
+
 // ── 짝이 맞나 ─────────────────────────────────────────────────────
 /** 발문을 그리는 화면은 **지문도 그려야 한다.**
  *
