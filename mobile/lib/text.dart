@@ -79,3 +79,39 @@ String snippet(String? html, [int n = 60]) {
   final t = plainText(html);
   return t.length > n ? '${t.substring(0, n)}…' : t;
 }
+
+/// 발문이 저 혼자 서지 못하는 표시 — 지문·자료를 가리키는 말.
+///
+/// **낱말 안쪽에서 걸리면 안 된다.** 「위 표」로만 두면
+/// 「**중위 표**기식 (A + B) * C …」가 걸린다.
+final _refersRe = RegExp(r'윗글|윗 글|앞의 글|(?<![가-힣])위\s?(글|자료|표|공고문|그림|의)');
+
+/// 「무엇에 관한 것인가」 한 조각 — 표는 `<caption>`, 아니면 **첫 블록**.
+///
+/// 문장 부호로 자르면 안 된다. 공고문은 제목 다음에 「1. 사업 목적」이 와서
+/// 「…지원사업 공고 1」 처럼 번호가 딸려 온다.
+String _sourceOf(String? html) {
+  if (html == null || html.isEmpty) return '';
+  final cap = RegExp(r'<caption>([\s\S]*?)</caption>').firstMatch(html);
+  final para = RegExp(r'<p[^>]*>([\s\S]*?)</p>').firstMatch(html);
+  var t = plainText(cap != null ? cap.group(1) : (para != null ? para.group(1) : html))
+      .replaceFirst(RegExp(r'^<[^>]*>\s*'), '')      // 캡션 앞의 <표 1> 같은 표시
+      .replaceFirst(RegExp(r'^\(단위[^)]*\)\s*'), '')
+      .trim();
+  return t.length > 30 ? '${t.substring(0, 29)}…' : t;
+}
+
+/// 목록 한 줄 — 발문이 「윗글」·「위 자료」라 부르면 **그것이 무엇인지 앞에 붙인다.**
+///
+/// 목록에는 지문도 자료도 없다. 「위 자료를 토대로 ㉠과 ㉡을 구하면?」만 보고는
+/// 오답노트에서 무엇을 다시 풀지 고를 수 없다. 804문항 중 40개가 그렇다.
+///
+/// [sourceHtml] 은 지문 본문이거나 자료다. 여기서 찾지 않는 까닭은 이 파일이
+/// **Flutter 도 Repo 도 모르게** 두어야 `dart run` 으로 검사할 수 있어서다.
+/// 찾아 넘기는 일은 `Repo.line` 이 한다.
+String listLine(String stem, String? sourceHtml, [int n = 60]) {
+  final s = plainText(stem);
+  final src = _refersRe.hasMatch(s) ? _sourceOf(sourceHtml) : '';
+  final t = src.isEmpty ? s : '$src — $s';
+  return t.length > n ? '${t.substring(0, n)}…' : t;
+}

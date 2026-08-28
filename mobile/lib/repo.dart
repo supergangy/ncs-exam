@@ -121,6 +121,11 @@ class Repo {
 
   List<Item> roundItems(String tag) => _byRound[tag] ?? const [];
 
+  /// 목록 한 줄 — 지문·자료를 찾아 [listLine] 에 넘긴다.
+  /// 오답노트·복습·북마크·팔레트가 모두 이 창구를 쓴다.
+  String line(Item it, [int n = 60]) =>
+      listLine(it.st, it.pg != null ? passage(it.pg!)?.body : it.mt, n);
+
   /// 대유형 하나에 드는 문항 — 세부 유형 여러 개를 합친다.
   List<Item> groupItems(String tr, String sj, String group) {
     final out = <Item>[];

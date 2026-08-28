@@ -12,6 +12,37 @@ import { plain } from '../core/text.js';
 /** 아무것도 거르지 않는 체 — `keep` 을 안 넘겼을 때의 기본값 */
 const ALL = () => true;
 
+/** 발문이 저 혼자 서지 못하는 표시 — 지문·자료를 가리키는 말.
+ *
+ *  **낱말 안쪽에서 걸리면 안 된다.** 「위 표」로만 두었더니
+ *  「**중위 표**기식 (A + B) * C - D 를 …」이 걸렸다. 앞에 한글이 붙어 있으면
+ *  그 「위」는 가리키는 말이 아니다. */
+const REFERS = /윗글|윗 글|앞의 글|(?<![가-힣])위\s?(글|자료|표|공고문|그림|의)/;
+
+/** 「무엇에 관한 것인가」 한 조각을 지문·자료에서 뽑는다.
+ *
+ *  표에는 `<caption>` 이 있고 그것이 곧 이름이다.
+ *  없으면 **첫 `<p>` 블록**을 쓴다 — 문장 부호로 자르면 안 된다.
+ *  공고문 지문은 제목 다음에 「1. 사업 목적」이 오는데, 그러면
+ *  「…지원사업 공고 1」 처럼 번호가 딸려 온다(실제로 그랬다).
+ *  블록으로 끊으면 제목이 통째로 잡힌다.
+ *
+ *  `(단위: …)` 는 표 앞머리라 이름이 아니므로 걷어낸다. */
+function source(raw, it) {
+  const html = it.pg != null
+    ? (Array.isArray(raw.passages) && raw.passages[it.pg]
+        ? raw.passages[it.pg].body : '')
+    : (it.mt || '');
+  if (!html) return '';
+  const cap = /<caption>([\s\S]*?)<\/caption>/.exec(html);
+  const para = /<p[^>]*>([\s\S]*?)<\/p>/.exec(html);
+  const t = plain(cap ? cap[1] : (para ? para[1] : html))
+    .replace(/^<[^>]*>\s*/, '')            // 캡션 앞의 <표 1> 같은 표시
+    .replace(/^\(단위[^)]*\)\s*/, '')
+    .trim();
+  return t.length > 30 ? t.slice(0, 29) + '…' : t;
+}
+
 /** 첨자 표를 함수로 감싼다 — 없는 첨자에도 터지지 않게 */
 export function wrap(raw) {
   const at = (arr, i, fb) => (Array.isArray(arr) && arr[i] != null ? arr[i] : fb);
@@ -91,9 +122,19 @@ export function wrap(raw) {
                             .sort((a, b) => (a.no || 0) - (b.no || 0)),
     byId: id => raw.items.find(i => i.id === id) || null,
 
-    /** 목록에 쓸 한 줄 — 발문에서 태그를 벗기고 길면 자른다 */
+    /** 목록에 쓸 한 줄.
+     *
+     *  발문이 「윗글」·「위 자료」라 부르면 **그것이 무엇인지 앞에 붙인다.**
+     *  목록에는 지문도 자료도 없어서, 「위 자료를 토대로 ㉠과 ㉡을 구하면?」만
+     *  보고는 무슨 문제인지 알 수 없다 — 오답노트에서 고를 수가 없다.
+     *  804문항 중 42개가 그렇다(2026-08-28 실측).
+     *
+     *  여기 한 곳을 고치면 목록 화면이 전부 함께 낫는다 — 오답노트·복습·
+     *  표시함·검색·묶음 마침·문항 은행이 모두 이 함수를 쓴다. */
     line: (it, len = 64) => {
-      const s = plain(it.st);
+      const stem = plain(it.st);
+      const src = REFERS.test(stem) ? source(raw, it) : '';
+      const s = src ? `${src} — ${stem}` : stem;
       return s.length > len ? s.slice(0, len - 1) + '…' : s;
     },
   };

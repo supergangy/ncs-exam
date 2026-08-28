@@ -50,7 +50,7 @@ class ReviewScreen extends StatelessWidget {
               for (final id in due)
                 if (repo.byId(id) case final it?)
                   RowTile(
-                    title: snippet(it.st, 60),
+                    title: Repo.instance.line(it, 60),
                     subtitle: '${it.sj} · ${it.ty}',
                     trailing: Text(
                       (store.srs[id]?.i ?? 0) > 0 ? '${store.srs[id]!.i}일 간격' : '새로',

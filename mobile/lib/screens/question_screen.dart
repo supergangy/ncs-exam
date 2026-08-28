@@ -543,7 +543,7 @@ class _ResultPage extends StatelessWidget {
           else if (miss.isNotEmpty) ...[
             SectionTitle('틀린 문제 ${miss.length}개'),
             ...miss.map((i) => RowTile(
-                  title: snippet(i.st, 40),
+                  title: Repo.instance.line(i, 40),
                   subtitle: '${i.sj} · ${i.ty}',
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => QuestionScreen(pool: [i]))),

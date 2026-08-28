@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { group, narrow, tally } from '../src/core/keywords.js';
+import { plain } from '../src/core/text.js';
 import { wrap } from '../src/data/bank.js';
 import { makePool } from '../src/data/pool.js';
 import { createStore, memory } from '../src/core/store.js';
@@ -247,4 +248,65 @@ test('실제 bank.json — NCS 10과목 504 · 전산 8과목 300', () => {
   assert.deepEqual(g.map(x => [x.tr, x.areas.length, x.n]),
                    [['ncs', 10, 504], ['cs', 8, 300]]);
   assert.equal(g[0].n + g[1].n, db.n);
+});
+
+// ── 목록에서 문항을 알아볼 수 있어야 한다 ─────────────────────────
+//   목록에는 지문도 자료도 없다. 「위 자료를 토대로 ㉠과 ㉡을 구하면?」만 보고는
+//   오답노트에서 무엇을 다시 풀지 고를 수 없다.
+const withSrc = {
+  keywords: [], tracks: [], rounds: [],
+  passages: [
+    { lead: '[01~02] 다음 글을 읽고 물음에 답하시오.',
+      body: '<p><strong>2027년도 지원사업 공고</strong></p><p><strong>1. 사업 목적</strong><br>노후 설비를 바꾼다.</p>' },
+    { lead: '[03~04] 다음 자료를 보고 물음에 답하시오.',
+      body: '<p class="unit">(단위: 개소)</p><table class="data"><caption>&lt;표&gt; 권역별 데이터센터 현황</caption><tr><td>1</td></tr></table>' },
+  ],
+  items: [
+    { id: 'a', sj: '문제해결능력', ty: 'x', pg: 0, st: '위 공고문을 이해한 내용으로 옳지 않은 것은?' },
+    { id: 'b', sj: '수리능력', ty: 'y', pg: 1, st: '위 자료를 토대로 ㉠과 ㉡을 구하면?' },
+    { id: 'c', sj: '수리능력', ty: 'y', st: '다음 중 옳은 것은?' },
+    { id: 'd', sj: '정보능력', ty: 'z', st: '중위 표기식 (A + B) * C 를 후위 표기로 바꾼 것은?' },
+  ],
+};
+
+test('발문이 「위 공고문」이라 부르면 그 공고문의 제목을 앞에 붙인다', () => {
+  const db = wrap({ ...withSrc, n: withSrc.items.length });
+  const line = db.line(db.byId('a'), 200);
+  assert.ok(line.startsWith('2027년도 지원사업 공고 — '), line);
+});
+
+test('표는 caption 이 곧 이름이다 — 「(단위: …)」는 이름이 아니다', () => {
+  const db = wrap({ ...withSrc, n: withSrc.items.length });
+  const line = db.line(db.byId('b'), 200);
+  assert.ok(line.startsWith('<표> 권역별 데이터센터 현황 — ') ||
+            line.startsWith('권역별 데이터센터 현황 — '), line);
+  assert.ok(!line.includes('단위'), line);
+});
+
+test('첫 문장이 아니라 첫 블록을 쓴다 — 「공고 1」 처럼 번호가 딸려 오면 안 된다', () => {
+  const db = wrap({ ...withSrc, n: withSrc.items.length });
+  assert.ok(!/공고 1 —/.test(db.line(db.byId('a'), 200)));
+});
+
+test('저 혼자 서는 발문은 건드리지 않는다', () => {
+  const db = wrap({ ...withSrc, n: withSrc.items.length });
+  assert.equal(db.line(db.byId('c'), 200), '다음 중 옳은 것은?');
+});
+
+test('낱말 안쪽의 「위」는 가리키는 말이 아니다 — 중위 표기식', () => {
+  const db = wrap({ ...withSrc, n: withSrc.items.length });
+  assert.ok(!db.line(db.byId('d'), 200).includes(' — '));
+});
+
+test('실제 bank.json — 40줄이 출처를 단다', () => {
+  const bank = JSON.parse(readFileSync(new URL('../../app/data/bank.json', import.meta.url),
+                                       'utf8'));
+  const db = wrap(bank);
+  const n = db.items.filter(i => db.line(i, 300).includes(' — ')).length;
+  assert.ok(n >= 35 && n <= 60, `출처를 단 줄이 ${n}개다`);
+  // 출처를 단 줄은 발문을 그대로 품는다 — 바꿔치기가 아니라 앞에 붙이는 것이다
+  for (const it of db.items.filter(i => db.line(i, 300).includes(" — ")).slice(0, 20)) {
+    const line = db.line(it, 300);
+    assert.ok(line.endsWith(plain(it.st).slice(-12)), line);
+  }
 });

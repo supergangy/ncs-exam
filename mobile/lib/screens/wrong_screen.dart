@@ -105,7 +105,7 @@ class _WrongScreenState extends State<WrongScreen> {
               ...wrong.map((i) {
                 final cnt = store.att[i.id]?.where((a) => !a.ok).length ?? 0;
                 return RowTile(
-                  title: snippet(i.st, 60),
+                  title: Repo.instance.line(i, 60),
                   subtitle: '${i.sj} · ${i.ty}',
                   trailing:
                       Text('$cnt회 틀림', style: TextStyle(color: c.faint, fontSize: 12.5)),

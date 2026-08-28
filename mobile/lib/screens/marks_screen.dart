@@ -97,7 +97,7 @@ class _MarksScreenState extends State<MarksScreen> {
         'id': e.key,
         'sj': it?.sj ?? '?',
         'ty': it?.ty ?? '?',
-        'stem': it != null ? snippet(it.st, 80) : '',
+        'stem': it != null ? Repo.instance.line(it, 80) : '',
       };
       if (it?.rd != null) {
         o['round'] = it!.rd;
@@ -154,7 +154,7 @@ class _MarkRow extends StatelessWidget {
             if (risk != null) ...[const SizedBox(width: 6), RiskBadge(risk!)],
           ]),
           const SizedBox(height: 3),
-          Text(snippet(item.st, 56),
+          Text(Repo.instance.line(item, 56),
               style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: c.ink)),
           if (memo.isNotEmpty)
             Container(

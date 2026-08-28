@@ -89,6 +89,31 @@ void main() {
     stdout.writeln('    (윗첨자 쓰는 선지 $supKept개 · 밑줄 쓰는 선지 $uKept개를 훑었다)');
   }
 
+  // ── 목록 한 줄 — 발문이 저 혼자 못 서면 출처를 앞에 붙인다 ──────
+  //   「위 자료를 토대로 ㉠과 ㉡을 구하면?」만 보고는 오답노트에서 고를 수 없다
+  const notice = '<p><strong>2027년도 지원사업 공고</strong></p>'
+      '<p><strong>1. 사업 목적</strong><br>노후 설비를 바꾼다.</p>';
+  const table = '<p class="unit">(단위: 개소)</p>'
+      '<table class="data"><caption>&lt;표&gt; 권역별 데이터센터 현황</caption></table>';
+
+  stdout.writeln('■ 목록 한 줄');
+  ok('공고문은 제목을 앞에 붙인다',
+      listLine('위 공고문을 이해한 내용으로 옳지 않은 것은?', notice, 200)
+          .startsWith('2027년도 지원사업 공고 — '));
+  ok('첫 문장이 아니라 첫 블록 — 「공고 1」이 되면 안 된다',
+      !listLine('위 공고문을 이해한 내용은?', notice, 200).contains('공고 1 —'));
+  ok('표는 caption 이 이름이다',
+      listLine('위 자료를 토대로 ㉠과 ㉡을 구하면?', table, 200).contains('권역별 데이터센터 현황'));
+  ok('「(단위: …)」는 이름이 아니다',
+      !listLine('위 자료에 대한 설명으로 옳은 것은?', table, 200).contains('단위'));
+  ok('저 혼자 서는 발문은 건드리지 않는다',
+      listLine('다음 중 옳은 것은?', notice, 200) == '다음 중 옳은 것은?');
+  ok('낱말 안쪽의 「위」는 가리키는 말이 아니다 — 중위 표기식',
+      !listLine('중위 표기식 (A + B) * C 를 후위 표기로 바꾼 것은?', notice, 200)
+          .contains(' — '));
+  ok('출처가 없으면 발문만 낸다',
+      listLine('윗글의 제목으로 적절한 것은?', null, 200) == '윗글의 제목으로 적절한 것은?');
   stdout.writeln('\n통과 $_pass · 실패 $_fail');
+
   if (_fail > 0) exit(1);
 }
