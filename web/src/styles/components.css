@@ -259,3 +259,22 @@
 }
 /* 과목을 가로지르는 표 — 색을 쓰지 않는다. 326개 중 7개라 눈에 띌 필요가 없다 */
 .chip > em { font-style: normal; color: var(--faint); font-size: var(--t-xs); }
+
+/* ── 지문 접기 — 지문과 발문 사이의 가는 줄 ──────────────────
+ * 본문을 이기면 안 된다. 지문을 읽는 동안 눈에 걸리지 않아야 하고,
+ * 다 읽고 내려오면 거기 있어야 한다. 그래서 **발문 바로 앞**에 두고
+ * 글자를 가장 작은 단계로 둔다.
+ */
+.fold {
+  width: 100%;
+  min-height: 32px;
+  margin: 0 0 .9rem;
+  padding: 0 .6rem;
+  border-top: 1px dashed var(--line);
+  border-radius: 0;
+  font-size: var(--t-xs);
+  font-weight: var(--w-semi);
+  color: var(--faint);
+  background: transparent;
+}
+.fold:hover { color: var(--acc); background: var(--acc-bg); border-top-color: var(--acc-ln); }

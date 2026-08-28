@@ -170,7 +170,8 @@
    자료(회색 상자)와 달리 배경을 깔지 않는다 — 본문이지 참고 자료가 아니다. */
 .lead { margin: .2rem 0 .5rem; font-size: var(--t-sm); color: var(--mute); }
 .passage {
-  margin: 0 0 .9rem;
+  /* 아래 여백은 `.fold`(지문 접기) 가 갖는다 — 둘 사이가 벌어지면 딴 줄로 보인다 */
+  margin: 0 0 .5rem;
   padding-left: .7rem;
   border-left: 3px solid var(--acc-ln);
   font-size: var(--t-body);
