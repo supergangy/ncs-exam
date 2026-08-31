@@ -19,7 +19,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  문항:
+  # job id 는 아스키여야 한다 — 한글로 두면 워크플로가 파싱되지 않고
+  # 「작업 0개」로 조용히 실패한다(실측). 보이는 이름은 name: 이 준다.
+  items:
+    name: 문항
     runs-on: ubuntu-latest
     env:
       PYTHONIOENCODING: utf-8
@@ -78,7 +81,8 @@ jobs:
       - name: NCS 문항 검증
         run: python tools/verify_ncs.py
 
-  웹:
+  web:
+    name: 웹
     runs-on: ubuntu-latest
     defaults:
       run:

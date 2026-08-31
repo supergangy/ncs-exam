@@ -9,7 +9,6 @@ import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets.dart';
-import '../html_view.dart';
 import 'question_screen.dart';
 
 class MarksScreen extends StatefulWidget {
