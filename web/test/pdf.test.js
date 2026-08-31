@@ -73,14 +73,27 @@ test('가리키는 파일이 실제로 있다 — 링크가 404 면 눌러야 �
   const bank = JSON.parse(readFileSync(new URL('../../app/data/bank.json', import.meta.url),
                                        'utf8'));
   const db = wrap(bank);
+
+  // `web/public/exams/` 는 gitignore 다 — `tools/export_bank.py` 가 만든다.
+  // 새로 클론한 자리에는 없으므로, 있을 때만 본다. CI 는 내보내기를 먼저
+  // 돌리므로 거기서는 실제로 검사된다(`.github/workflows/checks.yml`).
+  const webDir = new URL('../public/exams/', import.meta.url);
+  const madeForWeb = existsSync(webDir);
+
   for (const r of db.rounds) {
     for (const x of pdfList(r)) {
       const rel = pdfHref(r.tag, x.k, '/');          // `exams/<이름>`
-      const onWeb = new URL('../public/' + rel, import.meta.url);
-      assert.ok(existsSync(onWeb), `웹에 없다 — public/${rel}`);
-      // 앱도 같은 파일을 번들한다
+      // 앱 번들은 **커밋되어 있다** — 언제나 있어야 한다
       const onApp = new URL('../../mobile/assets/' + rel, import.meta.url);
       assert.ok(existsSync(onApp), `앱에 없다 — mobile/assets/${rel}`);
+      if (madeForWeb) {
+        const onWeb = new URL('../public/' + rel, import.meta.url);
+        assert.ok(existsSync(onWeb), `웹에 없다 — public/${rel}`);
+      }
     }
+  }
+
+  if (!madeForWeb) {
+    console.log('    (web/public/exams/ 가 없다 — python tools/export_bank.py 를 돌리면 검사된다)');
   }
 });

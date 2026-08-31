@@ -98,6 +98,22 @@ jobs:
 
       - run: npm ci
 
+      # **내보내기를 먼저 돌린다.** `web/public/data/` 와 `web/public/exams/` 는
+      # gitignore 라 새 체크아웃에는 없다. 없으면 「가리키는 파일이 실제로 있다」
+      # 시험이 웹 쪽을 건너뛴다 — 그러면 링크가 404 인 것을 아무도 못 잡는다.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: 문항·PDF 자산 만들기
+        working-directory: .
+        env:
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: '1'
+        run: |
+          pip install -r requirements.txt
+          python tools/export_bank.py
+
       # 순수 로직(core/) · 문항 래퍼(data/) — 브라우저 없이 돈다.
       # 실제 app/data/bank.json 으로 훑는 시험이 섞여 있어, 문항이 바뀌면 여기서 걸린다.
       - name: 웹 시험
