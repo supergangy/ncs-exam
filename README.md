@@ -16,11 +16,17 @@ Python으로 문항 데이터를 관리하고, HTML 템플릿을 거쳐 **문제
 | [`r3_korail`](rounds/r3_korail/README.md) | 한국철도공사 (2회차) | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 문제집 13쪽 / 해설집 16쪽 / 출제 이유서 11쪽 |
 | [`r4_korail`](rounds/r4_korail/README.md) | 한국철도공사 (3회차) | NCS 30문항 / 35분 · 의사소통·수리·문제해결 각 10 | **완성** — 13쪽 / 18쪽 / 12쪽 · **그림 5곳** |
 | [`r5_nhis`](rounds/r5_nhis/README.md) | 국민건강보험공단 | 60문항 / 60분 · 의사소통·수리·문제해결 각 20 | **완성** — 24쪽 / 32쪽 / 14쪽 · 계산형 13건 기계 검증 |
+| [`r6_seoulmetro`](rounds/r6_seoulmetro/README.md) | 서울교통공사 | 40문항 / 45분 · NCS 10영역 각 4 | **완성** — 22쪽 / 20쪽 · 계산형 16건 기계 검증 |
+| [`r7_cs`](rounds/r7_cs/README.md) | 공기업 **전산직 전공** | 40문항 / 50분 · 8과목 | **완성** — 19쪽 / 22쪽 · **34/40 기계 검증** |
 
 ```bash
 python build.py                      # 기본 회차(r1_public)
 python build.py --round r2_korail    # 다른 회차
 ```
+
+**PDF 는 중간 산출물이다.** 최종 산출물은 배포된 웹앱과 안드로이드 앱이고,
+회차 인쇄본은 그 안에서 내려받을 수 있다. 파이프라인은 [`docs/BANK.md`](docs/BANK.md),
+새 환경을 세우는 것은 [`CLAUDE.md`](CLAUDE.md) 를 본다.
 
 회차별 사양·블루프린트·이력은 각 `rounds/<회차>/README.md`, 기계가 읽는 값은 `config.py`에 있다.
 

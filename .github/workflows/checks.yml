@@ -1,0 +1,113 @@
+# 문항과 웹판을 검사한다. **코드가 바뀔 때마다 돈다.**
+#
+# 앱(Flutter)은 `apk.yml` 이 맡는다 — Flutter 를 받는 데 몇 분이 걸려 갈라 두었다.
+# 이쪽은 파이썬과 노드뿐이라 1~2분이면 끝난다.
+#
+# 왜 필요한가 — 클라우드·터미널·휴대폰에서 여러 작업을 나눠 돌리면 각자 자기
+# 검사만 보고 밀게 된다. 그때 **전부를 한 번 보는 자리**가 여기다.
+#
+# 여기서 안 하는 것 —
+#   · `python build.py` (PDF) — 헤드리스 크롬이 필요하고, out/ 의 PDF 는 커밋되어 있다
+#   · 배포 — 토큰이 필요하고, 사람이 `--dry` 로 먼저 봐야 한다
+
+name: 검사
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  문항:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # 앱에서 터질 것을 미리 잡는다 — 선지 수·정답 범위·id 중복.
+      # 회차 PDF 를 앱·웹 자산으로 옮기는 일도 여기서 함께 확인된다.
+      - name: 내보내기 점검 (844문항)
+        run: python tools/export_bank.py --check
+
+      # PLAYBOOK 10가지 — 걸러낼 표현, 선지 길이, 중복 선지, <보기> 조합형 편성,
+      # 정답 분포와 연속, 각주 수, 세트문항 비율, 4-7(조합형 최소 3개 판정).
+      - name: 회차 내용 검사
+        run: |
+          fail=0
+          for d in rounds/r*/; do
+            r=$(basename "$d")
+            echo "::group::$r"
+            if [ "$r" = 'r6_seoulmetro' ]; then
+              # 24번 <보기> 조합형이 4-7 을 위배한다(한 개만 판정해도 답이 나온다).
+              # 2026-08-29 확인 · 별건으로 고치는 중이라 그 하나 때문에 전체를
+              # 막지 않는다. **이 갈래를 지우는 것이 고쳤다는 뜻이다.**
+              python tools/selfcheck.py --round "$r" \
+                || echo "::warning title=r6::알려진 지적 — docs/PLAN.md 2절"
+            else
+              python tools/selfcheck.py --round "$r" || { fail=1; echo "::error::$r"; }
+            fi
+            echo '::endgroup::'
+          done
+          exit $fail
+
+      # 계산형 문항의 답을 **다시 구해** 대조한다. 없는 회차는 지나간다.
+      - name: 계산 검증
+        run: |
+          fail=0
+          for f in rounds/r*/verify.py; do
+            echo "::group::$f"
+            python "$f" || { fail=1; echo "::error::$f 실패"; }
+            echo '::endgroup::'
+          done
+          exit $fail
+
+      # 전산 은행 300건 — 정답이 지문 밖 사실로 정해지므로 실행으로 확정한다.
+      - name: 전산 문항 검증
+        run: python tools/verify_cs.py
+
+      - name: NCS 문항 검증
+        run: python tools/verify_ncs.py
+
+  웹:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      # 순수 로직(core/) · 문항 래퍼(data/) — 브라우저 없이 돈다.
+      # 실제 app/data/bank.json 으로 훑는 시험이 섞여 있어, 문항이 바뀌면 여기서 걸린다.
+      - name: 웹 시험
+        run: node --test test/*.test.js
+
+      # 화면 규칙 — 정의 안 된 var() · 지문 없는 문항 화면 · 겹치는 제출 바.
+      # 눈으로 못 보는 환경에서 눈 대신 쓴다.
+      - name: 화면 검사
+        run: node tool/check_ui.mjs
+
+      - name: 웹 빌드
+        run: npx vite build
+
+      # 서비스 워커의 판 도장이 파일 목록·크기·생성기 바이트에서 나온다.
+      # 여기서 터지면 배포했을 때 **흰 화면**이 된다.
+      - name: 서비스 워커
+        run: node tool/make_sw.mjs

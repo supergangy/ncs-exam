@@ -43,3 +43,8 @@ brand/fonts-src/OFL-*.txt
 
 # 웹판이 내주는 회차 PDF — export_bank.py 가 out/<회차>/ 에서 만든다
 web/public/exams/
+
+# Claude Code — 저장소가 들고 가는 것은 settings.json 하나다.
+# settings.local.json 은 그 PC 의 경로가 박히고, worktrees/ 는 병렬 작업용 사본이다.
+.claude/*
+!.claude/settings.json

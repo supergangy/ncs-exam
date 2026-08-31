@@ -1,0 +1,12 @@
+# Python 의존성 — `pip install -r requirements.txt`
+#
+# 넷뿐이다. 나머지는 표준 라이브러리로 쓴다 — 문항 데이터가 순수 dict 이고
+# 검증기도 표준 라이브러리(`sqlite3` · `hashlib` · `itertools`)로 돈다.
+#
+# **PDF 를 굽는 데는 크롬이 따로 필요하다.** `build.py` 와 `layout.py` 가 헤드리스
+# 크롬으로 HTML 을 재고 인쇄한다. pip 으로 오지 않으므로 `scripts/setup.sh` 를 본다.
+
+jinja2>=3.1      # 문제집·해설집 HTML 템플릿 (templates/)
+Pillow>=10.0     # 아이콘·로고·목업 (brand/ · tools/make_icons.py)
+markdown>=3.5    # 문서 → PDF (tools/md2pdf.py)
+pypdf>=4.0       # 쪽 수 세기·문항 좌표 뽑기 (tools/pagemap.py)

@@ -1,0 +1,31 @@
+{
+  "//": [
+    "클라우드 세션·Codespaces 가 쓰는 환경. `scripts/setup.sh` 가 실제 일을 하고",
+    "여기는 그것을 부를 뿐이다 — 설치 목록이 두 군데로 갈리면 언젠가 어긋난다.",
+    "",
+    "Flutter 를 features 로 넣지 않았다. 앱 검사 376건은 순수 Dart 라 Dart SDK 만",
+    "있으면 돌고, APK 는 GitHub Actions(.github/workflows/apk.yml)가 굽는다.",
+    "샌드박스마다 안드로이드 SDK 를 받게 하면 첫 실행이 몇 분씩 길어진다.",
+    "",
+    "크롬은 setup.sh 가 apt 로 한 번 시도한다. 없어도 문항 집필·검증·웹 작업은",
+    "그대로 되고, PDF 굽기만 막힌다 (CLAUDE.md 「환경마다 되는 것이 다르다」)."
+  ],
+  "name": "NCS 봉투모의고사",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/dart:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "onCreateCommand": "bash scripts/setup.sh",
+  "remoteEnv": {
+    "//": "윈도우 개발 PC 에서 겪은 것 — 콘솔 인코딩이 UTF-8 이 아니면 한글 출력이 깨진다",
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUTF8": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "Dart-Code.dart-code"]
+    }
+  }
+}

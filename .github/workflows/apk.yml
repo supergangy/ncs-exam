@@ -60,24 +60,20 @@ jobs:
 
       # 화면을 볼 수 없는 환경에서 눈 대신 쓰는 것들. 모두 순수 Dart 라
       # 러너에서도 그대로 돈다.
-      - name: 발문·선지 텍스트 검증
-        run: dart run tool/check_text.dart
-
-      - name: 백업 왕복 검증
-        run: dart run tool/check_backup.dart
-
-      - name: 오답노트 인쇄본 검증
-        run: dart run tool/check_note_html.dart
-
-      - name: 복습 알림 일정 검증
-        run: dart run tool/check_reminder.dart
-
-      - name: 통계 집계 검증
-        run: dart run tool/check_stats.dart
-
-      # 여기서 값이 새면 사용자의 풀이 기록이 조용히 사라지고 되돌릴 수 없다.
-      - name: 기록 ↔ 테이블 행 왕복 검증
-        run: dart run tool/check_db_rows.dart
+      #
+      # **하나씩 적지 않는다.** 그렇게 두었다가 넷을 빠뜨렸다 — check_pool ·
+      # check_tracks · check_exam_files · check_ink 가 CI 밖에 있었고,
+      # 새 검사를 만들 때마다 이 파일을 고치는 것을 기억해야 했다.
+      # 훑으면 그 일이 다시 일어나지 않는다.
+      - name: 앱 검사 (tool/check_*.dart 전부)
+        run: |
+          fail=0
+          for f in tool/check_*.dart; do
+            echo "::group::$f"
+            dart run "$f" || { fail=1; echo "::error::$f 실패"; }
+            echo '::endgroup::'
+          done
+          exit $fail
 
       - name: 아이콘 검증
         working-directory: .

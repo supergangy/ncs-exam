@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/setup.sh)",
+
+      "Bash(python tools/export_bank.py:*)",
+      "Bash(python tools/selfcheck.py:*)",
+      "Bash(python tools/deploy_check.py:*)",
+      "Bash(python tools/law_text.py:*)",
+      "Bash(python tools/make_icons.py:*)",
+      "Bash(python tools/pagemap_check.py:*)",
+      "Bash(python tools/prosestat.py:*)",
+      "Bash(python tools/verify_cs.py:*)",
+      "Bash(python tools/verify_ncs.py:*)",
+      "Bash(python rounds/:*)",
+      "Bash(python bank/loader.py:*)",
+      "Bash(python reviews/report.py:*)",
+      "Bash(python build.py:*)",
+
+      "Bash(npm ci:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vite build:*)",
+      "Bash(node --test:*)",
+      "Bash(node tool/check_ui.mjs:*)",
+      "Bash(node tool/make_sw.mjs:*)",
+
+      "Bash(dart run tool/:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter analyze:*)",
+
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git branch:*)",
+      "Bash(git worktree list)",
+      "Bash(git ls-files:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(gh release list:*)",
+      "Bash(gh release view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh api repos/:*)"
+    ],
+    "ask": [
+      "Bash(python tools/deploy_web.py:*)",
+      "Bash(python mobile/tool/build_apk.py:*)",
+      "Bash(gh release create:*)",
+      "Bash(gh release upload:*)",
+      "Bash(git push --force:*)",
+      "Bash(git tag:*)"
+    ],
+    "deny": [
+      "Read(./corpus/raw/**)",
+      "Read(./corpus/parsed/**)",
+      "Read(./reviews/raw/**)",
+      "Bash(git stash:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)"
+    ]
+  },
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUTF8": "1"
+  }
+}
