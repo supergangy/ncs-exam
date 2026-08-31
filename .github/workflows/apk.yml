@@ -75,11 +75,15 @@ jobs:
           done
           exit $fail
 
+      # `tools/make_icons.py` 는 2026-08-27 로고 교체(72cc40c)에서 brand/ 로 옮겨지며
+      # 사라졌는데 이 단계만 남아 「No such file」로 넉새 동안 죽고 있었다.
+      # brand/check.py 가 그 자리를 잇는다 — 매니페스트가 가리키는 것이 실제로
+      # 있는지, 밀도마다 한 벌씩 있는지, 크기가 맞는지.
       - name: 아이콘 검증
         working-directory: .
         run: |
           python -m pip install --quiet Pillow
-          python tools/make_icons.py --check
+          python brand/check.py
 
       # 문항이 인용한 법령 조문이 원문과 한 글자도 다르지 않은지 본다.
       # 조문을 지어내지 않는다는 규율(bank/README.md)을 기계로 지키는 자리다.
