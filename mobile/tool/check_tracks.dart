@@ -67,7 +67,7 @@ void main() {
   // ── 두 직렬에 걸친 회차는 양쪽에 다 선다 ──────────────────────
   final both = RoundEntry(
       tag: 'both', title: '한 교시 회차', brand: '', org: '', n: 1, min: 1,
-      tr: const ['ncs', 'cs'], areas: const []);
+      tr: const ['ncs', 'cs'], pdf: const {}, areas: const []);
   final mixed = groupRounds(bank.tracks, [both]);
   ok('두 직렬에 걸친 회차는 양쪽 묶음에 다 선다',
       mixed.length == 2 && mixed.every((g) => g.rounds.length == 1));

@@ -454,11 +454,37 @@ PC 판을 처음 올리자 배포본이 **하얀 화면**이 되었다(2026-08-2
 ### 다시 배포하는 법
 
 ```bash
-python tools/export_bank.py                      # bank.json · admin.json 갱신
+python tools/export_bank.py                      # bank.json · admin.json · 회차 PDF 갱신
 cd web && npx vite build && node tool/make_sw.mjs && cd ..
 python tools/deploy_web.py --dry                 # 남길 것·지울 것을 먼저 본다
 python tools/deploy_web.py
 ```
+
+### 회차 인쇄본 PDF
+
+`export_bank.py` 가 `out/<회차>/` 에서 **한 벌을 세 군데로** 옮긴다 —
+
+| 어디 | 무엇 | 쓰임 |
+|---|---|---|
+| `mobile/assets/exams/<회차>.pdf` | 문제집 | 「PDF로 풀기」 · 앱 내려받기 |
+| `mobile/assets/exams/<회차>.sol.pdf` | 해설집 | 앱 내려받기 |
+| `mobile/assets/exams/<회차>.map.json` | 문항 좌표 | 「PDF로 풀기」가 오려 낼 자리 |
+| `web/public/exams/<회차>.pdf` · `.sol.pdf` | 같은 파일 | 웹 내려받기 |
+
+일곱 회차 × 두 벌 = **12MB**. APK 에 그냥 싣는다 — 비행기 모드에서 풀리는 것이
+이 앱의 성질이고 해설도 거기 든다. 서비스 워커는 `exams/` 를 **캐시하지 않는다**
+(`make_sw.mjs` 의 `SKIP` · `isDownload`) — 내려받으면 기기에 저장되는 파일이라
+캐시에 또 두면 곱절이다.
+
+**`out/<회차>/*_출제이유.pdf` 는 옮기지 않는다.** 함정 설계와 근거를 적은 집필 쪽
+자료로, 같은 내용이 `admin.json` 에 있고 그것은 관리자 모드에서만 받는다.
+`mobile/tool/check_exam_files.dart` 와 `web/test/pdf.test.js` 가 그 이름이
+섞이지 않았는지 회차마다 본다.
+
+서버·번들 이름은 아스키(`r6_seoulmetro.sol.pdf`)이고 **저장될 이름**만 한글이다
+(`NCS_봉투모의고사_6회_서울교통공사_해설.pdf`). 자산 경로에 한글을 쓰면
+플랫폼·서버마다 다루는 법이 갈린다. 두 이름은 `bank.json` 의 회차 기록에
+`"pdf": {"q": [이름, KB], "s": [이름, KB]}` 로 함께 담긴다.
 
 **손으로 옮기지 마라.** `rm -rf * && cp -r dist/* .` 로 하면 흰 화면이 된다(위 절).
 스크립트가 한 세대를 남기고, `sw.js` 의 판은 파일 목록·크기·생성기 바이트에서

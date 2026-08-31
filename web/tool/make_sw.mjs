@@ -38,8 +38,15 @@ const DIST = join(ROOT, 'dist');
 
 /** install 에서 담지 않는 것 — 나중에 요청될 때 담긴다 */
 const LAZY = /^(fonts\/|.*\.map$)/;
-/** 아예 담지 않는 것 */
-const SKIP = /^(sw\.js$|fonts\/OFL-)/;
+/**
+ *  아예 담지 않는 것.
+ *
+ *  `exams/` 는 회차 PDF 12MB 다. **내려받으면 기기에 저장되는 파일**이라
+ *  캐시에 또 두면 같은 것을 두 벌 갖는 셈이다. 목록에서 빼면 판 도장(VERSION)
+ *  에도 안 들어가므로, PDF 를 다시 구웠다고 캐시 전체가 갈리지도 않는다.
+ *  워커의 fetch 도 이 경로는 그물로 그냥 보낸다(아래 `isDownload`).
+ */
+const SKIP = /^(sw\.js$|fonts\/OFL-|exams\/)/;
 
 function walk(dir) {
   const out = [];
@@ -104,12 +111,19 @@ const isDoc = (req, url) => req.mode === 'navigate'
                          || url.pathname.endsWith('/')
                          || url.pathname.endsWith('.html');
 
+/** 내려받는 파일인가 — 회차 PDF. 기기에 저장되므로 캐시에 또 두지 않는다 */
+const isDownload = url => url.pathname.includes('/exams/');
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;      // 남의 집 것은 건드리지 않는다
+
+  // 회차 PDF 는 워커가 손대지 않는다 — 12MB 를 캐시에 겹쳐 두지 않으려는 것이다.
+  // 그물이 없으면 내려받기가 실패하지만, 그것은 정직한 실패다.
+  if (isDownload(url)) return;
 
   e.respondWith((async () => {
     const cache = await caches.open(VERSION);

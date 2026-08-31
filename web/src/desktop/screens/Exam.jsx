@@ -5,6 +5,7 @@
  */
 import { pct } from '../../core/progress.js';
 import { mmss } from '../../core/text.js';
+import { pdfList } from '../../data/pdf.js';
 import { poolHref } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
@@ -25,6 +26,7 @@ export default function Exam({ db, tag }) {
     );
   }
 
+  const pdfs = pdfList(r);
   const busy = !!m.sit && m.sit.tag !== tag;
   const mine = m.sit?.tag === tag;
   const best = m.h.length ? Math.max(...m.h.map(x => pct(x.score, x.n))) : null;
@@ -95,6 +97,30 @@ export default function Exam({ db, tag }) {
               </div>
             )}
           </div>
+
+          {pdfs.length > 0 && (
+            <div className="card pad">
+              <div className="h3">인쇄본 내려받기</div>
+              <div className="sm muted" style={{ marginTop: '.35rem' }}>
+                실전은 종이로 풉니다. 화면과 인쇄본은 조판이 달라 — 자료 표의
+                줄바꿈부터 다릅니다.
+              </div>
+              <div style={{ display: 'flex', gap: '.5rem', marginTop: '.9rem' }}>
+                {pdfs.map(f => (
+                  <a key={f.k} className="btn btn-outline" href={f.href} download={f.file}
+                     style={{ flex: 1, gap: '.5rem', textDecoration: 'none' }}>
+                    <I.Download style={{ width: 17, height: 17 }} />
+                    {f.name} <span className="row-n">{f.size}</span>
+                  </a>
+                ))}
+              </div>
+              {m.h.length === 0 && pdfs.some(f => f.k === 's') && (
+                <div className="sm" style={{ marginTop: '.7rem', color: 'var(--warn)' }}>
+                  아직 응시하지 않았습니다 — 해설집을 먼저 열면 이 회차를 잃습니다.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="stack">

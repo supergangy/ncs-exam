@@ -9,6 +9,7 @@
  */
 import { pct } from '../../core/progress.js';
 import { mmss } from '../../core/text.js';
+import { pdfList } from '../../data/pdf.js';
 import { poolHref } from '../../data/pool.js';
 import * as I from '../../icons.jsx';
 import { go } from '../../router/useHash.js';
@@ -29,6 +30,8 @@ export default function Exam({ db, tag }) {
       </div>
     );
   }
+
+  const pdfs = pdfList(r);
 
   const start = () => {
     st.startSit(tag, r.min);
@@ -72,6 +75,31 @@ export default function Exam({ db, tag }) {
           ))}
         </div>
       </div>
+
+      {pdfs.length > 0 && (
+        <div className="card pad">
+          <div className="h3">인쇄본 내려받기</div>
+          <div className="row-sub" style={{ marginTop: '.3rem' }}>
+            실전은 종이로 풉니다. 인쇄해서 시간을 재고 풀어 보세요.
+          </div>
+          <div style={{ marginTop: '.7rem' }}>
+            {pdfs.map(f => (
+              <a key={f.k} className="btn btn-outline" href={f.href} download={f.file}
+                 style={{ width: '100%', marginTop: '.4rem', justifyContent: 'flex-start',
+                          gap: '.6rem', textDecoration: 'none' }}>
+                <I.Download style={{ width: 18, height: 18, flex: '0 0 auto' }} />
+                <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>{f.name}</span>
+                <span className="row-n">{f.size}</span>
+              </a>
+            ))}
+          </div>
+          {!m.rec && pdfs.some(f => f.k === 's') && (
+            <div className="sm" style={{ marginTop: '.6rem', color: 'var(--warn)' }}>
+              아직 응시하지 않았습니다 — 해설집을 먼저 열면 이 회차를 잃습니다.
+            </div>
+          )}
+        </div>
+      )}
 
       {m.rec && (
         <div className="card pad">

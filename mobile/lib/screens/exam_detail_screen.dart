@@ -1,6 +1,12 @@
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import '../exam_files.dart';
 import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -27,6 +33,9 @@ class ExamDetailScreen extends StatefulWidget {
 }
 
 class _ExamDetailScreenState extends State<ExamDetailScreen> {
+  /// 지금 꺼내고 있는 자산 경로. 두 번 눌러 두 벌 꺼내지 않게 한다
+  String? _busy;
+
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
@@ -59,6 +68,7 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
     final cur = Store.instance.sit?.tag == widget.tag ? Store.instance.sit : null;
     final hist = Store.instance.history(widget.tag);
     final perQ = r.n == 0 ? 0 : (r.min * 60 / r.n).round();
+    final files = examFiles(r);
 
     return Scaffold(
       appBar: AppBar(title: Text(r.title)),
@@ -83,6 +93,27 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
           ),
           const SectionTitle('영역 구성'),
           _AreaTable(areas: r.areas),
+          if (files.isNotEmpty) ...[
+            const SectionTitle('인쇄본 내려받기'),
+            Text('실전은 종이로 풉니다. 화면과 인쇄본은 조판이 달라 — '
+                '자료 표의 줄바꿈부터 다릅니다.',
+                style: TextStyle(color: c.faint, fontSize: 12.5)),
+            const SizedBox(height: 8),
+            ...files.map((f) => RowTile(
+                  title: f.name,
+                  subtitle: f.file,
+                  trailing: Text(_busy == f.asset ? '꺼내는 중…' : f.size,
+                      style: TextStyle(color: c.dim, fontSize: 12.5)),
+                  onTap: _busy == null ? () => _share(f) : null,
+                )),
+            if (hist.isEmpty && files.any((f) => f.kind == 's'))
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('아직 응시하지 않았습니다 — 해설집을 먼저 열면 '
+                    '이 회차를 잃습니다.',
+                    style: TextStyle(color: c.warn, fontSize: 12.5)),
+              ),
+          ],
           if (hist.isNotEmpty) ...[
             SectionTitle('지난 성적 ${hist.length}회 — 누르면 다시 봅니다'),
             ...hist.reversed.take(5).map((h) {
@@ -174,6 +205,35 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => SitScreen(tag: r.tag)));
     if (!mounted) return;
     setState(() {});
+  }
+
+  /// 번들의 PDF 를 임시 파일로 꺼내 공유 시트에 넘긴다.
+  ///
+  /// **자산은 APK 안에 있어 경로로 넘길 수 없다.** 한 번 꺼내야 다른 앱이
+  /// 읽는다. 꺼낼 때 `bank.json` 에 적힌 **저장될 이름**을 쓴다 — 받는 쪽이
+  /// 「r6_seoulmetro.pdf」가 아니라 「NCS_봉투모의고사_6회_…_문제.pdf」를 본다.
+  ///
+  /// 오답노트·백업 내보내기(`wrong_screen` · `settings_screen`)와 같은 길이다.
+  Future<void> _share(ExamFile f) async {
+    setState(() => _busy = f.asset);
+    try {
+      final bytes = await rootBundle.load(f.asset);
+      final dir = await getTemporaryDirectory();
+      final out = File('${dir.path}/${f.file}');
+      await out.writeAsBytes(bytes.buffer.asUint8List(
+          bytes.offsetInBytes, bytes.lengthInBytes));
+      // mimeType 을 준다 — 안 주면 확장자로 짐작하는데, 파일 이름이 한글이라
+      // 받는 앱에 따라 「알 수 없는 파일」로 뜬다
+      await Share.shareXFiles(
+          [XFile(out.path, mimeType: 'application/pdf', name: f.file)],
+          text: f.file);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('내려받지 못했습니다: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = null);
+    }
   }
 
   Widget _kpi(AppColors c, String v, String k) => Column(children: [

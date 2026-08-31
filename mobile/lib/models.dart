@@ -75,16 +75,28 @@ class RoundEntry {
   /// 옛 bank.json 에는 이 칸이 없다. 그때는 회차가 다 NCS 였으므로 그렇게 본다.
   final List<String> tr;
 
+  /// 인쇄본 PDF — `{'q': [보이는 이름, KB], 's': [...]}`.
+  ///
+  /// 서버·번들의 이름(`r1_public.pdf`)과 **저장될 이름**(`NCS_봉투모의고사_1회_문제.pdf`)
+  /// 이 다르다. 파일 이름이 한글이라 주소에 그대로 쓰면 인코딩이 갈리기 때문이다.
+  /// `tools/export_bank.py` 가 두 이름을 함께 만든다.
+  ///
+  /// 옛 bank.json 에는 이 칸이 없다. 그때는 빈 map 이다 — 화면이 아무것도 세우지
+  /// 않는다(눌러도 없는 파일을 여는 단추를 만들지 않는다).
+  final Map<String, List<dynamic>> pdf;
+
   final List<RoundArea> areas;
   RoundEntry({
     required this.tag, required this.title, required this.brand,
     required this.org, required this.n, required this.min,
-    required this.tr, required this.areas,
+    required this.tr, required this.pdf, required this.areas,
   });
   factory RoundEntry.fromJson(Map<String, dynamic> j) => RoundEntry(
         tag: j['tag'], title: j['title'], brand: j['brand'] ?? '',
         org: j['org'] ?? '', n: j['n'], min: j['min'],
         tr: ((j['tr'] as List?) ?? const ['ncs']).cast<String>(),
+        pdf: ((j['pdf'] as Map?) ?? const {})
+            .map((k, v) => MapEntry(k as String, (v as List))),
         areas: (j['areas'] as List)
             .map((a) => RoundArea(a[0] as String, a[1] as int))
             .toList(),

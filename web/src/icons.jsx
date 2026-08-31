@@ -110,3 +110,9 @@ export const Tag = p => (             // 키워드 — 꼬리표. 구멍을 뚫�
     <circle cx="16.4" cy="7.1" r="1.4" />
   </Ico>
 );
+export const Download = p => (        // 내려받기 — 화살표가 받침으로 떨어진다
+  <Ico {...p}>
+    <path d="M12 3v11m0 0 4-4m-4 4-4-4" />
+    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+  </Ico>
+);

@@ -40,3 +40,6 @@ brand/out/
 brand/fonts-src/*.woff2
 brand/fonts-src/*.ttf
 brand/fonts-src/OFL-*.txt
+
+# 웹판이 내주는 회차 PDF — export_bank.py 가 out/<회차>/ 에서 만든다
+web/public/exams/

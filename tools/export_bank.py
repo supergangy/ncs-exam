@@ -43,43 +43,105 @@ OUT_MOBILE = ROOT / "mobile" / "assets" / "data"
 OUT_WEB = ROOT / "web" / "public" / "data"
 # Flutter 판의 「PDF로 풀기」가 쓰는 것. 웹판은 PDF 를 오려 낼 수단이 없어 안 쓴다.
 OUT_EXAMS = ROOT / "mobile" / "assets" / "exams"
+# 웹판이 내주는 PDF. gitignore 라 여기서 만들지 않으면 아무 데서도 안 만들어진다.
+OUT_WEB_EXAMS = ROOT / "web" / "public" / "exams"
 
 
-def export_exam_pdfs(tags):
-    """회차 문제집 PDF 와 문항 지도를 앱 자산으로 옮긴다.
+def export_exam_pdfs(tags) -> tuple[dict[str, dict], list[str]]:
+    """회차 PDF 를 앱 자산과 웹 공개 폴더로 옮기고, 무엇을 옮겼는지 돌려준다.
 
-    다섯 회차를 합쳐 4.6MB 라 **APK 에 그냥 넣는다.** 분석한 PSAT 앱은 회차당
-    3~5MB 라 R2 에서 내려받지만, 우리는 그 값을 치르면서까지 「지하철에서
-    풀려야 한다」는 원칙을 깰 이유가 없다.
+    **세 가지 쓰임이 한 벌의 파일을 나눠 쓴다.**
+
+      · 「PDF로 풀기」 — 문제집에서 문항 하나를 오려 보여 준다 (앱 전용,
+        `page_map.json` 이 좌표를 준다)
+      · 앱의 내려받기 — 번들에서 꺼내 공유 시트로 넘긴다
+      · 웹의 내려받기 — `exams/<회차>.pdf` 를 그대로 내준다
+
+    일곱 회차의 문제집과 해설집을 합쳐 12MB 다. **APK 에 그냥 넣는다.**
+    분석한 PSAT 앱은 회차당 3~5MB 라 R2 에서 내려받지만, 우리는 그 값을
+    치르면서까지 「지하철에서 풀려야 한다」는 원칙을 깰 이유가 없다.
+    해설집을 실으면서 APK 가 6MB 늘었다 — 그 값으로 산 것은 **비행기 모드에서도
+    해설을 받을 수 있다**는 것이다.
+
+    ## 출제이유 PDF 는 옮기지 않는다
+
+    `out/<회차>/*_출제이유.pdf` 는 함정 설계와 근거를 적은 **집필 쪽 자료**다.
+    같은 내용이 `admin.json` 에 있고 그것은 관리자 모드에서만 받는다
+    (`bank.json` 에 아예 넣지 않는다). PDF 만 열어 두면 그 결정이 새어 나간다.
+
+    ## 서버 이름과 보이는 이름을 나눈다
+
+    파일 이름이 한글이라(`NCS_봉투모의고사_1회_문제.pdf`) 주소에 그대로 쓰면
+    퍼센트 인코딩이 길어지고 서버·브라우저마다 달리 다룬다. 서버에는
+    `r1_public.pdf` · `r1_public.sol.pdf` 로 두고, 내려받을 때의 이름만
+    `download` 속성으로 한글을 준다.
 
     지도가 없는 회차는 건너뛴다 — `build.py` 를 아직 안 돌린 것이다.
     """
     import shutil
     OUT_EXAMS.mkdir(parents=True, exist_ok=True)
-    kept, skipped, total = [], [], 0
+    OUT_WEB_EXAMS.mkdir(parents=True, exist_ok=True)
+
+    def pick(d: pathlib.Path, word: str) -> pathlib.Path | None:
+        """`_` 로 시작하는 것은 중간 산출물이다. 여럿이면 이름순 첫 번째."""
+        got = [p for p in d.glob(f"*{word}*.pdf") if not p.name.startswith("_")]
+        return sorted(got)[0] if got else None
+
+    kept: dict[str, dict] = {}
+    skipped: list[str] = []
+    app_bytes = web_bytes = 0
+
     for tag in tags:
         d = ROOT / "out" / tag
-        pdfs = [p for p in d.glob("*문제*.pdf") if not p.name.startswith("_")]
+        q = pick(d, "문제")
         pmap = d / "page_map.json"
-        if not pdfs or not pmap.exists():
+        if not q or not pmap.exists():
             skipped.append(tag)
             continue
-        pdf = sorted(pdfs)[0]
-        shutil.copy2(pdf, OUT_EXAMS / f"{tag}.pdf")
+        sol = pick(d, "해설")
+
         shutil.copy2(pmap, OUT_EXAMS / f"{tag}.map.json")
-        total += pdf.stat().st_size + pmap.stat().st_size
-        kept.append(tag)
+        app_bytes += pmap.stat().st_size
+
+        info: dict[str, list] = {}
+        for key, src, name in (("q", q, f"{tag}.pdf"),
+                               ("s", sol, f"{tag}.sol.pdf")):
+            if src is None:
+                continue
+            for dst_dir in (OUT_EXAMS, OUT_WEB_EXAMS):
+                shutil.copy2(src, dst_dir / name)
+            app_bytes += src.stat().st_size
+            web_bytes += src.stat().st_size
+            # 보이는 이름과 크기(KB). 화면이 「1.4MB」를 코드에 적지 않게 한다
+            info[key] = [src.name, round(src.stat().st_size / 1024)]
+        kept[tag] = info
 
     # 남은 찌꺼기를 치운다 — 회차 이름이 바뀌면 옛 파일이 APK 에 계속 실린다.
-    want = {f"{t}.pdf" for t in kept} | {f"{t}.map.json" for t in kept}
-    for p in OUT_EXAMS.iterdir():
-        if p.is_file() and p.name not in want:
-            p.unlink()
+    want_app = {f"{t}.map.json" for t in kept}
+    want_web: set[str] = set()
+    for t, info in kept.items():
+        for key in info:
+            want_web.add(f"{t}.pdf" if key == "q" else f"{t}.sol.pdf")
+    want_app |= want_web
+    for folder, want in ((OUT_EXAMS, want_app), (OUT_WEB_EXAMS, want_web)):
+        for p in folder.iterdir():
+            if p.is_file() and p.name not in want:
+                p.unlink()
 
-    print(f"\n■ {OUT_EXAMS.relative_to(ROOT)}  {total / 1048576:,.1f}MB   "
-          f"(PDF로 풀기 — {len(kept)}회차)")
+    n_sol = sum(1 for i in kept.values() if "s" in i)
+    lines = [
+        f"■ {OUT_EXAMS.relative_to(ROOT)}  {app_bytes / 1048576:,.1f}MB   "
+        f"(APK 에 싣는다 — 문제집 {len(kept)} · 해설집 {n_sol})",
+        f"■ {OUT_WEB_EXAMS.relative_to(ROOT)}  {web_bytes / 1048576:,.1f}MB   "
+        f"(웹 내려받기 — 같은 파일)",
+    ]
     if skipped:
-        print(f"   건너뜀: {', '.join(skipped)} — build.py 를 먼저 돌린다")
+        lines.append(f"   [건너뜀] page_map 이 없다 — {' · '.join(skipped)}")
+    for tag, info in kept.items():
+        if "s" not in info:
+            lines.append(f"   [알림] {tag} 는 해설집 PDF 가 없다 — build.py 를 다시 돌려라")
+    return kept, lines
+
 
 # ── 직렬 ────────────────────────────────────────────────────────────────
 # 전산 8과목은 직렬 문항이고, 나머지는 직렬을 가리지 않는 NCS 다.
@@ -563,6 +625,15 @@ def main() -> int:
             print(f"   {b}")
         return 1
 
+    # **PDF 를 먼저 옮긴다.** 회차 기록에 파일 이름과 크기를 담아야 하고,
+    # 그것은 build() 가 bank.json 을 짜기 전에 정해져 있어야 한다.
+    pdf_lines: list[str] = []
+    if not a.check:
+        got, pdf_lines = export_exam_pdfs([r["tag"] for r in rounds])
+        for r in rounds:
+            if got.get(r["tag"]):
+                r["pdf"] = got[r["tag"]]
+
     data, admin = build(items, rounds)
     if a.check:
         print(f"점검 통과 — 문항 {data['n']}건 · 문제 없음")
@@ -612,7 +683,9 @@ def main() -> int:
         cons = " · ".join(f"{a}{n}" for a, n in r["areas"])
         print(f"      {r['tag']:<12} {r['title']:<14} {r['n']:>2}문항/{r['min']}분   {cons}")
 
-    export_exam_pdfs([r["tag"] for r in data["rounds"]])
+    print()
+    for line in pdf_lines:
+        print(line)
 
     top = ", ".join(f"{k['t']}({k['n']})" for k in data["keywords"][:12])
     print(f"\n   키워드 상위: {top}")
